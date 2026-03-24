@@ -5,6 +5,33 @@ All notable changes to Loa will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.66.0] - 2026-03-24
+
+### Added
+
+- **cycle-051**: First-Class Construct Support — RFC #452 (#454)
+  - **Construct Index** (L1): `construct-index-gen.sh` generates `.run/construct-index.yaml` from installed packs with capability aggregation, composition pre-computation, and `--validate` flag for schema integrity
+  - **Name Resolution** (L2): `construct-resolve.sh` with 3-tier resolution (slug → name → command) and collision warnings. CLAUDE.md conditional instruction for agent-side activation
+  - **Composition as Pipe** (L3): `compose` subcommand detects writes/reads path overlap between constructs. Honest messaging when no material chain exists
+  - **Personal Operator OS** (L4): `archetype-resolver.sh` with activate/deactivate/status/greeting. User-defined modes in `.loa.config.yaml` mapping to construct compositions. Gate merging: most-restrictive-wins
+  - **Ambient Protocol Presence** (L5): Opt-in session greeting showing constructs, compositions, entry points, open threads. Thread tracking in `.run/open-threads.jsonl` with 30-day auto-archive
+  - 56 new tests across 7 suites (construct-index-gen, construct-resolve, archetype-resolver, ambient-greeting, open-threads, cross-platform-validation, construct-e2e)
+
+### Fixed
+
+- **constructs-install.sh**: Prefer local source clone over stale registry pack (#449, #453)
+  - `find_local_source()` checks for `manifest.json` OR `construct.yaml` (previously construct.yaml only — most packs don't have it)
+  - Freshness uses `find -newer` on any file (not just construct.yaml mtime — catches fixes in any file)
+  - Staleness warning (stderr) when installed pack >7 days old
+  - Configurable local search paths via `.loa.config.yaml`
+  - 6 new tests
+
+### Security
+
+- Bridgebuilder two-pass review on both PRs
+- Deep ecosystem review connecting to supply chain integrity patterns
+- All findings addressed before merge
+
 ## [1.65.0] - 2026-03-23
 
 ### Added
