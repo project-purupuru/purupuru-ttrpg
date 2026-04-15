@@ -9,7 +9,7 @@ Health check: /loa doctor
 Version: 1.88.0
 -->
 
-[![Version](https://img.shields.io/badge/version-1.88.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.90.0-blue.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-AGPL--3.0-green.svg)](LICENSE.md)
 [![Release](https://img.shields.io/badge/release-Spiral%20Autopoietic%20Orchestrator-purple.svg)](CHANGELOG.md#1880---2026-04-15)
 
@@ -26,6 +26,14 @@ In William Gibson's Sprawl trilogy (*Neuromancer*, *Count Zero*), Loa are AI ent
 ## Quick Start (~2 minutes)
 
 **Prerequisites**: [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview) (Anthropic's CLI for Claude), Git, jq, [yq v4+](https://github.com/mikefarah/yq). See **[INSTALLATION.md](INSTALLATION.md)** for full details.
+
+> [!WARNING]
+> **Some Loa features invoke external AI APIs and incur costs.** The three most expensive are:
+> - **Flatline Protocol** — multi-model adversarial review (~$15–25 per planning cycle, Opus + GPT-5.3-codex)
+> - **Simstim** — HITL-accelerated full cycle (~$25–65 per cycle, Opus + GPT-5.3-codex + Gemini)
+> - **Spiral** — autonomous multi-cycle orchestrator (~$10–35 per cycle depending on profile)
+>
+> **Flatline Protocol** and **Simstim** are **enabled by default** but require API keys (`OPENAI_API_KEY`, `GOOGLE_API_KEY`) to function — without them, multi-model review phases are skipped. **Spiral** is **disabled by default** and must be explicitly enabled. See [`docs/CONFIG_REFERENCE.md`](docs/CONFIG_REFERENCE.md#cost-matrix) for the full cost table. Run `/loa setup` inside Claude Code before enabling autonomous modes to choose a budget-appropriate configuration.
 
 ```bash
 # Install (one command, any existing repo — adds Loa as git submodule)
