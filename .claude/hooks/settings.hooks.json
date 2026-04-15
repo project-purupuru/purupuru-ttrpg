@@ -71,6 +71,10 @@
           {
             "type": "command",
             "command": ".claude/hooks/safety/team-skill-guard.sh"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/safety/spiral-skill-sentinel.sh"
           }
         ]
       }

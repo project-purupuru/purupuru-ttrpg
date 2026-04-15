@@ -4,18 +4,15 @@
 
 **When this skill is invoked with a task, you MUST dispatch through the harness pipeline. You MUST NOT implement code directly in conversation.**
 
-**MECHANICAL ENFORCEMENT**: A PreToolUse hook (`spiral-dispatch-guard.sh`) blocks Write/Edit to code files when this skill is active. To activate the guard and signal your intent to implement:
+**MECHANICAL ENFORCEMENT**: Two PreToolUse hooks enforce dispatch automatically:
+1. `spiral-skill-sentinel.sh` — creates `.run/spiral-dispatch-active` when this skill is invoked (automatic, no agent action needed)
+2. `spiral-dispatch-guard.sh` — blocks Write/Edit to code files until `spiral-harness.sh` has been dispatched
 
+The agent cannot bypass this because the hooks fire at the platform level before tools execute. Write/Edit to code files will be BLOCKED until the harness creates `.run/spiral-harness-dispatched`.
+
+**To deactivate** (for research-only invocations where no implementation is needed):
 ```bash
-# Step 1: Activate the dispatch guard (MANDATORY before any implementation)
-echo "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > .run/spiral-dispatch-active
-```
-
-This creates a sentinel file that the hook checks. Write/Edit to code files will be BLOCKED until the harness is dispatched. The harness creates `.run/spiral-harness-dispatched` which allows writes within the pipeline.
-
-**To deactivate** (after pipeline completes or for research-only invocations):
-```bash
-rm -f .run/spiral-dispatch-active .run/spiral-harness-dispatched
+rm -f .run/spiral-dispatch-active
 ```
 
 Route to ONE of:
