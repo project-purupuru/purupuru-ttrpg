@@ -4,10 +4,34 @@
 
 **When this skill is invoked with a task, you MUST dispatch through the harness pipeline. You MUST NOT implement code directly in conversation.**
 
+**MECHANICAL ENFORCEMENT**: A PreToolUse hook (`spiral-dispatch-guard.sh`) blocks Write/Edit to code files when this skill is active. To activate the guard and signal your intent to implement:
+
+```bash
+# Step 1: Activate the dispatch guard (MANDATORY before any implementation)
+echo "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > .run/spiral-dispatch-active
+```
+
+This creates a sentinel file that the hook checks. Write/Edit to code files will be BLOCKED until the harness is dispatched. The harness creates `.run/spiral-harness-dispatched` which allows writes within the pipeline.
+
+**To deactivate** (after pipeline completes or for research-only invocations):
+```bash
+rm -f .run/spiral-dispatch-active .run/spiral-harness-dispatched
+```
+
 Route to ONE of:
-1. `/run sprint-plan` — if a sprint plan already exists
-2. `/simstim` — for full single-cycle plan→build→review→audit
-3. `spiral-harness.sh` — for evidence-gated autonomous execution
+1. `/simstim` — for full HITL cycle: plan→build→review→audit (recommended)
+2. `/run sprint-plan` — if a sprint plan already exists
+3. Direct harness invocation for autonomous execution:
+
+```bash
+.claude/scripts/spiral-harness.sh \
+  --task "TASK_DESCRIPTION" \
+  --cycle-dir .run/cycles/cycle-NNN \
+  --cycle-id cycle-NNN \
+  --branch feat/spiral-xxx-cycle-NNN \
+  --budget 15 \
+  --profile standard
+```
 
 **Why**: This skill loads as context, not as an orchestrator. If you implement directly, you bypass Flatline, independent Review, independent Audit, and Bridgebuilder — all quality gates become self-certification. This is the fox-guarding-the-henhouse antipattern (cycle-070 E2E Lesson #1).
 
@@ -20,8 +44,12 @@ Research and design exploration (reading code, web search, writing proposals) is
 ## Reference
 
 - RFC-060 design doc: `grimoires/loa/proposals/rfc-060-spiral.md`
+- Harness architecture: `grimoires/loa/proposals/spiral-harness-architecture.md`
+- Cost optimization: `grimoires/loa/proposals/spiral-cost-optimization.md`
+- Benchmark report: `grimoires/loa/reports/spiral-harness-benchmark-report.md`
+- Benchmark comparison: `grimoires/loa/reports/spiral-benchmark-comparison.md`
 - Umbrella issue: #483
-- Script: `.claude/scripts/spiral-orchestrator.sh`
+- Scripts: `spiral-orchestrator.sh`, `spiral-harness.sh`, `spiral-scheduler.sh`, `spiral-benchmark.sh`
 
 ## Usage
 
