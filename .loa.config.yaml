@@ -174,6 +174,31 @@ run_bridge:
     redaction:
       enabled: true
       post_redaction_safety: true
+    # Multi-model Bridgebuilder (cycle-052 PR #463 architecture)
+    # Three-model kaironic review: Opus + GPT-5.3-codex + Gemini 2.5 Pro.
+    # Consensus scoring + iterative convergence (findings stabilize → kaironic termination).
+    # api_key_mode: graceful — missing keys degrade gracefully rather than blocking review.
+    multi_model:
+      enabled: true
+      models:
+        - provider: anthropic
+          model_id: claude-opus-4-7
+          role: primary
+        - provider: openai
+          model_id: gpt-5.3-codex
+          role: reviewer
+        - provider: google
+          model_id: gemini-2.5-pro
+          role: reviewer
+      iteration_strategy: final
+      api_key_mode: graceful
+      consensus:
+        enabled: true
+        scoring_thresholds:
+          high_consensus: 700
+          disputed_delta: 300
+          low_value: 400
+          blocker: 700
   pipeline_self_review:
     enabled: false              # Default false — progressive rollout
     base_branch: main           # Branch to diff against
@@ -218,6 +243,22 @@ flatline_protocol:
     low_value: 400
     blocker_skeptic: 700
   max_iterations: 5
+  # Phase 2.5: Adversarial cross-model review (PR #552 enforcement gate)
+  # When enabled, `/review-sprint` and `/audit-sprint` invoke a cross-model
+  # dissenter (gpt-5.3-codex by default) and produce adversarial-{review,audit}.json.
+  # The PreToolUse:Write hook at .claude/hooks/safety/adversarial-review-gate.sh
+  # blocks COMPLETED marker writes when enabled but the artifact is missing.
+  # Emergency override: LOA_ADVERSARIAL_REVIEW_ENFORCE=false.
+  code_review:
+    enabled: true
+    model: gpt-5.3-codex
+    budget_cents: 150
+    timeout_seconds: 60
+  security_audit:
+    enabled: true
+    model: gpt-5.3-codex
+    budget_cents: 150
+    timeout_seconds: 60
   secret_scanning:
     patterns:
       - "AIzaSy[A-Za-z0-9_-]{33}"
