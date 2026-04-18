@@ -103,7 +103,8 @@ is_rollback_enabled() {
     [[ "$enabled" == "true" ]]
 }
 
-# Attempt to rollback uncommitted changes (M-4 fix: stash before rollback)
+# Attempt to rollback uncommitted changes (M-4 fix: stash before rollback).
+# Surfaces `git stash push` output for diagnostic visibility (#555).
 perform_rollback() {
     local rollback_result="false"
 
@@ -113,15 +114,42 @@ perform_rollback() {
         return
     fi
 
-    # M-4 fix: Create stash backup before rollback to prevent data loss
+    # Create stash backup before rollback. NOT using stash_with_guard here
+    # because this is a half-stash (push only — we want the stash to REMAIN
+    # so the user can recover via `git stash pop`). The guard is for
+    # push-run-pop transactions; this is intentionally a push-only archive.
+    # We just remove `2>/dev/null` so any stash error surfaces.
+    # See: .claude/rules/stash-safety.md
     local stash_name="guardrail-rollback-$(date +%s)"
-    if git stash push -m "$stash_name" --include-untracked 2>/dev/null; then
-        # Log the stash for recovery
-        echo "Changes stashed as: $stash_name" >&2
-        echo "To recover: git stash pop" >&2
-        rollback_result="true"
-    else
-        # Stash failed, try direct restore (less safe)
+    local stash_count_before stash_count_after
+    # Use if/else to avoid `|| echo 0` duplication under pipefail when the
+    # pipeline already emits "0" from wc (see stash-safety.sh _stash_count).
+    if ! stash_count_before=$(git stash list 2>/dev/null | wc -l | tr -d ' '); then
+        stash_count_before="0"
+    fi
+    stash_count_before=${stash_count_before:-0}
+    # stdout → stderr so `perform_rollback`'s capture-via-$() sees only the
+    # final echo (true/false/no_changes). Stderr still surfaces stash
+    # diagnostics for debugging. Fixes DISS-001 from Phase 2.5 review.
+    if git stash push -m "$stash_name" --include-untracked >&2; then
+        if ! stash_count_after=$(git stash list 2>/dev/null | wc -l | tr -d ' '); then
+            stash_count_after="0"
+        fi
+        stash_count_after=${stash_count_after:-0}
+        # Integrity check: did the stash actually advance?
+        if [[ "$stash_count_after" -ne "$((stash_count_before + 1))" ]]; then
+            echo "STASH_SAFETY_VIOLATION: expected stash count $((stash_count_before + 1)), got $stash_count_after" >&2
+            # Worktree content may not be backed up — fall through to the
+            # direct-restore branch rather than claim success.
+        else
+            echo "Changes stashed as: $stash_name" >&2
+            echo "To recover: git stash pop" >&2
+            rollback_result="true"
+        fi
+    fi
+
+    if [[ "$rollback_result" != "true" ]]; then
+        # Stash failed or integrity check tripped; fall back to direct restore.
         if git restore . 2>/dev/null; then
             rollback_result="true"
         fi
