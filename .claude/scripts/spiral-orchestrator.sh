@@ -1330,6 +1330,28 @@ cmd_halt() {
     jq -n --arg reason "$reason" '{halted: true, reason: $reason}'
 }
 
+# _resume_terminal_decision — pure decision function for the COMPLETED/FAILED
+# case in cmd_resume. Extracted so tests can exercise it directly against the
+# shipped logic (not a simulation). Outputs one of:
+#   accept       — force-override applies; caller should treat as CRASHED
+#   refuse       — terminal state rejected (return 1)
+#   pass_through — non-terminal state; caller handles elsewhere
+# Exit codes: 0 for accept/pass_through, 1 for refuse.
+_resume_terminal_decision() {
+    local state="$1" stop_reason="$2" force="$3"
+    case "$state" in
+        COMPLETED|FAILED)
+            if [[ "$force" == "true" && "$stop_reason" == "quality_gate_failure" ]]; then
+                echo "accept"; return 0
+            fi
+            echo "refuse"; return 1
+            ;;
+        *)
+            echo "pass_through"; return 0
+            ;;
+    esac
+}
+
 cmd_resume() {
     if [[ ! -f "$STATE_FILE" ]]; then
         error "No spiral state to resume. Use --start."
@@ -1354,8 +1376,20 @@ cmd_resume() {
             current_state="CRASHED"
             ;;
         COMPLETED|FAILED)
-            error "Cannot resume from terminal state: $current_state. Use --start for a new spiral."
-            return 1
+            # #546: narrow --force override for quality_gate_failure only.
+            # Decision logic extracted to _resume_terminal_decision so tests
+            # call the shipped function, not a simulation.
+            local stop_reason force_flag decision
+            stop_reason=$(jq -r '.stopping_condition // ""' "$STATE_FILE" 2>/dev/null || echo "")
+            force_flag="${SPIRAL_RESUME_FORCE:-false}"
+            decision=$(_resume_terminal_decision "$current_state" "$stop_reason" "$force_flag")
+            if [[ "$decision" == "accept" ]]; then
+                log "Resume --force: accepting terminal state $current_state with stopping_condition=quality_gate_failure"
+                current_state="CRASHED"
+            else
+                error "Cannot resume from terminal state: $current_state. Use --start for a new spiral."
+                return 1
+            fi
             ;;
     esac
 
@@ -1434,7 +1468,18 @@ main() {
         --start) cmd_start "$@" ;;
         --status) cmd_status "$@" ;;
         --halt) cmd_halt "$@" ;;
-        --resume) cmd_resume ;;
+        --resume)
+            # #546: --resume accepts a narrow --force override for
+            # quality_gate_failure terminal states. Parsed here so
+            # cmd_resume can read SPIRAL_RESUME_FORCE without coupling
+            # to the main arg loop.
+            for arg in "$@"; do
+                if [[ "$arg" == "--force" ]]; then
+                    export SPIRAL_RESUME_FORCE=true
+                fi
+            done
+            cmd_resume
+            ;;
         --check-stop) cmd_check_stop ;;
         -h|--help|help|"")
             usage
