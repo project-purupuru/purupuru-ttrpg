@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "active_cycle": "cycle-048",
+  "active_cycle": "cycle-093-stabilization",
   "cycles": [
     {
       "id": "cycle-036",
@@ -612,9 +612,50 @@
       ],
       "triage": "grimoires/loa/a2a/bug-20260418-i573-cb3351/triage.md",
       "sprint_plan": "grimoires/loa/a2a/bug-20260418-i573-cb3351/sprint.md"
+    },
+    {
+      "id": "cycle-093-stabilization",
+      "label": "Loa Stabilization & Model-Currency Architecture",
+      "status": "active",
+      "created": "2026-04-24T14:30:00Z",
+      "prd": "grimoires/loa/cycles/cycle-093-stabilization/prd.md",
+      "sdd": "grimoires/loa/cycles/cycle-093-stabilization/sdd.md",
+      "sprint_plan": "grimoires/loa/cycles/cycle-093-stabilization/sprint.md",
+      "sprints": [
+        {
+          "local_id": 1,
+          "global_id": 114,
+          "label": "Harness Adversarial Wiring (T1.1)",
+          "status": "planned"
+        },
+        {
+          "local_id": 2,
+          "global_id": 115,
+          "label": "Bridgebuilder Dist + Dissenter Filter (T1.2 + T1.3)",
+          "status": "planned"
+        },
+        {
+          "local_id": "3A",
+          "global_id": 116,
+          "label": "Health-Probe Core — KEYSTONE part 1 (T2.2)",
+          "status": "planned"
+        },
+        {
+          "local_id": "3B",
+          "global_id": 117,
+          "label": "Health-Probe Resilience+CI+Integration+Runbook — KEYSTONE part 2 (T2.2)",
+          "status": "planned"
+        },
+        {
+          "local_id": 4,
+          "global_id": 118,
+          "label": "Model Registry Currency (T2.1 + T2.3 + T3.1) + E2E Gate",
+          "status": "planned"
+        }
+      ]
     }
   ],
-  "global_sprint_counter": 113,
+  "global_sprint_counter": 118,
   "bugfix_cycles": [
     {
       "id": "cycle-bug-20260418-i554-00a529",
