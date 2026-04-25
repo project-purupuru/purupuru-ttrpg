@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "active_cycle": null,
+  "active_cycle": "cycle-094-followups",
   "cycles": [
     {
       "id": "cycle-036",
@@ -660,9 +660,31 @@
         "v1.103.0",
         "v1.104.0"
       ]
+    },
+    {
+      "id": "cycle-094-followups",
+      "label": "Cycle-093 follow-ups + technical debt cleanup",
+      "status": "active",
+      "created": "2026-04-25T10:23:06Z",
+      "prd": "grimoires/loa/cycles/cycle-094-followups/prd.md",
+      "sprint_plan": "grimoires/loa/cycles/cycle-094-followups/sprint.md",
+      "sprints": [
+        {
+          "local_id": 1,
+          "global_id": 119,
+          "label": "Probe + portability hardening (G1-G4)",
+          "status": "planned"
+        },
+        {
+          "local_id": 2,
+          "global_id": 120,
+          "label": "Test infra + filter + SSOT close-out (G5-G7)",
+          "status": "planned"
+        }
+      ]
     }
   ],
-  "global_sprint_counter": 118,
+  "global_sprint_counter": 120,
   "bugfix_cycles": [
     {
       "id": "cycle-bug-20260418-i554-00a529",
