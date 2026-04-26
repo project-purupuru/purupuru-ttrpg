@@ -132,8 +132,12 @@ _make_result() {
 
     # No downgrade — finding is legitimate
     [ "$(echo "$filtered" | jq -r '.findings[0].severity')" = "BLOCKING" ]
-    # hallucination_filter metadata NOT added (short-circuit on dirty diff)
-    [ "$(echo "$filtered" | jq -r '.metadata.hallucination_filter // empty')" = "" ]
+    # G-6 (cycle-094 sprint-2): metadata IS now always present, with a reason
+    # field indicating why the filter no-op'd. Distinguishes "filter ran and
+    # decided not to downgrade" from "filter never ran".
+    [ "$(echo "$filtered" | jq -r '.metadata.hallucination_filter.applied')" = "false" ]
+    [ "$(echo "$filtered" | jq -r '.metadata.hallucination_filter.downgraded')" = "0" ]
+    [ "$(echo "$filtered" | jq -r '.metadata.hallucination_filter.reason')" = "diff_contains_token" ]
 }
 
 @test "filter: dirty diff + clean finding → untouched (Q4: yes/no)" {
@@ -193,23 +197,113 @@ _make_result() {
     done
 }
 
-@test "filter: missing diff file → input returned unchanged" {
+@test "filter: missing diff file → input findings unchanged + metadata reason=no_diff_file" {
     local findings_json='[{"description": "whatever", "severity": "HIGH", "category": "X"}]'
     local result
     result=$(_make_result "$findings_json")
     local filtered
     filtered=$(_apply_hallucination_filter "$result" "nonexistent.patch")
 
-    # Exact round-trip (input unchanged)
-    [ "$(echo "$filtered" | jq -S .)" = "$(echo "$result" | jq -S .)" ]
+    # Findings unchanged (no downgrade fired)
+    [ "$(echo "$filtered" | jq -r '.findings[0].severity')" = "HIGH" ]
+    # G-6: metadata IS present with applied=false + reason
+    [ "$(echo "$filtered" | jq -r '.metadata.hallucination_filter.applied')" = "false" ]
+    [ "$(echo "$filtered" | jq -r '.metadata.hallucination_filter.downgraded')" = "0" ]
+    [ "$(echo "$filtered" | jq -r '.metadata.hallucination_filter.reason')" = "no_diff_file" ]
 }
 
-@test "filter: empty findings → input returned unchanged" {
+@test "filter: empty findings → input findings unchanged + metadata reason=no_findings" {
     echo 'clean diff' > diff.patch
     local result
     result=$(_make_result '[]')
     local filtered
     filtered=$(_apply_hallucination_filter "$result" "diff.patch")
 
-    [ "$(echo "$filtered" | jq -S .)" = "$(echo "$result" | jq -S .)" ]
+    # Findings still empty
+    [ "$(echo "$filtered" | jq '.findings | length')" = "0" ]
+    # G-6: metadata IS present with applied=false + reason
+    [ "$(echo "$filtered" | jq -r '.metadata.hallucination_filter.applied')" = "false" ]
+    [ "$(echo "$filtered" | jq -r '.metadata.hallucination_filter.downgraded')" = "0" ]
+    [ "$(echo "$filtered" | jq -r '.metadata.hallucination_filter.reason')" = "no_findings" ]
+}
+
+# -----------------------------------------------------------------------------
+# G-6 (cycle-094 sprint-2): hallucination_filter metadata is ALWAYS present
+# on the result, distinguishing "filter ran and found nothing" from "filter
+# never ran". Sprint-1 of cycle-094 left three early-return paths writing no
+# metadata; sprint-2 closes that gap so downstream consumers (review pipelines,
+# observability dashboards) can rely on the key being present.
+#
+# This block enumerates every code path through _apply_hallucination_filter
+# and asserts the metadata shape:
+#   applied: bool         — true iff filter traversed findings
+#   downgraded: int       — count of downgraded findings (0 if !applied)
+#   reason: string?       — present when applied=false; one of
+#                            no_diff_file | no_findings | diff_contains_token
+# -----------------------------------------------------------------------------
+@test "G-6: metadata.hallucination_filter is ALWAYS present after _apply_hallucination_filter" {
+    # Iterate every code path: missing diff, empty findings, dirty diff,
+    # clean diff with downgrade, clean diff without downgrade.
+    echo 'clean diff' > clean.patch
+    # "Dirty" here means: the diff itself contains the {{DOCUMENT_CONTENT}}
+    # canary token (e.g., a doc/template file that legitimately discusses
+    # the placeholder). Token-presence-in-finding can't distinguish a
+    # hallucinated finding from a legitimate citation in this case, so the
+    # filter short-circuits with reason=diff_contains_token. (Iter-1 BB F6.)
+    echo '{{DOCUMENT_CONTENT}} legitimate' > dirty.patch
+    # Iter-1 BB F5 (LOW): the flat 4-tuple array layout is fragile to row
+    # misalignment. Add a modulo-4 guard so a missing/extra column trips a
+    # clear failure instead of silently shifting subsequent cases by one
+    # position (which would produce nonsensical-but-passing tests).
+    local cases=(
+        # diff_path           findings_json                                                                                              expected_applied  expected_reason
+        'no_such.patch'       '[{"description":"x","severity":"HIGH","category":"X"}]'                                                   'false'           'no_diff_file'
+        'clean.patch'         '[]'                                                                                                       'false'           'no_findings'
+        'dirty.patch'         '[{"description":"flag","severity":"HIGH","category":"X"}]'                                                'false'           'diff_contains_token'
+        'clean.patch'         '[{"description":"flag {{DOCUMENT_CONTENT}}","severity":"BLOCKING","category":"X"}]'                       'true'            ''
+        'clean.patch'         '[{"description":"normal finding","severity":"HIGH","category":"X"}]'                                      'true'            ''
+    )
+    (( ${#cases[@]} % 4 == 0 )) || {
+        echo "cases array misaligned: length=${#cases[@]} not divisible by 4 (4 fields per case)" >&2
+        return 1
+    }
+    local i=0
+    while [[ $i -lt ${#cases[@]} ]]; do
+        local diff_path="${cases[$i]}"
+        local findings="${cases[$((i+1))]}"
+        local expected_applied="${cases[$((i+2))]}"
+        local expected_reason="${cases[$((i+3))]}"
+        local result filtered
+        result=$(_make_result "$findings")
+        filtered=$(_apply_hallucination_filter "$result" "$diff_path")
+
+        # Metadata key exists
+        [ "$(echo "$filtered" | jq 'has("metadata") and (.metadata | has("hallucination_filter"))')" = "true" ]
+        # applied field correct
+        [ "$(echo "$filtered" | jq -r '.metadata.hallucination_filter.applied')" = "$expected_applied" ]
+        # downgraded is always an integer
+        [ "$(echo "$filtered" | jq '.metadata.hallucination_filter.downgraded | type')" = '"number"' ]
+        # reason present iff !applied
+        if [[ "$expected_applied" = "false" ]]; then
+            [ "$(echo "$filtered" | jq -r '.metadata.hallucination_filter.reason')" = "$expected_reason" ]
+        fi
+        i=$((i+4))
+    done
+}
+
+@test "G-6: planted {{DOCUMENT_CONTENT}} finding on clean diff → metadata.hallucination_filter.applied == true" {
+    # The G-6 acceptance criterion verbatim: "Regression test asserts presence
+    # on a known-hallucinated diff". Synthetic clean diff + planted finding
+    # with the {{DOCUMENT_CONTENT}} token → filter must fire AND metadata.
+    echo 'if [[ -n "$x" ]]; then echo $x; fi' > diff.patch
+    local findings_json='[{"description":"The {{DOCUMENT_CONTENT}}{{DOCUMENT_CONTENT}} construct is bogus","severity":"BLOCKING","category":"CORRECTNESS"}]'
+    local result filtered
+    result=$(_make_result "$findings_json")
+    filtered=$(_apply_hallucination_filter "$result" "diff.patch")
+
+    [ "$(echo "$filtered" | jq -r '.metadata.hallucination_filter.applied')" = "true" ]
+    [ "$(echo "$filtered" | jq -r '.metadata.hallucination_filter.downgraded')" = "1" ]
+    # Finding actually downgraded
+    [ "$(echo "$filtered" | jq -r '.findings[0].severity')" = "ADVISORY" ]
+    [ "$(echo "$filtered" | jq -r '.findings[0].category')" = "MODEL_ARTEFACT_SUSPECTED" ]
 }
