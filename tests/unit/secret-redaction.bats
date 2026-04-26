@@ -204,3 +204,52 @@ qrstuvwxABCDEFGH
     find "$d" -mindepth 1 -delete 2>/dev/null
     rmdir "$d" 2>/dev/null
 }
+
+# -----------------------------------------------------------------------------
+# G-4 (cycle-094, #627): probe script does NOT carry an inline _redact_secrets
+# Cycle-093 sprint-3B extracted secret-redaction.sh as the canonical lib;
+# the inline shadow in model-health-probe.sh is dead code. Regression guard.
+# -----------------------------------------------------------------------------
+@test "G-4: model-health-probe.sh has no inline _redact_secrets() definition" {
+    local probe="$PROJECT_ROOT/.claude/scripts/model-health-probe.sh"
+    local count
+    # Function-definition shape: `_redact_secrets() {` at start of a line, or
+    # `function _redact_secrets`. References (e.g., `_redact_secrets "$x"`)
+    # do not count as definitions.
+    count=$(grep -cE '^[[:space:]]*(function[[:space:]]+)?_redact_secrets[[:space:]]*\(\)[[:space:]]*\{' "$probe" || true)
+    [ "$count" -eq 0 ]
+}
+
+@test "G-4: model-health-probe.sh sources lib/secret-redaction.sh (canonical lib still wired)" {
+    local probe="$PROJECT_ROOT/.claude/scripts/model-health-probe.sh"
+    grep -qE '^[[:space:]]*source[[:space:]]+"\$SCRIPT_DIR/lib/secret-redaction\.sh"' "$probe"
+}
+
+@test "G-4: probe-sourced _redact_secrets is the lib implementation" {
+    # When the probe is loaded into a shell, _redact_secrets must come from the
+    # library. Verify it has the lib's idempotency sentinel after sourcing.
+    local probe="$PROJECT_ROOT/.claude/scripts/model-health-probe.sh"
+    # shellcheck disable=SC1090
+    eval "$(sed 's|^if \[\[ "${BASH_SOURCE\[0\]}" == "${0}" \]\]; then$|if false; then|' "$probe")"
+    [[ -n "${_LOA_SECRET_REDACTION_SOURCED:-}" ]]
+    # And the function still works
+    local out
+    out="$(_redact_secrets "Authorization: Bearer sk-abcdefghijklmnopqrstuvwxyz1234")"
+    [[ "$out" != *"sk-abc"* ]]
+}
+
+# -----------------------------------------------------------------------------
+# G-4 (Bridgebuilder F2): the probe-sourcing trick used by the test above
+# rewrites a specific guard line via sed. Pin the canonical guard text so
+# any future restructure of the probe's main-vs-sourced gate breaks one
+# focused test instead of silently passing the G-4 regression assertions.
+# When this test fails, update the sed pattern in the test setup AND the
+# canonical text below in lockstep.
+# -----------------------------------------------------------------------------
+@test "G-4: probe still carries the canonical 'BASH_SOURCE == 0' main-script guard" {
+    local probe="$PROJECT_ROOT/.claude/scripts/model-health-probe.sh"
+    # The sed pattern in the source-without-execute trick targets this exact
+    # line at the start of a line (anchored with ^...$). Loosening either side
+    # of the match would silently disarm the trick across the test suite.
+    grep -qxE 'if \[\[ "\$\{BASH_SOURCE\[0\]\}" == "\$\{0\}" \]\]; then' "$probe"
+}

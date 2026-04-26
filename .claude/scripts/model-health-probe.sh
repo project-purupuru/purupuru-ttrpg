@@ -139,6 +139,21 @@ _require_flock() {
     return 0
 }
 
+# Cached capability detection for `flock -E <code>` (util-linux 2.26+).
+# Returns 0 if `-E` is supported, 1 otherwise. Result memoized in
+# _LOA_FLOCK_HAS_E so the help-grep only runs once per process.
+# (cycle-094 review iter-4, DISS-202 fix.)
+_flock_supports_dash_e() {
+    if [[ -z "${_LOA_FLOCK_HAS_E:-}" ]]; then
+        if flock --help 2>&1 | grep -q -- '--conflict-exit-code'; then
+            _LOA_FLOCK_HAS_E=1
+        else
+            _LOA_FLOCK_HAS_E=0
+        fi
+    fi
+    [[ "$_LOA_FLOCK_HAS_E" == "1" ]]
+}
+
 # -----------------------------------------------------------------------------
 # Telemetry — structured JSONL append to .run/trajectory/<date>.jsonl
 # -----------------------------------------------------------------------------
@@ -306,8 +321,9 @@ _circuit_update() {
     local lock="${cache_file}.lock"
 
     # bash-3.2 portability: macOS default bash does not support the named-fd
-    # variable form `exec {_var}>file`. Use a subshell with hardcoded fd 9
-    # (sprint-3B iter-4 — closes the macos-latest CI matrix failure).
+    # variable assignment form for the exec/redirect builtin. Use a subshell
+    # with a hardcoded fd 9 instead (sprint-3B iter-4 — closes the
+    # macos-latest CI matrix failure; cycle-094 G-2 sweep).
     (
         flock -w 5 9 || exit 1
 
@@ -519,19 +535,55 @@ _cache_atomic_write() {
     cache="$(_cache_path)"
     local lockfile
     lockfile="$(_cache_lock_path)"
-    mkdir -p "$(dirname "$cache")"
+    local cache_dir
+    cache_dir="$(dirname "$cache")"
+
+    # Pre-flight: ensure cache directory exists and is writable. Without this
+    # check, the subshell `9>"$lockfile"` redirect below fails with a confusing
+    # diagnostic (e.g. "_lock_fd: unbound variable" on bash variants that
+    # promote the failed redirect into the named-fd context). Surface the
+    # actionable cause directly. (cycle-094 G-3, closes #626.)
+    if ! mkdir -p "$cache_dir" 2>/dev/null; then
+        log_error "cache directory not writable: $cache_dir"
+        return 1
+    fi
+    if [[ ! -w "$cache_dir" ]]; then
+        log_error "cache directory not writable: $cache_dir"
+        return 1
+    fi
 
     _require_flock || return 2
 
     # bash-3.2 portability: macOS default bash does not support the named-fd
-    # variable form `exec {_var}>file`. Use a subshell with hardcoded fd 9
-    # (sprint-3B iter-4 — closes the macos-latest CI matrix failure).
+    # variable assignment form for the exec/redirect builtin. Use a subshell
+    # with a hardcoded fd 9 instead (sprint-3B iter-4 — closes the
+    # macos-latest CI matrix failure; cycle-094 G-2 sweep).
+    # Compute -E args once outside the subshell so the capability check is
+    # cached across the whole probe invocation, not re-checked per cache write.
+    local flock_e_args=""
+    if _flock_supports_dash_e; then
+        flock_e_args="-E 1"
+    fi
+
     local rc=0
     (
-        flock -w "$timeout" 9 || {
+        # `-E 1` (when supported): exit 1 only on timeout. Other flock failures
+        # preserve their own exit code so callers can distinguish them from a
+        # true timeout signal. On flock without -E (very old / non-util-linux
+        # builds; gated by _flock_supports_dash_e), behavior matches pre-iter-3
+        # — any flock failure exits 1, which is the existing caller contract
+        # for cache-write failure. (cycle-094 review iter-4, DISS-202 fix
+        # builds on iter-3 DISS-002 fix.)
+        # shellcheck disable=SC2086  # intentional word-split on flock_e_args
+        flock $flock_e_args -w "$timeout" 9 2>/dev/null
+        local frc=$?
+        if [[ "$frc" -eq 1 ]]; then
             log_error "cache lock timeout after ${timeout}s"
             exit 1
-        }
+        elif [[ "$frc" -ne 0 ]]; then
+            log_error "cache lock acquisition failed (flock rc=$frc; not a timeout)"
+            exit "$frc"
+        fi
 
         local tmpfile
         tmpfile="$(mktemp "${cache}.tmp.XXXXXX")"
@@ -1149,10 +1201,17 @@ _probe_one_model() {
             ;;
     esac
 
-    PROBES_USED=$((PROBES_USED + 1))
-    # Each probe charges a nominal 1 cent estimate (conservative). Real cost-tracking
-    # would need token-accurate metering; this is a coarse cap gate.
-    COST_CENTS_USED=$((COST_CENTS_USED + 1))
+    # Skip cost increment when the probe never made an HTTP call. The no-API-key
+    # path returns from `_probe_<provider>` after only setting PROBE_ERROR_CLASS=auth
+    # with PROBE_HTTP empty (cleared by _reset_probe_result). Real auth failures
+    # carry PROBE_HTTP=401/403 and still consume budget. Without this guard, fork
+    # PRs (no secrets) trip the cost hardstop after 5 unmade probes. (G-1, cycle-094)
+    if [[ "$PROBE_ERROR_CLASS" != "auth" ]] || [[ -n "$PROBE_HTTP" && "$PROBE_HTTP" != "0" ]]; then
+        PROBES_USED=$((PROBES_USED + 1))
+        # Each probe charges a nominal 1 cent estimate (conservative). Real cost-tracking
+        # would need token-accurate metering; this is a coarse cap gate.
+        COST_CENTS_USED=$((COST_CENTS_USED + 1))
+    fi
 
     # Cache the result (skip UNKNOWN — TTL=0)
     if [[ "$PROBE_STATE" != "UNKNOWN" ]]; then
@@ -1272,6 +1331,18 @@ _format_json() {
             --arg reason "$reason" \
             '.[$key] = {state:$state, reason:$reason}')
     done
+    # cycle-094 G-1 (AC1 literal): emit `summary.skipped: true` when no probe
+    # made an HTTP call AND the result set is non-empty all-UNKNOWN. This is the
+    # fork-PR / no-keys signal — distinct from "0 entries probed" (registry
+    # filter excluded everything) and from "some unknown" (partial keys).
+    local skipped="false"
+    if [[ "$PROBES_USED" -eq 0 ]] && \
+       [[ "$summary_unknown" -gt 0 ]] && \
+       [[ "$summary_available" -eq 0 ]] && \
+       [[ "$summary_unavailable" -eq 0 ]]; then
+        skipped="true"
+    fi
+
     jq -n \
         --arg schema "$CACHE_SCHEMA_VERSION" \
         --arg ts "$(_iso_timestamp)" \
@@ -1279,9 +1350,10 @@ _format_json() {
         --argjson avail "$summary_available" \
         --argjson unavail "$summary_unavailable" \
         --argjson unknown "$summary_unknown" \
+        --argjson skipped "$skipped" \
         --argjson exit_code "$1" \
         '{schema_version:$schema, probed_at:$ts,
-          summary:{available:$avail, unavailable:$unavail, unknown:$unknown},
+          summary:{available:$avail, unavailable:$unavail, unknown:$unknown, skipped:$skipped},
           entries:$entries, exit_code:$exit_code}'
 }
 
