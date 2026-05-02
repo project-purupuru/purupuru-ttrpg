@@ -83,13 +83,20 @@ class ProviderConfig:
     """Per-provider configuration."""
 
     name: str
-    type: str  # "openai" | "anthropic" | "openai_compat"
+    type: str  # "openai" | "anthropic" | "openai_compat" | "google" | "bedrock"
     endpoint: str
     auth: Any  # str or LazyValue — resolved to str via str() when accessed
     models: Dict[str, ModelConfig] = field(default_factory=dict)
     connect_timeout: float = 10.0  # seconds
     read_timeout: float = 120.0
     write_timeout: float = 30.0
+    # cycle-096 Sprint 1 (SDD §3.1, FR-1) — Bedrock-specific provider fields.
+    # Optional on all entries; non-Bedrock providers leave them None.
+    region_default: Optional[str] = None  # e.g., "us-east-1"; per-request override via extras.region
+    auth_modes: Optional[List[str]] = None  # ["api_key"] in v1; ["api_key", "sigv4"] when SigV4 lands
+    # compliance_profile: resolved by 4-step loader rule (SDD §5.6) when YAML
+    # value is null. Allowed at runtime: "bedrock_only" | "prefer_bedrock" | "none".
+    compliance_profile: Optional[str] = None
 
 
 @dataclass
@@ -118,6 +125,24 @@ class ModelConfig:
     # Latency-formalization of an existing YAML field. Probe-gated entries are
     # treated as UNAVAILABLE until model-health-probe.sh confirms reachability.
     probe_required: bool = False
+    # cycle-096 Sprint 1 (SDD §3.1, FR-1) — Bedrock-specific fields. Optional
+    # on all entries; non-Bedrock providers leave them None.
+    #
+    # api_format: per-capability dispatch table. Currently consumed only by the
+    # Bedrock adapter (Converse vs InvokeModel decision per capability per
+    # SDD §6.6). Example: {"chat": "converse", "tools": "converse",
+    # "thinking_traces": "converse"}. Adapter falls back to "converse" when key
+    # absent. Direct-Anthropic / OpenAI / Google entries leave this None.
+    api_format: Optional[Dict[str, str]] = None
+    # fallback_to: explicit direct-provider equivalent for compliance-aware
+    # fallback when compliance_profile=prefer_bedrock. Required on every
+    # bedrock model entry per Flatline BLOCKER SKP-003 — loader rejects
+    # prefer_bedrock when fallback_to absent. Format: "provider:model_id".
+    fallback_to: Optional[str] = None
+    # fallback_mapping_version: bumps when AWS or vendor ships a behavior
+    # delta that breaks fallback equivalence. Operator acknowledges via
+    # sentinel file (NFR-Sec9 IR runbook).
+    fallback_mapping_version: Optional[int] = None
 
 
 # --- Error Types ---
@@ -227,3 +252,56 @@ class UnsupportedResponseShapeError(ChevalError):
 # The pre-call cost-cap guard raises this name; existing per-day budget code
 # keeps using BudgetExceededError directly.
 CostBudgetExceeded = BudgetExceededError
+
+
+# --- Centralized provider:model_id parser (cycle-096 Sprint 1 Task 1.1) ---
+#
+# Single source of truth for parsing "provider:model-id" strings. Closes Flatline
+# v1.1 SKP-006 by ensuring every Python callsite uses this function rather than
+# scattered .split(":", 1) calls. Companion bash helper at
+# .claude/scripts/lib-provider-parse.sh enforces identical semantics.
+#
+# SDD reference: §5.4 Centralized Parser Contract.
+
+
+def parse_provider_model_id(s: str) -> tuple[str, str]:
+    """Split a "provider:model_id" string on the FIRST colon only.
+
+    Everything after the first colon is the literal model_id, including any
+    further colons. This is required for Bedrock inference profile IDs of the
+    form ``us.anthropic.claude-haiku-4-5-20251001-v1:0`` where the trailing
+    ``:0`` is part of the model_id, not a second separator.
+
+    Args:
+        s: Input string of the form ``provider:model_id``.
+
+    Returns:
+        ``(provider, model_id)`` as a 2-tuple of strings.
+
+    Raises:
+        InvalidInputError: ``s`` is empty, lacks a colon, has an empty provider
+            half (``":model-id"``), or has an empty model_id half (``"provider:"``).
+
+    Examples:
+        >>> parse_provider_model_id("anthropic:claude-opus-4-7")
+        ('anthropic', 'claude-opus-4-7')
+        >>> parse_provider_model_id("bedrock:us.anthropic.claude-haiku-4-5-20251001-v1:0")
+        ('bedrock', 'us.anthropic.claude-haiku-4-5-20251001-v1:0')
+        >>> parse_provider_model_id("provider:multi:colon:value")
+        ('provider', 'multi:colon:value')
+    """
+    if not s:
+        raise InvalidInputError("parse_provider_model_id: empty input")
+
+    if ":" not in s:
+        raise InvalidInputError(f"parse_provider_model_id: missing colon separator in {s!r}")
+
+    provider, model_id = s.split(":", 1)
+
+    if not provider:
+        raise InvalidInputError(f"parse_provider_model_id: empty provider in {s!r}")
+
+    if not model_id:
+        raise InvalidInputError(f"parse_provider_model_id: empty model_id in {s!r}")
+
+    return provider, model_id
