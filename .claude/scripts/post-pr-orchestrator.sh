@@ -530,6 +530,29 @@ phase_bridgebuilder_review() {
       return 0
     fi
 
+    # Issue #676 Defect A (sprint-bug-140): verify the bridge produced fresh
+    # findings THIS iteration. Pre-fix the phase reported `completed` even
+    # when no findings file was created. Bridgebuilder iter-1 review caught
+    # that a generic ${bridge_id}-iter*-findings.json check is also unsafe —
+    # if iter-1 produced a file but iter-2 silently no-ops, the iter-1 file
+    # is still present and the check still passes. Borg/K8s solve this with
+    # generation counters; we use the simpler iteration-scoped check.
+    # Now: require ${bridge_id}-iter${iter}-findings.json specifically.
+    local bridge_state_file="$(pwd)/.run/bridge-state.json"
+    local current_bridge_id=""
+    if [[ -f "$bridge_state_file" ]]; then
+      current_bridge_id=$(jq -r '.bridge_id // empty' "$bridge_state_file" 2>/dev/null || echo "")
+    fi
+
+    if [[ -n "$current_bridge_id" ]]; then
+      local iter_findings_file="${review_dir}/${current_bridge_id}-iter${iter}-findings.json"
+      if [[ ! -f "$iter_findings_file" ]]; then
+        log_info "WARN: bridge-orchestrator produced no findings file for iter=${iter} (expected ${iter_findings_file##*/}); marking phase skipped"
+        _update_phase bridgebuilder_review skipped
+        return 0
+      fi
+    fi
+
     # Run triage — produces convergence state in .run/bridge-triage-convergence.json
     if [[ -x "${SCRIPT_DIR}/post-pr-triage.sh" ]]; then
       local triage_result=0
