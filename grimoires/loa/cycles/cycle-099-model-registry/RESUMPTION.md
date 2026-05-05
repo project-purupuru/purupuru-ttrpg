@@ -1,12 +1,12 @@
 # cycle-099-model-registry — Session Resumption Brief
 
-**Last updated**: 2026-05-05 (Sprint 1 ~98% complete: 1A + 1B + 1C + 1E.a + 1E.b + 1E.c.1 + 1E.c.2 + 1E.c.3.a + **1E.c.3.b SHIPPED**; **next: 1D cross-runtime corpus OR 1E.c.3.c CI guard flip**)
+**Last updated**: 2026-05-05 (Sprint 1 ~99% complete: 1A + 1B + 1C + 1E.a + 1E.b + 1E.c.1 + 1E.c.2 + 1E.c.3.a + 1E.c.3.b + **1E.c.3.c SHIPPED**; **next: 1D cross-runtime corpus**)
 **Author**: deep-name + Claude Opus 4.7 1M
 **Purpose**: Crash-recovery + cross-session continuity. Read first when resuming cycle-099 work.
 
-## 🚨 TL;DR — Sprint 1 is ~98% done; 10 cycle-099 PRs on main
+## 🚨 TL;DR — Sprint 1 is ~99% done; 11 cycle-099 PRs on main
 
-**On main (10 PRs):**
+**On main (11 PRs):**
 - chore #721 (`9ef33055`) — cycle-099 ledger activation + planning artifacts (mirrors cycle-098 #679 pattern)
 - Sprint-1A #722 (`78c59568`) — bridgebuilder codegen foundation (T1.1 + T1.2)
 - Sprint-1B #723 (`7140ff1c`) — adapter migrations + drift gate + lockfile (T1.3 + T1.4 + T1.5 + T1.6 + T1.8 + T1.10 partial)
@@ -15,20 +15,24 @@
 - Sprint-1E.b #729 (`fbd7c048`) — centralized endpoint validator T1.15 partial (Python canonical + bash wrapper + 8-step canonicalization + STRICT urllib.parse import-guard)
 - Sprint-1E.c.1 #730 (`43a60225`) — TS port via Python+Jinja2 codegen (T1.15 cont.) — 37 cross-runtime parity tests + drift gate with hash cross-check; closes 2 CRITICAL allowlist bypasses caught by dual-review pre-merge
 - Sprint-1E.c.2 #731 (`ada3584a`) — DNS rebinding + HTTP redirect enforcement (T1.15 cont.) — `LockedIP` + `lock_resolved_ip` / `verify_locked_ip` / `validate_redirect` / `validate_redirect_chain` + cdn_cidr_exemptions per SDD §1.9 + load-time CIDR-permissive WARN. 27 new tests with mocked DNS
-- Sprint-1E.c.3.a #732 (`848d9fac`) — bash caller migration to `endpoint_validator__guarded_curl` (T1.15 cont.) — first production wiring of the validator; 3 callers migrated (`model-health-probe.sh` 2/3 sites + webhook exempt, `anthropic-oracle.sh` 1/1, `lib-curl-fallback.sh` 1/1 transitively migrating `gpt-review-api.sh`). 54 new tests covering smuggling defenses (--config / -K / --next / -:) + --config-auth content gate + allowlist tree-restriction + positional-URL strict-reject. Cypherpunk dual-review caught CRITICAL --config URL smuggling + HIGH allowlist tree gap pre-merge; both fixed with bats coverage.
-- **Sprint-1E.c.3.b #733 (`7815d56a`)** — bash caller migration batch (T1.15 cont.) — 11 more callers wired to `endpoint_validator__guarded_curl`: 4 flatline-* fallback paths (semantic-similarity, learning-extractor, proposal-review×2 sites, validate-learning×2 sites), `lib/api-resilience.sh::call_api_with_retry` helper (transitively migrates 3 helper-path branches), 5 registry callers (constructs-loader, constructs-auth, constructs-browse×4 sites, constructs-install×2 sites, license-validator), `check-updates.sh`, plus `mount-loa.sh` 3 sites kept exempt with `[ENDPOINT-VALIDATOR-EXEMPT]` rationale + dot-dot regex defense. New allowlists `loa-registry.json` (api.constructs.network) + `loa-github.json` (api.github.com). 31 new bats tests (grep-based contract + allowlist-validity + dot-dot defense regression guard with positive controls). Subagent caught **MEDIUM dot-dot bypass** in mount-loa regex pre-merge; BB iter-2 caught **HIGH M4 test-logic confusion + MEDIUM bash-c shell-injection pattern** — both fixed with rewrite to `_passes_validation()` helper + 5-case behavioral pin.
+- Sprint-1E.c.3.a #732 (`848d9fac`) — bash caller migration to `endpoint_validator__guarded_curl` (T1.15 cont.) — first production wiring of the validator; 3 callers migrated; 54 new tests covering smuggling defenses + --config-auth content gate + allowlist tree-restriction + positional-URL strict-reject. Cypherpunk dual-review caught CRITICAL --config URL smuggling + HIGH allowlist tree gap pre-merge.
+- Sprint-1E.c.3.b #733 (`7815d56a`) — bash caller migration batch (T1.15 cont.) — 11 more callers + `mount-loa.sh` exempt with hardened dot-dot defense. 31 new bats. Subagent caught MEDIUM dot-dot bypass; BB iter-2 caught HIGH/MEDIUM test-logic + bash-c shell-injection pattern.
+- **Sprint-1E.c.3.c #734 (`b8dea0f5`)** — final SSRF closure (T1.15 cont.) — strict CI flip + load_allowlist host validation + opt-in webhook allowlist. Three deliverables: (1) `tools/check-no-raw-curl.sh` strict scanner with heredoc-state tracking + word-boundary regex + suppression marker; CI guard flipped from `::warning::` to `::error::` + `exit 1`. (2) `_validate_allowlist_entries` rejects sentinel hosts (`*`, `?`, FULLWIDTH ASTERISK U+FF0A, ASTERISK OPERATOR U+2217, NUL/CR/LF/TAB control bytes) at LOAD time, fail-closed with provider+index in error. (3) `_webhook_send` / `_webhook_dispatch` refactor with opt-in toggle `model_health_probe.alert_webhook_endpoint_validator_enabled` (literal-lowercase-`true` only) + `webhook-hosts.json` empty-default allowlist. **Subagent dual-review caught CRITICAL `model-adapter.sh.legacy` exempt-blindness** (3 live raw-curl invocations invisible to `*.sh`-only glob) + **HIGH FULLWIDTH-ASTERISK U+FF0A bypass** of `_validate_allowlist_entries` — both fixed pre-merge with bats coverage. **gp HIGH heredoc-string-mention + same-line-opener bypasses** also caught and fixed. BB kaironic 2-iter plateau (iter-1 caught F2/F3/F4 marker-scope + suffix-class + echo-cmdsub bypasses; iter-2 caught F13 push.paths gap). 4 exempt files now: `endpoint-validator.sh` (wrapper), `mount-loa.sh` (bootstrap), `model-health-probe.sh` (legacy webhook), `model-adapter.sh.legacy` (deferred Sprint 4 sunset).
 
-**Cumulative**: ~391 cycle-099 bats tests on main (360 prior + 31 from 1E.c.3.b). 0 regressions. Drift-gate CI active. Strict v2 schema. Centralized endpoint-validator across Python + bash + TS with cross-runtime parity gate AND runtime DNS-rebinding defense AND **14 of ~15 production callers now funneling through it** (1 bootstrap-exempt with hardened defaults).
+**Cumulative**: ~448 cycle-099 bats tests on main (391 prior + 57 from 1E.c.3.c: 18 host-validation + 12 webhook-opt-in + 33 strict-scan-coverage). 0 regressions. Drift-gate CI active. Strict v2 schema. Centralized endpoint-validator across Python + bash + TS with cross-runtime parity gate AND runtime DNS-rebinding defense AND **all 15 production caller paths now either funneling through wrapper OR explicitly exempt with hardened defaults + reviewer-visible rationale**. Strict CI scan blocks future raw curl/wget bypasses outside the 4-file exempt set.
 
 ### Operator decision needed at session start
 
-> Sprint 1 has T1.10 remaining bats (small) + T1.11/T1.12 cross-runtime corpus + T1.15 last follow-on (1E.c.3.c CI guard flip — ~30 min). Choose Path A or Path C.
+> Sprint 1 has T1.10 remaining bats (small) + T1.11/T1.12 cross-runtime corpus. **All T1.15 endpoint-validator work is now SHIPPED.** Path A is the natural next step.
 
 **Path A (Sprint-1D — cross-runtime corpus)**: T1.11 + T1.12. Highest-value remaining piece per SDD §7.6 (strongest determinism guarantee, unblocks Sprint 2's runtime overlay). Estimated ~4-5 hours. Pre-written brief in §"Brief A — Sprint 1D".
 
-**Path C (Sprint-1E.c.3.c — CI guard flip + cleanup)**: Flip `.github/workflows/cycle099-sprint-1e-b-tests.yml::Bash — informational scan` from `::warning::` (always pass) to `::error::` + `exit 1`. Allow only `endpoint-validator.sh` (the wrapper) + `mount-loa.sh` (bootstrap exempt). PLUS deferred follow-ups from 1E.c.3.a/b: webhook-host allowlist (opt-in `.loa.config.yaml`), HIGH-2 (`load_allowlist` host wildcard validation in Python canonical). Estimated ~30-60 min. Pre-written brief in §"Brief C — Sprint 1E.c.3.c".
-
-Path A gives strongest determinism signal; Path C is the final ~5% of cycle-099 SSRF closure work.
+**Followup-issues filed at merge** (BB iter-1 deferred LOWs to track in cycle-100 hardening sprint or Sprint 4 sunset):
+- `model-adapter.sh.legacy` SSRF migration (BB iter-2 F5) — defer to Sprint 4 legacy sunset
+- Scanner CRLF/BOM shebang detection (BB iter-2 F1) — cycle-100 hardening
+- ANSI-C $'...' string heredoc-state tracking (BB iter-2 F2) — cycle-100 hardening
+- `command -v` / `which` bypass via aliasing (cypherpunk LOW) — cycle-100 hardening
+- ports-field load-time validation (BB iter-2 F12 PRAISE-suggestion) — cycle-100 if needed
 
 ---
 
