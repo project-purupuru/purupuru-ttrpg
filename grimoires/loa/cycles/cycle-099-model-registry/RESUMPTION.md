@@ -1,10 +1,10 @@
 # cycle-099-model-registry — Session Resumption Brief
 
-**Last updated**: 2026-05-05 (Sprint 1 ~99% complete: 1A + 1B + 1C + 1E.a + 1E.b + 1E.c.1 + 1E.c.2 + 1E.c.3.a + 1E.c.3.b + **1E.c.3.c SHIPPED**; **next: 1D cross-runtime corpus**)
+**Last updated**: 2026-05-06 (Sprint 1 ~100% complete: 1A + 1B + 1C + 1D + 1E.a + 1E.b + 1E.c.1 + 1E.c.2 + 1E.c.3.a + 1E.c.3.b + 1E.c.3.c **ALL SHIPPED**; **next: Sprint 2 — config extension + per-skill granularity + runtime overlay**)
 **Author**: deep-name + Claude Opus 4.7 1M
 **Purpose**: Crash-recovery + cross-session continuity. Read first when resuming cycle-099 work.
 
-## 🚨 TL;DR — Sprint 1 is ~99% done; 11 cycle-099 PRs on main
+## 🚨 TL;DR — Sprint 1 is COMPLETE; 12 cycle-099 PRs on main
 
 **On main (11 PRs):**
 - chore #721 (`9ef33055`) — cycle-099 ledger activation + planning artifacts (mirrors cycle-098 #679 pattern)
@@ -17,15 +17,32 @@
 - Sprint-1E.c.2 #731 (`ada3584a`) — DNS rebinding + HTTP redirect enforcement (T1.15 cont.) — `LockedIP` + `lock_resolved_ip` / `verify_locked_ip` / `validate_redirect` / `validate_redirect_chain` + cdn_cidr_exemptions per SDD §1.9 + load-time CIDR-permissive WARN. 27 new tests with mocked DNS
 - Sprint-1E.c.3.a #732 (`848d9fac`) — bash caller migration to `endpoint_validator__guarded_curl` (T1.15 cont.) — first production wiring of the validator; 3 callers migrated; 54 new tests covering smuggling defenses + --config-auth content gate + allowlist tree-restriction + positional-URL strict-reject. Cypherpunk dual-review caught CRITICAL --config URL smuggling + HIGH allowlist tree gap pre-merge.
 - Sprint-1E.c.3.b #733 (`7815d56a`) — bash caller migration batch (T1.15 cont.) — 11 more callers + `mount-loa.sh` exempt with hardened dot-dot defense. 31 new bats. Subagent caught MEDIUM dot-dot bypass; BB iter-2 caught HIGH/MEDIUM test-logic + bash-c shell-injection pattern.
+- **Sprint-1D #735 (`cdedd3dd`)** — cross-runtime golden test corpus (T1.11 + T1.12) — 12 fixture YAMLs at `tests/fixtures/model-resolution/` covering each SDD §7.6.3 scenario + 3 byte-equal runtime runners (bash + python + TypeScript) parsing the same `generated-model-maps.sh` source-of-truth + 4 CI workflows including the `cross-runtime-diff.yml` byte-equality gate. Scope: Sprint 1D ships infrastructure only — runners consume `sprint_1d_query.alias` (alias-lookup subset). Full SDD §7.6.1 `input` + `expected` blocks preserved per-fixture for Sprint 2 T2.6 to extend. Each fixture's deferred markers ensure cross-runtime parity holds today. Subagent dual-review caught **CRIT-1 TS prototype walk** (`"toString" in modelIds` returned true; fixed via `Object.create(null)` + `hasOwn`), **CRITICAL-1 TS nested-object sort** (manual top-key sort doesn't recurse; fixed via `canonicalizeRecursive`), **CRITICAL-2 Python ensure_ascii=False** (Unicode escape divergence), **CRIT-3 env-override gate parity** (LOA_GOLDEN_* now mirror cycle-099 LOA_MODEL_RESOLVER_TEST_MODE pattern), **HIGH-3 pre-source sanitizer** (sources generated-model-maps.sh which would execute `$(...)`; strict-shape regex + outside-array hardening), **CRIT-2 bash YAML type discrimination** (yq `tag` check; uniform error markers across runtimes), **HIGH-1 npm ci --ignore-scripts** (preinstall RCE defense), **HIGH-2/MEDIUM-1 dead workflow_run trigger + paths filter additions**, **HIGH-4 dead explicit-pin code path** (fixture 02 now uses `anthropic:claude-opus-4-7` form). BB iter-2 plateau (one persistent false-alarm at 0.95 confidence — `local_yq` variable name mis-read as `local` keyword). 21 bats contract pins; ~448+21 cycle-099 cumulative bats. All 3 runtimes byte-equal locally + via CI cross-runtime-diff gate.
 - **Sprint-1E.c.3.c #734 (`b8dea0f5`)** — final SSRF closure (T1.15 cont.) — strict CI flip + load_allowlist host validation + opt-in webhook allowlist. Three deliverables: (1) `tools/check-no-raw-curl.sh` strict scanner with heredoc-state tracking + word-boundary regex + suppression marker; CI guard flipped from `::warning::` to `::error::` + `exit 1`. (2) `_validate_allowlist_entries` rejects sentinel hosts (`*`, `?`, FULLWIDTH ASTERISK U+FF0A, ASTERISK OPERATOR U+2217, NUL/CR/LF/TAB control bytes) at LOAD time, fail-closed with provider+index in error. (3) `_webhook_send` / `_webhook_dispatch` refactor with opt-in toggle `model_health_probe.alert_webhook_endpoint_validator_enabled` (literal-lowercase-`true` only) + `webhook-hosts.json` empty-default allowlist. **Subagent dual-review caught CRITICAL `model-adapter.sh.legacy` exempt-blindness** (3 live raw-curl invocations invisible to `*.sh`-only glob) + **HIGH FULLWIDTH-ASTERISK U+FF0A bypass** of `_validate_allowlist_entries` — both fixed pre-merge with bats coverage. **gp HIGH heredoc-string-mention + same-line-opener bypasses** also caught and fixed. BB kaironic 2-iter plateau (iter-1 caught F2/F3/F4 marker-scope + suffix-class + echo-cmdsub bypasses; iter-2 caught F13 push.paths gap). 4 exempt files now: `endpoint-validator.sh` (wrapper), `mount-loa.sh` (bootstrap), `model-health-probe.sh` (legacy webhook), `model-adapter.sh.legacy` (deferred Sprint 4 sunset).
 
 **Cumulative**: ~448 cycle-099 bats tests on main (391 prior + 57 from 1E.c.3.c: 18 host-validation + 12 webhook-opt-in + 33 strict-scan-coverage). 0 regressions. Drift-gate CI active. Strict v2 schema. Centralized endpoint-validator across Python + bash + TS with cross-runtime parity gate AND runtime DNS-rebinding defense AND **all 15 production caller paths now either funneling through wrapper OR explicitly exempt with hardened defaults + reviewer-visible rationale**. Strict CI scan blocks future raw curl/wget bypasses outside the 4-file exempt set.
 
 ### Operator decision needed at session start
 
-> Sprint 1 has T1.10 remaining bats (small) + T1.11/T1.12 cross-runtime corpus. **All T1.15 endpoint-validator work is now SHIPPED.** Path A is the natural next step.
+> **Sprint 1 is COMPLETE.** All 15 sprint tasks shipped including T1.10 / T1.11 / T1.12 / T1.15 follow-ons. Cumulative ~469 cycle-099 bats tests; 0 regressions. **Next: Sprint 2** (config extension + per-skill granularity + runtime overlay).
 
-**Path A (Sprint-1D — cross-runtime corpus)**: T1.11 + T1.12. Highest-value remaining piece per SDD §7.6 (strongest determinism guarantee, unblocks Sprint 2's runtime overlay). Estimated ~4-5 hours. Pre-written brief in §"Brief A — Sprint 1D".
+**Sprint 2 scope** (per cycle-099 sprint plan):
+- JSON Schema for `.loa.config.yaml::{model_aliases_extra, skill_models, tier_groups}` (FR-2.2/DD-5)
+- Strict-mode loader extension (FR-2.1, FR-2.6)
+- Python overlay hook (T2.3, FR-1.9, DD-4)
+- `.run/merged-model-aliases.sh` writer (T2.4, FR-1.9, §3.5, §6.6)
+- **FR-3.9 6-stage resolver in Python+bash twin (T2.6)** — extends 1D's runners with full resolution_path output
+- `tier_groups.mappings` probe-confirmed defaults (T2.7)
+- `prefer_pro_models` overlay (T2.8)
+- Legacy-shape backward compat (T2.9, FR-3.7)
+- Permissions baseline + acknowledge flag (T2.10, FR-1.4)
+- Endpoint allowlist + URL canonicalization integration (T2.11)
+- `model-invoke --validate-bindings` (T2.12, FR-5.6)
+- `LOA_DEBUG_MODEL_RESOLUTION=1` tracing (T2.13, FR-5.7)
+- `.loa.config.yaml.example` operator block (T2.14)
+- Network-fs runbook (T2.16, §6.6)
+
+Dependency chain: Sprint 2's T2.6 (full FR-3.9 resolver) extends Sprint 1D's runners — replacing the `deferred_to: "sprint-2-T2.6"` markers with real `resolution_path` arrays. The cross-runtime-diff gate from 1D becomes the parity guarantee for the full resolver.
 
 **Followup-issues filed at merge** (BB iter-1 deferred LOWs to track in cycle-100 hardening sprint or Sprint 4 sunset):
 - `model-adapter.sh.legacy` SSRF migration (BB iter-2 F5) — defer to Sprint 4 legacy sunset
