@@ -1,6 +1,6 @@
 # cycle-099-model-registry — Session Resumption Brief
 
-**Last updated**: 2026-05-06 (Sprint 1 COMPLETE; Sprint 2A + 2B + 2C + 2D.a+b + 2D.c SHIPPED + post-Sprint-2D.c CLEANUP + **PR #727 cheval headless adapters MERGED + v1.130.0 NAMED MILESTONE RELEASE PUBLISHED** — Cycle-099 model-registry consolidation officially packaged for downstream operators. **Next: Sprint 2D.d (SC-14 property suite) OR cycle-098 Sprint 4 (L4 graduated-trust) OR Sprint 2E (T2.7+T2.8)**)
+**Last updated**: 2026-05-06 (**Sprint 2D.d SHIPPED at #748 (T2.6 fully closed)** — SC-14 property suite + 7 invariants + 100-iter PR-check + 1000-iter nightly stress. v1.131.0 will auto-tag. **Next: cycle-098 Sprint 4 (L4 graduated-trust, parked during cycle-099 urgency, now unblocked) OR Sprint 2E (T2.7+T2.8 operator-visible config knobs)**)
 **Author**: deep-name + Claude Opus 4.7 1M
 **Purpose**: Crash-recovery + cross-session continuity. Read first when resuming cycle-099 work.
 
@@ -17,7 +17,7 @@
 
 **Semver**: 1.130.0 = MINOR (additive only). Backward-compat: legacy `aliases:` block resolves via FR-3.9 stage 4 with deprecation warning; `gpt-5.3-codex` immutable self-map preserved; `LOA_FORCE_LEGACY_ALIASES=1` kill-switch active.
 
-## 🚨 TL;DR — Sprint 1 + 2A + 2B + 2C + 2D.a+b + 2D.c all SHIPPED; 17 cycle-099 PRs + cheval headless adapters + v1.130.0 named release on main; 3-way cross-runtime parity gate ACTIVE
+## 🚨 TL;DR — Sprint 1 + 2A + 2B + 2C + 2D.a+b + 2D.c + 2D.d all SHIPPED; 18 cycle-099 PRs + cheval headless adapters + v1.130.0 named release on main; 3-way cross-runtime parity gate + property suite ACTIVE; **T2.6 fully closed**
 
 **On main (11 PRs):**
 - chore #721 (`9ef33055`) — cycle-099 ledger activation + planning artifacts (mirrors cycle-098 #679 pattern)
@@ -40,6 +40,8 @@
 
 - **Sprint-2D.a+b #740 (`fc27b7cf`)** — FR-3.9 6-stage canonical resolver + bash twin (T2.6 partial). New `.claude/scripts/lib/model-resolver.py` (~750 LOC) — pure-function `resolve(merged_config, skill, role) -> dict` implementing all 6 stages (S1 explicit pin → S6 prefer_pro overlay) per SDD §1.5. Supports both dict-form and string-form alias entries (cycle-099 + cycle-095 back-compat via `_normalize_alias_entry`). `_has_ctrl_byte` rejects C0 control bytes at entry. `_canonicalize_dict_keys` stringifies non-string YAML keys (matches yq's silent stringification). New `model-resolver-output.schema.json` (Draft 2020-12, discriminated `oneOf` for resolution-level vs fixture-level errors, strict `additionalProperties:false` on `details`). Bash twin at `tests/bash/golden_resolution.sh` (~810 LOC) re-implements all 6 stages independently for cross-runtime parity verification. 41 new bats: 16 G + 23 P + 2 L. Cross-runtime-diff CI gate flipped to Python+bash byte-equality + JSON Schema validation (TS deferred to 2D.c). Production-yaml smoke resolves 21/21 framework agents via canonical resolver. Subagent dual-review caught **6 HIGH** all addressed pre-merge. **Bridgebuilder kaironic 2-iter plateau** by API-unavailability (Anthropic-only). Admin-squashed.
 
+- **Sprint-2D.d #748 (T2.6 final closure)** — SC-14 property suite. New `tests/property/lib/property-gen.bash` (~580 LOC) — bash property generator with SHA-256-of-(seed,tag) deterministic random. 7 invariant generators with multi-flavour internal dispatch (INV3 has 8 flavours covering all S6 emission paths; INV2/4/5 have 2-3 flavours; INV6 covers fail-closed; INV7 is positive S5 control). New `tests/property/model-resolution-properties.bats` — 7 bats tests, one per FR-3.9 invariant. New per-PR + nightly workflows. Subagent dual-review caught **2 CRIT** (CYP I3 vacuous green, CYP I4 biconditional vacuous) + **10 HIGH** (CYP I1 model_id collision, GP I3 only S2 path, GP I4 dead biconditional, CYP I6 negative-only / no positive S5 control, GP I5 no S5 absence pin, CYP eval-on-positional, CYP paths trigger forward-compat hole, CYP iter=1 bypass attack, CYP TTY-injection on dump leak) + 6 selected MEDs all addressed pre-merge. **Bridgebuilder kaironic plateau by API-unavailability** (Anthropic-only signal; OpenAI 404 + Google network across iters) per cycle-099 precedent — F14 nightly cap reduction (100K→10K) addressed inline; other 11 findings split 5 PRAISE / 2 false-alarm MED / 4 cosmetic LOW. Local smoke: 100 iter × 7 invariants → 7/7 ok in ~3:30; CI smoke: 4m1s on ubuntu-latest. Coverage: 99-100 distinct configs/invariant in 100 seeds (was 82 for inv3 pre-fix). 0 sentinel regressions on adjacent sprint-2D parity bats (27 P + 16 G). Admin-squashed.
+
 - **Sprint-2D.c #741 (`29c7a8a8`, v1.128.0)** — TS port via Python+Jinja2 codegen (T2.6 cont.). Mirrors sprint-1E.c.1 verbatim. Restores 3-way Python ↔ bash ↔ TS byte-equality gate. 4 new files: `.claude/adapters/loa_cheval/codegen/emit_model_resolver_ts.py` (Python emit module with realpath + symlink-refusal codegen-symlink-defense per cypherpunk MED-1 + ctrl_byte_pattern `/`-guard per gp MED-1 + source-hash cross-check), `.claude/scripts/lib/codegen/model-resolver.ts.j2` (~720 LOC Jinja2 template with `codepointCompare` for Python-parity sort + canonicalizeRecursive at resolve() entry per gp CRIT-1 + empty-dict tier_mapping fall-through per gp CRIT-2), `.claude/skills/bridgebuilder-review/resources/lib/model-resolver.generated.ts` (825 LOC committed output with SHA-256 of canonical Python source in DO-NOT-EDIT header), `.github/workflows/cycle099-sprint-2d-c-ts-tests.yml` (drift gate + parity tests). Updated: `tests/typescript/golden_resolution.ts` (consumes generated module + Sprint 2D shape), `.github/workflows/cross-runtime-diff.yml` (TS leg restored, 3-way byte-equality + JSON Schema validation extended to all 3 runners, repo-root absolute-path tsx invocation per BB iter-2 F2), `tests/integration/sprint-2D-resolver-parity.bats` (extended to 27 P-tests including new P16c TS direct ctrl-byte defense + P23 codegen drift gate + P24 hash cross-check via portable awk + P25 widened to skill/role/alias/tier-key positions). Subagent dual-review caught **2 CRIT + 3 HIGH + 8 MED + 10 LOW + 11 PRAISE** — all CRIT/HIGH and selected MED addressed pre-merge. **Bridgebuilder kaironic 2-iter plateau** by API-unavailability (Anthropic-only; finding-rotation + 3 PRAISE in BOTH iters = convergence). 45 Sprint 2D bats green; 0 cycle-099 sentinel regressions. Admin-squashed.
 
 - **Sprint-2C #739 (`e06fd8d1`)** — model-adapter.sh overlay integration (T2.5). New `.claude/scripts/lib/overlay-source-helper.sh` (~330 LOC) exposes 5 public functions (`loa_overlay_init`, `loa_overlay_resolve_provider_id`, `loa_overlay_resolve_alias`, `loa_overlay_resolve_endpoint_family`, `loa_overlay_refresh_if_stale`). Adapter sources the helper at module load (function defs only — no I/O); `loa_overlay_init` runs INSIDE the `HOUNFOUR_FLATLINE_ROUTING=true` branch of `main()` so the legacy default path stays bit-identical to pre-cycle-099. Resolution chain reordered: overlay → resolve_provider_id → MODEL_TO_ALIAS → pass-through. **Sprint 2 runtime overlay end-to-end COMPLETE**: operators can now add `model_aliases_extra` entries to `.loa.config.yaml` and have them flow through to bash adapter calls. 49 new bats cases (37 unit + 7 integration + 5 version-mismatch). Subagent dual-review caught 18 findings: **2 CRITICAL** (CYP-F1 LOA_OVERLAY_MERGED unconditional override → 3-leg gate added; CYP-F2 bash -n misleading docstring → content-shape gate added rejecting `$(...)`+backticks+semicolons+pipes+non-allowlist chars) + **6 HIGH** (CYP-F3 python3 from $PATH → absolute-path resolution; CYP-F4 TOCTOU symlink → realpath+symlink-refuse; CYP-F5 lockfile O_NOFOLLOW → symlink check; CYP-F6 pre-poisoned arrays → unset before source; CYP-F7 mutable helper paths → readonly; GP-F1+CYP-F11 helper init in legacy path → moved to v2 branch + hook arg passthrough) + **4 MEDIUM** (GP-F3 diagnostics env var; GP-F4 H1 test rename; CYP-F8/GP-F9 awk header parser; CYP-F9 fingerprint validation; CYP-F10 alias charset + dot-dot) — all addressed pre-merge with regression-pin tests. **Bridgebuilder kaironic**: 3 iters; iter-2 (4 findings, 2 PRAISE+1 MED+1 LOW) addressed in `097a175b`; iter-3 (8 findings, 0 consensus, 3 disputed) addressed in `bbec0aed` — finding-rotation pattern + Anthropic-only API → plateau called per cycle-099 precedent. Admin-squashed.
@@ -48,7 +50,7 @@
 
 ### Operator decision needed at session start
 
-> **Sprint 2D.c is SHIPPED.** TS port via Python+Jinja2 codegen landed at `29c7a8a8` (v1.128.0). Cumulative ~778 cycle-099 tests; 0 regressions. **3-way cross-runtime parity gate ACTIVE**: Python ↔ bash ↔ TS byte-equality + JSON Schema validation enforced on every PR touching the resolver. Production-yaml smoke verifies 21/21 framework agents resolve cleanly via canonical Python resolver. **Next: Sprint 2D.d (SC-14 property suite, ~3-5h, closes T2.6) OR Sprint 2E (T2.7+T2.8 tier_groups defaults + prefer_pro overlay operator-config wiring, ~5-7h)**.
+> **Sprint 2D.d is SHIPPED.** SC-14 property suite landed at #748 (v1.131.0 will auto-tag). **T2.6 is now fully closed.** 7 FR-3.9 invariants verified at 100 random configs/PR + 1000-iter nightly stress. Cumulative ~785 cycle-099 tests; 0 regressions. **Three-layer defense ACTIVE**: cross-runtime byte-equality (Python ↔ bash ↔ TS) + JSON Schema validation + property invariants — all enforced on every PR touching the resolver. Production-yaml smoke verifies 21/21 framework agents resolve cleanly. **Next: cycle-098 Sprint 4 (L4 graduated-trust, parked during cycle-099 urgency, now unblocked) OR Sprint 2E (T2.7+T2.8 tier_groups defaults + prefer_pro overlay operator-config wiring, ~5-7h)**.
 
 **Sprint 2 scope** (per cycle-099 sprint plan; Sprint 2A + 2B + 2C + 2D.a+b + 2D.c SHIPPED, 10 tasks remain):
 - ✅ T2.1 — JSON Schema (Sprint 2A #737)
@@ -58,7 +60,7 @@
 - ✅ T2.5 — `model-adapter.sh` overlay integration (Sprint 2C #739)
 - ✅ **T2.6 (Python canonical + bash twin)** — Sprint 2D #740
 - ✅ **T2.6 (TS port via Python+Jinja2 codegen)** — Sprint 2D.c #741
-- ⏳ **T2.6 (SC-14 property suite)** — Sprint-2D.d candidate; 6 invariants × ~100 random configs
+- ✅ **T2.6 (SC-14 property suite)** — Sprint 2D.d #748 (T2.6 fully closed)
 - ⏳ T2.7 — `tier_groups.mappings` probe-confirmed defaults
 - ⏳ T2.8 — `prefer_pro_models` overlay with FR-3.4 legacy gate (semantics shipped in Sprint 2D resolver; T2.8 covers operator-config wiring)
 - ⏳ T2.9 — Legacy-shape backward compat (semantics shipped in Sprint 2D S4; T2.9 covers FR-3.7 deprecation warnings)
@@ -370,7 +372,45 @@ Flatline SDD pass #2 SKP-006 CRITICAL 870 + pass #3 IMP-002 HIGH_CONSENSUS 880.
 
 ---
 
-## Brief G — Sprint 2D.d (SC-14 property suite) OR Sprint 2E (T2.7 + T2.8)
+## Brief H — Cycle-098 Sprint 4 (L4 graduated-trust) OR Sprint 2E (T2.7 + T2.8)
+
+**Status as of 2026-05-06**: cycle-099 Sprint 1 + 2A + 2B + 2C + 2D.a+b + 2D.c + **2D.d SHIPPED** (18 PRs on main + #748 sprint-2D.d). **T2.6 fully closed.** Sprint 2D.d activates SC-14 property suite: 7 invariants × 100 random configs/PR + 1000-iter nightly stress. **FR-3.9 canonical resolver SHIPPED across all 3 runtimes** (Python canonical + bash twin + TS codegen). 3-way cross-runtime byte-equality + JSON Schema validation + property invariants all enforced on every PR. Production-yaml smoke resolves 21/21 framework agents.
+
+### Option A — Cycle-098 Sprint 4: L4 graduated-trust audit-network feature
+
+The work parked during cycle-099 urgency, now unblocked. Read `grimoires/loa/cycles/cycle-098-agent-network/RESUMPTION.md` for the full Brief D handoff. Ships as v1.131.0 (or v2.0.0 if it introduces breaking changes — audit before deciding).
+
+### Option B — Sprint-2E: T2.7 + T2.8 (~5-7h)
+
+- **T2.7** — `tier_groups.mappings` probe-confirmed defaults: framework `tier_groups.mappings` is currently sparse (per fixture corpus). Sprint 2E populates the full default map for each (tier × provider) cell, validated via probe (a quick health-check call to each provider's allowlisted endpoint). Failures emit warnings but don't block.
+- **T2.8** — `prefer_pro_models` overlay operator-config wiring: Sprint 2D ships the resolver-side semantics (S6 stage). Sprint 2E plumbs the operator-config knob through the runtime overlay so operators can toggle it via `.loa.config.yaml::prefer_pro_models: true` and have it propagate to all skill resolutions (with FR-3.4 per-skill `respect_prefer_pro` gate for legacy shapes).
+
+### Recommendation
+
+**Option A (Cycle-098 Sprint 4)** unblocks weeks-old parked work. Cycle-099 main-thread is now closed (T2.6 fully shipped); resuming cycle-098 honors the original sprint sequencing. Read `grimoires/loa/cycles/cycle-098-agent-network/RESUMPTION.md` first — Sprint 4 may be MAJOR if it introduces breaking changes to the L1-L7 envelope.
+
+If operator wants to keep cycle-099 momentum, Option B (Sprint 2E) is the natural successor — operator-visible config knobs land sooner, building on the resolver invariants now hard-pinned by Sprint 2D.d.
+
+### Sprint 2D.d handoff (in place at HEAD post-merge)
+
+- `tests/property/lib/property-gen.bash` — bash property generator (~580 LOC); SHA-256-of-(seed,tag) deterministic random across hosts. 7 invariant generators with multi-flavour internal dispatch (INV3 has 8 flavours; INV2/4/5 have 2-3; INV1/6/7 have 1-2).
+- `tests/property/model-resolution-properties.bats` — 7 bats tests (I1-I7), 1 per FR-3.9 invariant + I7 positive S5 control. On-failure dump strips control bytes for safe CI logs.
+- `.github/workflows/cycle099-sprint-2d-d-property.yml` — per-PR check at 100 iter × 7 invariants. Seed_base = `sha256(github.sha + github.run_id)[:8]` (cypherpunk MED-3 mitigation).
+- `.github/workflows/cycle099-sprint-2d-d-property-nightly.yml` — cron `0 6 * * *` + workflow_dispatch with iter floor=100, cap=10000.
+
+### Followup-issues filed at Sprint 2D.d merge (deferred non-blocking findings)
+
+- **gp MED-3** (state-space coverage analysis) — covered in test header; cycle-100 if more analysis needed
+- **gp MED-4** (IMP-007 collision not exercised in property suite) — fixture corpus already covers; cycle-100 hardening if duplication wanted in property layer
+- **cypherpunk MED-2** (cancel-in-progress force-push masking) — branch-protection scope, not file-level
+- **BB iter-1 LOW F1** (nightly seed_base in $GITHUB_STEP_SUMMARY) — UX nice-to-have, cycle-100
+- **BB iter-1 LOW F5** (per-pick python3 subprocess perf) — 100-iter at 3:30 fits PR budget; cycle-100 if scaling becomes blocker
+- **BB iter-1 false-alarms F3/F4/F6/F7/F8/F15** — verified non-issues, documented in commit
+- All cosmetic LOWs from gp + cypherpunk reviews
+
+---
+
+## Brief G — Sprint 2D.d (SC-14 property suite) [HISTORIC — SHIPPED at #748]
 
 **Status as of 2026-05-06**: cycle-099 Sprint 1 + 2A + 2B + 2C + 2D.a+b + 2D.c all SHIPPED (17 PRs on main, v1.128.0). HEAD at `29c7a8a8`. **FR-3.9 canonical resolver SHIPPED across all 3 runtimes** (Python canonical + bash twin + TS codegen). 3-way cross-runtime byte-equality + JSON Schema validation enforced on every PR. Production-yaml smoke resolves 21/21 framework agents.
 
