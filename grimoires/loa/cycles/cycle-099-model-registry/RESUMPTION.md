@@ -1,10 +1,10 @@
 # cycle-099-model-registry — Session Resumption Brief
 
-**Last updated**: 2026-05-06 (Sprint 1 COMPLETE; **Sprint 2A SHIPPED** — JSON Schema for model_aliases_extra + standalone validator. **Next: Sprint 2B — strict-mode loader integration**)
+**Last updated**: 2026-05-06 (Sprint 1 COMPLETE; Sprint 2A SHIPPED; **Sprint 2B SHIPPED** — model-overlay-hook + writer + 4 AC tests. **Next: Sprint 2C — T2.5 model-adapter integration OR T2.6 6-stage resolver**)
 **Author**: deep-name + Claude Opus 4.7 1M
 **Purpose**: Crash-recovery + cross-session continuity. Read first when resuming cycle-099 work.
 
-## 🚨 TL;DR — Sprint 1 COMPLETE; Sprint 2A SHIPPED; 13 cycle-099 PRs on main
+## 🚨 TL;DR — Sprint 1 + 2A + 2B all SHIPPED; 14 cycle-099 PRs on main
 
 **On main (11 PRs):**
 - chore #721 (`9ef33055`) — cycle-099 ledger activation + planning artifacts (mirrors cycle-098 #679 pattern)
@@ -19,21 +19,23 @@
 - Sprint-1E.c.3.b #733 (`7815d56a`) — bash caller migration batch (T1.15 cont.) — 11 more callers + `mount-loa.sh` exempt with hardened dot-dot defense. 31 new bats. Subagent caught MEDIUM dot-dot bypass; BB iter-2 caught HIGH/MEDIUM test-logic + bash-c shell-injection pattern.
 - **Sprint-2A #737 (`ace5a206`)** — JSON Schema for `model_aliases_extra` + standalone validator helper (T2.1). 4 deliverables: `.claude/data/trajectory-schemas/model-aliases-extra.schema.json` (DD-5 path-locked, Draft 2020-12, verbatim from SDD §3.2 + dual-review hardening), `.claude/scripts/lib/validate-model-aliases-extra.{py,sh}` (Python canonical + bash twin mirroring cycle-099 endpoint-validator pattern), `tests/unit/model-aliases-extra-schema.bats` (57 contract pins). Sprint scope reduced from "T2.1 + T2.2" to T2.1 only — cycle-095's strict-mode loader for `.loa.config.yaml` top-level fields doesn't actually exist; building one for 30+ existing top-level fields is its own sprint. Subagent dual-review caught **HIGH `permissions: {}` empty-object bypass** of FR-1.4 (fix: `minProperties: 1` + allOf strengthening), **HIGH framework-default collision check missing** per IMP-004 (fix: Python-side `_check_collisions()` against `.claude/defaults/model-config.yaml`), **MEDIUM dot-dot bypass in id pattern** (fix: `not.anyOf` rejecting `\.\.` + leading/trailing meta), **MEDIUM endpoint URI advisory** (fix: `pattern: ^https://` enforced at schema layer), all pre-merge. BB iter-1 caught hardcoded `/tmp/loa-pwned` flake risk + dead helpers. BB iter-2 caught duplicate-id silent-shadow + skip-on-missing-shipped-files masking + exit-code-pin slop. Plateau at iter-2.
 - **Sprint-1D #735 (`cdedd3dd`)** — cross-runtime golden test corpus (T1.11 + T1.12) — 12 fixture YAMLs at `tests/fixtures/model-resolution/` covering each SDD §7.6.3 scenario + 3 byte-equal runtime runners (bash + python + TypeScript) parsing the same `generated-model-maps.sh` source-of-truth + 4 CI workflows including the `cross-runtime-diff.yml` byte-equality gate. Scope: Sprint 1D ships infrastructure only — runners consume `sprint_1d_query.alias` (alias-lookup subset). Full SDD §7.6.1 `input` + `expected` blocks preserved per-fixture for Sprint 2 T2.6 to extend. Each fixture's deferred markers ensure cross-runtime parity holds today. Subagent dual-review caught **CRIT-1 TS prototype walk** (`"toString" in modelIds` returned true; fixed via `Object.create(null)` + `hasOwn`), **CRITICAL-1 TS nested-object sort** (manual top-key sort doesn't recurse; fixed via `canonicalizeRecursive`), **CRITICAL-2 Python ensure_ascii=False** (Unicode escape divergence), **CRIT-3 env-override gate parity** (LOA_GOLDEN_* now mirror cycle-099 LOA_MODEL_RESOLVER_TEST_MODE pattern), **HIGH-3 pre-source sanitizer** (sources generated-model-maps.sh which would execute `$(...)`; strict-shape regex + outside-array hardening), **CRIT-2 bash YAML type discrimination** (yq `tag` check; uniform error markers across runtimes), **HIGH-1 npm ci --ignore-scripts** (preinstall RCE defense), **HIGH-2/MEDIUM-1 dead workflow_run trigger + paths filter additions**, **HIGH-4 dead explicit-pin code path** (fixture 02 now uses `anthropic:claude-opus-4-7` form). BB iter-2 plateau (one persistent false-alarm at 0.95 confidence — `local_yq` variable name mis-read as `local` keyword). 21 bats contract pins; ~448+21 cycle-099 cumulative bats. All 3 runtimes byte-equal locally + via CI cross-runtime-diff gate.
+- **Sprint-2B #738 (`83107f4f`)** — model-overlay-hook + writer + 4 AC tests (T2.3 + T2.4). Python startup hook at `.claude/scripts/lib/model-overlay-hook.py` (~1500 LOC) reads SoT + operator `model_aliases_extra`, validates via Sprint 2A's validator, atomically emits `.run/merged-model-aliases.sh`. Implements: shared-then-exclusive `flock` (5s/30s timeouts, env-overridable); SHA256 cache invalidation under shared lock; monotonic version header; `shlex.quote()` shell-escape per SDD §3.5 (6 rules) + belt-and-suspenders `..` rejection per `feedback_charclass_dotdot_bypass.md`; `chmod 0600` BEFORE rename; tempfile in same dir (NOT `$TMPDIR`); NFS detection blocklist with `LOA_ALLOW_NETWORK_FS_FOR_MERGED_ALIASES` opt-in; degraded read-only fallback (NFR-Op-6) with `LOA_OVERLAY_STRICT=1` opt-in; stale-lock recovery via retry-without-unlink + `kill -0`; `.run/overlay-state.json` corruption + future-version + auto-migration handlers per SDD §6.3.3. AC-S2.7 (26 bats) + AC-S2.8 (14 bats) + AC-S2.9 (106 pytest) + AC-S2.12 (3 latency bats; warm p95 ~19ms / cold p95 ~52ms in-process). 174 tests, 0 regressions on cycle-099 sentinel. Subagent dual-review caught 18 findings: **2 CRITICAL** (CYP-F1 lockfile O_NOFOLLOW + CYP-F2 stale-lock TOCTOU via os.unlink-and-reopen) + **5 HIGH** (GP-F1 future-version state-file routing + GP-F2 corruption-rebuild ts collision + CYP-F3 test-mode third-leg gate + CYP-F4 target_dir symlink redirect + CYP-F5 future-version downgrade) + **4 MEDIUM** (lock-timeout marker on success-path + dead `write_log` + unused imports + dead post-quote assertion + CYP-F6 lockfile-holder via held fd + CYP-F8 sticky `sys.path.insert` + CYP-F10 df/mount safe PATH + CYP-F11 degraded write OSError logged) — all addressed pre-merge. **Bridgebuilder kaironic plateau by API-unavailability**: 3 BB iters, all 3 providers (Anthropic 400 / OpenAI 404 / Google network) errored synchronously every iter; cycle-099 precedent (sprint-1A pattern) accepts API-unavailability as plateau condition. Pre-BB subagent dual-review provided substantive review surface; admin-squash documented in PR comment.
+
 - **Sprint-1E.c.3.c #734 (`b8dea0f5`)** — final SSRF closure (T1.15 cont.) — strict CI flip + load_allowlist host validation + opt-in webhook allowlist. Three deliverables: (1) `tools/check-no-raw-curl.sh` strict scanner with heredoc-state tracking + word-boundary regex + suppression marker; CI guard flipped from `::warning::` to `::error::` + `exit 1`. (2) `_validate_allowlist_entries` rejects sentinel hosts (`*`, `?`, FULLWIDTH ASTERISK U+FF0A, ASTERISK OPERATOR U+2217, NUL/CR/LF/TAB control bytes) at LOAD time, fail-closed with provider+index in error. (3) `_webhook_send` / `_webhook_dispatch` refactor with opt-in toggle `model_health_probe.alert_webhook_endpoint_validator_enabled` (literal-lowercase-`true` only) + `webhook-hosts.json` empty-default allowlist. **Subagent dual-review caught CRITICAL `model-adapter.sh.legacy` exempt-blindness** (3 live raw-curl invocations invisible to `*.sh`-only glob) + **HIGH FULLWIDTH-ASTERISK U+FF0A bypass** of `_validate_allowlist_entries` — both fixed pre-merge with bats coverage. **gp HIGH heredoc-string-mention + same-line-opener bypasses** also caught and fixed. BB kaironic 2-iter plateau (iter-1 caught F2/F3/F4 marker-scope + suffix-class + echo-cmdsub bypasses; iter-2 caught F13 push.paths gap). 4 exempt files now: `endpoint-validator.sh` (wrapper), `mount-loa.sh` (bootstrap), `model-health-probe.sh` (legacy webhook), `model-adapter.sh.legacy` (deferred Sprint 4 sunset).
 
 **Cumulative**: ~448 cycle-099 bats tests on main (391 prior + 57 from 1E.c.3.c: 18 host-validation + 12 webhook-opt-in + 33 strict-scan-coverage). 0 regressions. Drift-gate CI active. Strict v2 schema. Centralized endpoint-validator across Python + bash + TS with cross-runtime parity gate AND runtime DNS-rebinding defense AND **all 15 production caller paths now either funneling through wrapper OR explicitly exempt with hardened defaults + reviewer-visible rationale**. Strict CI scan blocks future raw curl/wget bypasses outside the 4-file exempt set.
 
 ### Operator decision needed at session start
 
-> **Sprint 1 is COMPLETE.** All 15 sprint tasks shipped including T1.10 / T1.11 / T1.12 / T1.15 follow-ons. Cumulative ~469 cycle-099 bats tests; 0 regressions. **Next: Sprint 2** (config extension + per-skill granularity + runtime overlay).
+> **Sprint 2B is SHIPPED.** Model-overlay-hook + writer + 4 AC tests landed at `83107f4f`. Cumulative ~643 cycle-099 tests; 0 regressions. **Next: Sprint 2C — T2.5 model-adapter integration OR T2.6 6-stage resolver**.
 
-**Sprint 2 scope** (per cycle-099 sprint plan; Sprint 2A SHIPPED, 15 tasks remain):
+**Sprint 2 scope** (per cycle-099 sprint plan; Sprint 2A + 2B SHIPPED, 13 tasks remain):
 - ✅ T2.1 — JSON Schema (Sprint 2A #737)
-- ⏳ T2.2 — Strict-mode loader (Sprint 2B candidate)
-- ⏳ T2.3 — Python startup hook `.claude/scripts/lib/model-overlay-hook.py`
-- ⏳ T2.4 — `.run/merged-model-aliases.sh` writer (atomic-write + flock)
-- ⏳ T2.5 — `model-adapter.sh` source-with-version-mismatch
-- ⏳ T2.6 — FR-3.9 6-stage resolver (Python canonical + bash twin) — extends Sprint 1D runners
+- ⏳ T2.2 — Strict-mode loader (deferred until T2.6 brings the canonical Python loader; no existing strict-mode loader to extend)
+- ✅ T2.3 — Python startup hook (Sprint 2B #738)
+- ✅ T2.4 — `.run/merged-model-aliases.sh` writer (Sprint 2B #738)
+- ⏳ **T2.5** — `model-adapter.sh` source-with-version-mismatch (**Sprint-2C candidate; small scope, ~2-3h**)
+- ⏳ **T2.6** — FR-3.9 6-stage resolver (**alternative Sprint-2C candidate; larger scope, ~6-8h**) — extends Sprint 1D runners
 - ⏳ T2.7 — `tier_groups.mappings` probe-confirmed defaults
 - ⏳ T2.8 — `prefer_pro_models` overlay with FR-3.4 legacy gate
 - ⏳ T2.9 — Legacy-shape backward compat
@@ -345,7 +347,68 @@ Flatline SDD pass #2 SKP-006 CRITICAL 870 + pass #3 IMP-002 HIGH_CONSENSUS 880.
 
 ---
 
-## Brief D — Sprint 2B (T2.3 + T2.4 — Python overlay hook + merged-aliases.sh writer)
+## Brief E — Sprint 2C (T2.5 model-adapter integration OR T2.6 6-stage resolver)
+
+**Status as of 2026-05-06**: cycle-099 Sprint 1 + 2A + 2B all SHIPPED (14 PRs on main). HEAD at `83107f4f` (Sprint 2B merge). The runtime-overlay infrastructure is now in place: `model-overlay-hook.py` writes `.run/merged-model-aliases.sh` atomically; bash consumers can `source` it. T2.5 is the consumer-side integration; T2.6 is the canonical resolver.
+
+**Sprint-2C candidates** (operator's choice — smaller-scope OR larger-scope):
+
+### Option A — Sprint-2C.A: T2.5 only (model-adapter.sh integration) — ~2-3h
+
+Smallest viable next step. Wires `model-adapter.sh` to source `.run/merged-model-aliases.sh` with version-mismatch detection (re-read after exclusive-lock acquisition on mismatch). Uses Sprint 2B's monotonic version header to detect cross-process state drift.
+
+Test surface (1-2 bats files):
+- `tests/integration/model-adapter-overlay-source.bats` — source merged file, query alias, verify provider+api_id+endpoint_family+pricing match
+- `tests/integration/model-adapter-version-mismatch.bats` — race two adapter invocations across a regen; verify late-reader sees consistent state
+
+Sprint 2A's validator is invokable; Sprint 2B's hook produces the merged file. The integration is the LAST layer of the Sprint 2 runtime overlay. After T2.5 ships, operators can add `model_aliases_extra` entries to `.loa.config.yaml` and have them flow through to bash adapter calls without code changes.
+
+Risk profile: low. No new flock semantics; no atomic-write surface. Just bash sourcing + version-string parse.
+
+### Option B — Sprint-2C.B: T2.6 (FR-3.9 6-stage resolver) — ~6-8h
+
+Larger-scope. Implements the full 6-stage resolution pipeline per SDD §1.5 + FR-3.9: explicit pin → operator tier_groups → framework tier_groups → legacy shape → framework default → prefer_pro_models overlay. Python canonical + bash twin matching cycle-099's other multi-runtime patterns.
+
+Extends Sprint 1D's golden corpus runners — replacing the `deferred_to: "sprint-2-T2.6"` markers with real `resolution_path` arrays. The cross-runtime-diff CI gate then guarantees parity.
+
+Test surface (substantial):
+- `tests/integration/model-resolution-golden.bats` — 12 fixtures × 4 skills = ~48 cases
+- Property suite: `tests/property/model-resolution-properties.bats` (SC-14, 6 invariants × ~100 random configs)
+- Updates to all 3 runtime runners (bash/python/TS) in `tests/python/golden_resolution.py`, `tests/bash/golden_resolution.bats`, `tests/typescript/golden_resolution.test.ts`
+
+Risk profile: medium-high. Cross-runtime parity is the central concern (per `feedback_cross_runtime_parity_traps.md` — 6 classes of silent bash/python/TS divergence). Sprint 1D infrastructure makes this tractable but each runner needs careful mirror.
+
+### Recommendation
+
+**Option A first (T2.5)** — small, low-risk, completes the Sprint 2 runtime overlay end-to-end. T2.6 makes more sense as Sprint-2D after T2.5 proves the consumer integration. This matches the cycle-099 sub-sprint pattern (1A → 1B → 1C → 1E.a → 1E.b → 1E.c.{1,2,3.a,3.b,3.c} → 1D — small slices, each independently shippable).
+
+If operator wants the bigger lift in one shot, Option B (T2.6) is correct — but expect 3+ BB iters and more subagent-review surface for the cross-runtime parity assertions.
+
+### Sprint 2B handoff (in place at HEAD `83107f4f`)
+
+- `.claude/scripts/lib/model-overlay-hook.py` — full hook; CLI `--probe-shell-safety` for AC-S2.7 corpus testing
+- `.run/merged-model-aliases.sh` — populated on first hook invocation with `# version=N` + `# source-sha256=<hash>` header
+- `.run/overlay-state.json` — degraded-mode tracking; future-version + auto-migration handlers
+- `.claude/data/trajectory-schemas/overlay-state.schema.json` — schema_version 1
+- Test-mode override: `LOA_OVERLAY_TEST_MODE=1 + LOA_OVERLAY_PROC_MOUNTS_PATH_FOR_TEST + (BATS_VERSION OR PYTEST_CURRENT_TEST)` (three-leg gate)
+- Strict mode opt-in: `LOA_OVERLAY_STRICT=1` (default is degraded-fallback per NFR-Op-6)
+- Network-fs opt-in: `LOA_ALLOW_NETWORK_FS_FOR_MERGED_ALIASES=1` per SDD §6.6
+- Lock-timeout overrides: `LOA_OVERLAY_LOCK_TIMEOUT_{SHARED,EXCLUSIVE}_MS`
+
+Cut: `feat/cycle-099-sprint-2C` from main (`83107f4f`+).
+
+Quality-gate chain (cycle-099 standard, established across 14 PRs):
+1. Test-first
+2. Subagent dual-review (gp + paranoid cypherpunk) IN PARALLEL
+3. Bridgebuilder kaironic INLINE — **NOTE**: BB API failures observed on Sprint 2B (3 iters, all 3 providers errored synchronously). Cycle-099 precedent (sprint-1A) accepts API-unavailability as plateau condition; pre-BB subagent review provides substantive review surface. If BB fails on 2C, document and proceed.
+4. Admin-squash after plateau
+5. Update RESUMPTION.md + memory
+
+Beads still UNHEALTHY/MIGRATION_NEEDED (#661). `--no-verify` policy active per cycle-099 sprint plan.
+
+---
+
+## Brief D — Sprint 2B (T2.3 + T2.4 — Python overlay hook + merged-aliases.sh writer) [SHIPPED]
 
 **Status as of 2026-05-06**: cycle-099 Sprint 1 COMPLETE (12 PRs). Sprint 2A SHIPPED (#737 `ace5a206`). 13 cycle-099 PRs total on main; HEAD at `75321b90` (RESUMPTION.md update post Sprint 2A merge).
 
