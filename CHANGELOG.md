@@ -9,6 +9,100 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **codex-headless provider adapter** — routes cheval calls through the OpenAI Codex CLI (`codex exec`) instead of the OpenAI HTTP API, so bridgebuilder / spiraling / flatline-review can draw against a ChatGPT subscription quota instead of the `OPENAI_API_KEY` balance. New file `loa_cheval/providers/codex_headless_adapter.py` registered as `type: codex-headless` in `loa_cheval/providers/__init__.py`. Auths via `~/.codex/auth.json` (populated by `codex login` once); no `auth` field required on `ProviderConfig`. Model selection is still `provider:model_id` form (e.g., `codex-headless:gpt-5.5`) — same gpt-5.x line, different transport.
+  - **Reasoning-effort threading**: `low` / `medium` / `high` / `xhigh` (codex CLI ≥ 0.125.0). Resolution precedence: `CompletionRequest.metadata["reasoning_effort"]` → `ModelConfig.extra["reasoning_effort"]` → codex CLI default. Unknown values WARN and fall through.
+  - **Sandbox posture**: `--ephemeral --sandbox read-only --ignore-user-config --skip-git-repo-check` always. The model-router use case is pure inference and must not touch operator files; we never enable workspace-write.
+  - **Forward-compat parser**: `codex exec --json` JSONL stream is parsed for `agent_message` (content), `reasoning` (thinking trace), and `turn.completed.usage` (input / output / reasoning_output_tokens). Unknown event types are silently skipped — codex ships new events frequently and we don't want to brick on additive surface.
+  - **Error classification**: stderr scanned for "rate limit" / "429" → `RateLimitError`; "auth" / "codex login" / "unauthorized" → `ConfigError` with actionable hint; everything else → `ProviderUnavailableError` so cheval's retry/fallback can react. `subprocess.TimeoutExpired` and missing-binary `FileNotFoundError` are typed equivalently.
+  - **Operator config example**:
+    ```yaml
+    hounfour:
+      providers:
+        codex-headless:
+          type: codex-headless
+          read_timeout: 600.0
+          models:
+            gpt-5.5:
+              capabilities: [chat, code]
+              context_window: 400000
+              token_param: max_completion_tokens
+              pricing: { input_per_mtok: 0, output_per_mtok: 0 }  # subscription-billed
+              extra: { reasoning_effort: high }
+      aliases:
+        reviewer: codex-headless:gpt-5.5
+        reasoning: codex-headless:gpt-5.5
+    ```
+  - **Tests**: 31 unit tests in `tests/test_codex_headless_adapter.py` (registry dispatch, command construction, prompt flattening, JSONL parsing, error classification, validate_config + health_check, end-to-end happy path with mocked subprocess). 1 live test gated behind `LOA_CODEX_HEADLESS_LIVE=1`. End-to-end smoke verified locally: `cheval --agent flatline-reviewer --model codex-headless:gpt-5.5 --prompt …` returns response in ~5s with no `OPENAI_API_KEY` consumed (auth via `~/.codex/auth.json`).
+  - **Tool-calling deferred**: v1 forwards `request.messages` flattened into a single prompt with role-prefixed sections (sufficient for the four flatline modes — reviewer / skeptic / scorer / dissenter — which are single-shot). Native function_call_output threading into codex's tool-event stream is out of scope; revisit when an agent binding genuinely needs it.
+
+- **gemini-headless provider adapter** — sibling to codex-headless. Routes cheval calls through the Google Gemini CLI (`gemini -p`) instead of the Generative Language v1beta HTTP API, so any Gemini-tier role (deep-thinker, fast-thinker, flatline-tertiary) can draw against a personal Google account's free quota (60 RPM / 1000 RPD) or a Gemini Advanced subscription instead of `GOOGLE_API_KEY` balance. New file `loa_cheval/providers/gemini_headless_adapter.py` registered as `type: gemini-headless` in `loa_cheval/providers/__init__.py`. Auths via `~/.gemini/settings.json` (populated by interactive `gemini` first-run) OR `GEMINI_API_KEY` / `GOOGLE_GENAI_USE_VERTEXAI` / `GOOGLE_GENAI_USE_GCA` env vars; no `auth` field required on `ProviderConfig`.
+  - **Sandbox posture**: `--approval-mode plan --skip-trust` always — read-only, no shell exec, no file edits. Skip-trust is required because the model-router invocation cwd is rarely in gemini-cli's trusted-folders list, and the CLI silently downgrades approval-mode to `default` (interactive) when trust is missing — that hangs in non-interactive contexts.
+  - **JSON output parsing**: `--output-format json` emits a single `{session_id, response, stats?, error?, warnings?}` object (per gemini-cli `core/src/output/types.ts`). The adapter pulls `response` for content; tokens are extracted from `stats.models[<model_id>].tokens.{prompt, candidates, thoughts, cached}` (gemini's input/output/reasoning/cached aliases). When `stats` is absent, `Usage.source = "estimated"` rather than failing.
+  - **Error classification**: Structured JSON `{error: {type, message, code}}` is preferred over stderr when the CLI emits both. Auth-related strings (`auth method`, `settings.json`, `GEMINI_API_KEY`, `GOOGLE_GENAI_USE_*`, `unauthorized`, `permission_denied`) → `ConfigError` with actionable hint. Quota / rate-limit (`429`, `quota`, `resource_exhausted`) → `RateLimitError`. Everything else → `ProviderUnavailableError`. `subprocess.TimeoutExpired` and missing-binary `FileNotFoundError` typed equivalently.
+  - **Operator config example** (model names match gemini-cli ≥ 0.40.x — bare `gemini-3-pro` / `gemini-3-flash` return ModelNotFoundError 404):
+    ```yaml
+    hounfour:
+      providers:
+        gemini-headless:
+          type: gemini-headless
+          read_timeout: 600.0
+          models:
+            gemini-3.1-pro-preview:
+              capabilities: [chat, thinking_traces]
+              context_window: 1048576
+              pricing: { input_per_mtok: 0, output_per_mtok: 0 }  # subscription-billed
+            gemini-3-flash-preview:
+              capabilities: [chat]
+              context_window: 1048576
+              pricing: { input_per_mtok: 0, output_per_mtok: 0 }
+      aliases:
+        deep-thinker: gemini-headless:gemini-3.1-pro-preview
+        fast-thinker: gemini-headless:gemini-3-flash-preview
+        researcher: gemini-headless:gemini-3.1-pro-preview
+    ```
+  - **Tests**: 25 unit tests in `tests/test_gemini_headless_adapter.py` (registry dispatch, command construction, prompt flattening, JSON parsing — including stats-key fallback for single-model runs, error classification across structured + stderr paths, validate_config + health_check, end-to-end happy path with mocked subprocess). 1 live test gated behind `LOA_GEMINI_HEADLESS_LIVE=1`.
+  - **Tool-calling + image input deferred**: v1 single-shot only, same posture as codex-headless. Gemini-cli's `--image` flag and MCP tool surface are not forwarded.
+
+- **claude-headless provider adapter** — third sibling to codex-headless / gemini-headless. Routes cheval calls through the Claude Code CLI (`claude -p`) instead of the Anthropic Messages HTTP API, so Anthropic-tier roles (opus / sonnet aliases, flatline-reviewer when configured to Claude) draw against a Claude Max / Pro / Team subscription quota instead of `ANTHROPIC_API_KEY` balance. New file `loa_cheval/providers/claude_headless_adapter.py` registered as `type: claude-headless` in `loa_cheval/providers/__init__.py`. Auths via Claude Code's OAuth-managed credential store (populated by `claude /login`); no `auth` field required on `ProviderConfig`.
+  - **Distinct from `claude-code:session`**: the existing `NATIVE_PROVIDER` ("native": "claude-code:session") routes through the in-process Claude Code native runtime and short-circuits cheval entirely. `claude-headless` is a *subprocess* invocation of the `claude` CLI — useful when an agent binding wants subscription-billed Claude calls but doesn't want to (or can't) use the native runtime.
+  - **Sandbox posture**: `--permission-mode plan --no-session-persistence --tools ""` always — read-only, hermetic, no tool execution. Defense in depth: `--tools ""` disables the agent loop's entire tool surface, `--permission-mode plan` forbids edits even if a tool somehow runs.
+  - **Critical: NEVER pass `--bare`.** That flag strips OAuth and forces `ANTHROPIC_API_KEY`, which defeats the subscription-auth purpose of the adapter. The test suite asserts `--bare` is not in the constructed command.
+  - **System-prompt overhead**: by default, Claude Code injects ~14K tokens of agent-persona system prompt into every `-p` call (visible as `cache_creation_input_tokens` on first call, `cache_read_input_tokens` on subsequent calls in the same window). On Max subscription that's quota-cost only. Operators wanting to trim it can pass `system_prompt` (REPLACES default) or `append_system_prompt` (ADDS to default) via `ModelConfig.extra`.
+  - **Effort threading**: `low | medium | high | xhigh | max` (one wider than codex's `xhigh` ceiling). Resolution precedence matches codex pattern: `request.metadata["effort"]` (or `["reasoning_effort"]`) → `ModelConfig.extra["effort"]` (or `["reasoning_effort"]`) → CLI default. Unknown values WARN and fall through.
+  - **Token mapping** from Claude Code's usage block:
+      `usage.input_tokens` → `Usage.input_tokens` (NEW input only, NOT cache)
+      `usage.output_tokens` → `Usage.output_tokens`
+      `usage.cache_read_input_tokens` → `metadata.cache_read_input_tokens`
+      `usage.cache_creation_input_tokens` → `metadata.cache_creation_input_tokens`
+      `total_cost_usd` → `metadata.total_cost_usd` (informational on Max)
+      `permission_denials` → `metadata.permission_denials`
+    Cache tokens are NOT summed into `Usage.input_tokens` — that would double-count for cost accounting since cache reads/writes bill at different rates.
+  - **Model resolution**: Claude Code's CLI accepts both aliases (`sonnet`, `opus`) and full names (`claude-opus-4-7`, `claude-sonnet-4-6`, `claude-haiku-4-5-20251001`). Unknown aliases silently fall back to a default (observed: `haiku` → `sonnet-4-6` on 2.1.128). The adapter reports the *actual* model used (from `modelUsage` field) in `CompletionResult.model`, not the requested model — so cost ledgers see truth. Operators wanting determinism should pass full model IDs.
+  - **Error classification**: Claude Code's `-p` mode emits structured JSON `{is_error, result, api_error_status}` even on auth failure. Adapter prefers structured diagnostic over stderr. Auth strings (`not logged in`, `/login`, `unauthorized`, `401`, `authentication`, `credential`) → `ConfigError` with `claude /login` hint. Rate-limit / overload (`429`, `529`, `overloaded`, `rate limit`, `quota`) → `RateLimitError`. Else → `ProviderUnavailableError`. `subprocess.TimeoutExpired` and `FileNotFoundError` typed equivalently.
+  - **Operator config example**:
+    ```yaml
+    hounfour:
+      providers:
+        claude-headless:
+          type: claude-headless
+          read_timeout: 600.0
+          models:
+            claude-opus-4-7:
+              capabilities: [chat, tools, function_calling, thinking_traces]
+              context_window: 200000
+              pricing: { input_per_mtok: 0, output_per_mtok: 0 }  # subscription-billed
+              extra: { effort: high }
+            claude-sonnet-4-6:
+              capabilities: [chat, tools, function_calling]
+              context_window: 200000
+              pricing: { input_per_mtok: 0, output_per_mtok: 0 }
+      aliases:
+        opus: claude-headless:claude-opus-4-7
+        cheap: claude-headless:claude-sonnet-4-6
+    ```
+  - **Tests**: 33 unit tests in `tests/test_claude_headless_adapter.py` (registry dispatch, command construction including `--bare` absence assertion, prompt flattening, JSON parsing including cache-token metadata + actual-model-from-modelUsage, error classification across structured + stderr + permission-denial paths, validate_config + health_check, end-to-end happy path). 1 live test gated behind `LOA_CLAUDE_HEADLESS_LIVE=1`. Live smoke confirmed locally: `'Quack'` returned via subscription, 6.9s, no `ANTHROPIC_API_KEY` consumed.
+  - **Tool-calling + image input deferred**: v1 single-shot only, same posture as codex / gemini. Adding tool-call forwarding requires mapping `CompletionRequest.tools` → `--tools` allowlist + parsing tool-call events from `--output-format stream-json`. Operators wanting tools today should use the existing AnthropicAdapter (HTTP API).
+
 - **Cycle-095 — Model Currency** (Sprints 1+2 in this release; Sprint 3 deferred to post-soak) — gpt-5.5 family is now reachable through cheval, the `reviewer` and `reasoning` aliases default to `openai:gpt-5.5` (cost-safe non-pro), `tiny` tier alias added for Haiku 4.5, and the `fast-thinker` agent binding upgraded to Gemini 3 fast variant with probe-driven fallback chain.
   - **Sprint 1 — routing infrastructure**: `endpoint_family` field on every OpenAI registry entry routes between `/v1/chat/completions` and `/v1/responses`. Migration step + strict validation in same commit (`config/loader.py:_validate_endpoint_family`). `LOA_LEGACY_ENDPOINT_FAMILY_DEFAULT=chat` env-var backstop for operators with custom OpenAI entries. Six-shape `/v1/responses` normalizer (multi-block text, tool/function call, reasoning summary, refusal, empty, truncated) per PRD §3.1 / SDD §5.4. `LOA_FORCE_LEGACY_ALIASES=1` kill-switch restores pre-cycle-095 alias resolution at config-load time (`.claude/defaults/aliases-legacy.yaml` snapshot). Strict-default `UnsupportedResponseShapeError` for unknown shapes; opt-in `responses_unknown_shape_policy: degrade` escape hatch.
   - **Sprint 2 — alias flips + tiers + guardrails**: `aliases.reviewer` and `aliases.reasoning` flipped from `openai:gpt-5.3-codex` to `openai:gpt-5.5`. `gpt-5.3-codex` immutable self-map in `backward_compat_aliases:` — operators pinning the legacy ID literally continue resolving to that exact model (NOT silently retargeted to gpt-5.5). One-time INFO log emission on first resolution per process per legacy alias. Haiku 4.5 (`claude-haiku-4-5-20251001`) + `tiny` alias. Gemini 3 fast variant (`gemini-3-flash-preview`) + `gemini-3-flash` alias + `fallback_chain: ["google:gemini-2.5-flash"]`. Google adapter `_resolve_active_model` with probe-driven demotion + 300s cooldown hysteresis + WARN-once-per-(primary,fallback)-per-process. Probe-cache trust boundary (file owner UID + mode 0600 — SDD §3.5 SKP-003). FR-5a cost-guardrail primitives: `tier_groups:` schema block (structural; Sprint 3 populates `mappings:`); `metering/budget.py` `check_session_cap_pre`/`_post` with two-phase atomicity (pre-call worst-case estimate + `threading.Lock`); `LOA_PREFER_PRO_DRYRUN` env var + `routing/tier_groups.py` `dryrun_preview` helper.
