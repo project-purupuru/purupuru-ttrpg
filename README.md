@@ -15,16 +15,6 @@ Version: 1.130.0
 
 > *"The Loa are pragmatic entities... They're not worshipped for salvation—they're worked with for practical results."*
 
-## What's new in v1.130.0 (2026-05-06)
-
-This is a **named milestone release** bundling 41 incremental tags into one operator-facing version. Three architectural shifts ship together:
-
-1. **Cycle-099 — model-registry consolidation** (most operator-visible). `.claude/defaults/model-config.yaml` plus `.loa.config.yaml::{model_aliases_extra, skill_models, tier_groups}` becomes the **only authoritative model registry**. New FR-3.9 6-stage deterministic resolver runs in three runtimes (Python canonical + bash twin + TypeScript via codegen) with a CI gate enforcing byte-equal canonical-JSON output across all three on every PR. → **[Migration guide](docs/migration/v1.130-cycle-099-model-registry.md)** · **[Architecture decision record](docs/architecture/ADR-001-cycle-099-model-registry.md)**
-2. **Cycle-098 — agent-network audit infrastructure**. New L1-L7 audit envelope with hash-chain + Ed25519 signatures, L2 cost-budget enforcer, L3 scheduled-cycle template (5-phase chassis), signed-mode harness.
-3. **Subscription-auth cheval transport**. Three new headless adapters (`codex-headless`, `gemini-headless`, `claude-headless`) bill against operator subscription quota instead of API-key balance.
-
-**Backward compatible**: pre-cycle-099 alias config continues to work via FR-3.9 stage 4 with deprecation-warn fallback. See the [v1.130.0 CHANGELOG entry](CHANGELOG.md#1130---2026-05-06---model-registry-consolidation-agent-network-audit-infrastructure-subscription-auth-headless-adapters) for the complete change list.
-
 ## What Is This?
 
 Loa is an agent-driven development framework for [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview) (Anthropic's official CLI). It adds 18 specialized AI agents, quality gates, persistent memory, and structured workflows on top of Claude Code — including a self-improving [spiral orchestrator](#spiral-autopoietic-orchestrator) that can autonomously plan, build, review, and learn across multiple development cycles. Works on macOS and Linux. Created by [@janitooor](https://github.com/janitooor) at [The Honey Jar](https://0xhoneyjar.xyz).
