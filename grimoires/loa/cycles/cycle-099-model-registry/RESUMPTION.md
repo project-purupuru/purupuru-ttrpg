@@ -1,10 +1,23 @@
 # cycle-099-model-registry — Session Resumption Brief
 
-**Last updated**: 2026-05-06 (Sprint 1 COMPLETE; Sprint 2A + 2B + 2C + 2D.a+b + **2D.c SHIPPED** — FR-3.9 canonical resolver + 3-way cross-runtime parity gate COMPLETE. **Next: Sprint 2D.d (SC-14 property suite) OR Sprint 2E (T2.7+T2.8)**)
+**Last updated**: 2026-05-06 (Sprint 1 COMPLETE; Sprint 2A + 2B + 2C + 2D.a+b + 2D.c SHIPPED + post-Sprint-2D.c CLEANUP + **PR #727 cheval headless adapters MERGED + v1.130.0 NAMED MILESTONE RELEASE PUBLISHED** — Cycle-099 model-registry consolidation officially packaged for downstream operators. **Next: Sprint 2D.d (SC-14 property suite) OR cycle-098 Sprint 4 (L4 graduated-trust) OR Sprint 2E (T2.7+T2.8)**)
 **Author**: deep-name + Claude Opus 4.7 1M
 **Purpose**: Crash-recovery + cross-session continuity. Read first when resuming cycle-099 work.
 
-## 🚨 TL;DR — Sprint 1 + 2A + 2B + 2C + 2D.a+b + 2D.c all SHIPPED; 17 cycle-099 PRs on main; 3-way cross-runtime parity gate ACTIVE
+## 🎯 v1.130.0 milestone (2026-05-06)
+
+**Cycle-099 is officially packaged.** Named milestone release published at https://github.com/0xHoneyJar/loa/releases/tag/v1.130.0 with FAANG-OSS standard release engineering:
+
+- **CHANGELOG.md** — structured `[1.130.0]` rollup covering cycle-098 + cycle-099 + cheval headless adapters; per-tag inventory v1.110.0 → v1.129.1 stub-pointed
+- **README** — "What's new in v1.130.0" highlights section linking to migration + ADR
+- **`docs/migration/v1.130-cycle-099-model-registry.md`** (NEW) — operator migration guide with 4 worked recipes
+- **`docs/architecture/ADR-001-cycle-099-model-registry.md`** (NEW) — architecture decision record covering 5 alternatives considered, 1 chosen-with-augmentation
+- **`.loa-version.json`** — `framework_version: 1.130.0`
+- **GitHub Release** — narrative-style rich notes (~2700 chars)
+
+**Semver**: 1.130.0 = MINOR (additive only). Backward-compat: legacy `aliases:` block resolves via FR-3.9 stage 4 with deprecation warning; `gpt-5.3-codex` immutable self-map preserved; `LOA_FORCE_LEGACY_ALIASES=1` kill-switch active.
+
+## 🚨 TL;DR — Sprint 1 + 2A + 2B + 2C + 2D.a+b + 2D.c all SHIPPED; 17 cycle-099 PRs + cheval headless adapters + v1.130.0 named release on main; 3-way cross-runtime parity gate ACTIVE
 
 **On main (11 PRs):**
 - chore #721 (`9ef33055`) — cycle-099 ledger activation + planning artifacts (mirrors cycle-098 #679 pattern)
