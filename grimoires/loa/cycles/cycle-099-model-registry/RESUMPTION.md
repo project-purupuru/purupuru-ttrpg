@@ -345,7 +345,93 @@ Flatline SDD pass #2 SKP-006 CRITICAL 870 + pass #3 IMP-002 HIGH_CONSENSUS 880.
 
 ---
 
-## Open backlog at session-end (2026-05-05)
+## Brief D — Sprint 2B (T2.3 + T2.4 — Python overlay hook + merged-aliases.sh writer)
+
+**Status as of 2026-05-06**: cycle-099 Sprint 1 COMPLETE (12 PRs). Sprint 2A SHIPPED (#737 `ace5a206`). 13 cycle-099 PRs total on main; HEAD at `75321b90` (RESUMPTION.md update post Sprint 2A merge).
+
+Sprint-2B scope (T2.3 + T2.4 per cycle-099 sprint.md §Sprint 2):
+
+- **T2.3** — Python startup hook `.claude/scripts/lib/model-overlay-hook.py` per SDD §1.4.4 + DD-4. Reads merged config (SoT ∪ operator extras), validates `model_aliases_extra` via Sprint 2A's `validate-model-aliases-extra.py`, writes `.run/merged-model-aliases.sh` for bash consumers. Uses cheval venv per §10.1.4.
+- **T2.4** — `.run/merged-model-aliases.sh` writer with:
+  - Atomic-write via tempfile in same directory + `os.rename(2)` (cross-filesystem `rename` is non-atomic; SDD §1.4.4 explicitly forbids `${TMPDIR:-/tmp}`)
+  - flock exclusive/shared semantics on `.run/merged-model-aliases.sh.lock` per FR-1.9
+  - SHA256 invalidation under shared lock; skip regen if input hash matches header
+  - Monotonic version header (incrementing on each successful write)
+  - `shlex.quote()` shell-escape for operator-controlled values per SDD §3.5
+  - `chmod 0600` on the temp file BEFORE `rename()` (avoid brief world-readable window)
+
+Acceptance criteria (cycle-099 sprint.md AC-S2.7 + AC-S2.8 + AC-S2.9 + AC-S2.12):
+
+- AC-S2.7 — `tests/integration/merged-aliases-shell-escape.bats` passes — operator-controlled values escaped via `shlex.quote()` survive bash sourcing without injection
+- AC-S2.8 — `tests/integration/flock-network-fs-detection.bats` passes — NFS/SMB detection blocklist refuses without `LOA_ALLOW_NETWORK_FS_FOR_MERGED_ALIASES=1`
+- AC-S2.9 — `tests/unit/model-overlay-hook.py.test` passes (pytest unit tests)
+- AC-S2.12 — `tests/integration/overlay-resolution-latency.bats` p95 ≤50ms warm cache, p95 ≤500ms cold (NFR-Perf-1; SDD §7.5.1)
+
+**T2.5 follow-on**: `model-adapter.sh` updated to source `.run/merged-model-aliases.sh` with version-mismatch detection (re-read after exclusive-lock acquisition on mismatch). May ride alongside 2B or split out.
+
+**Sprint 2A handoff (already in place):**
+
+- Schema: `.claude/data/trajectory-schemas/model-aliases-extra.schema.json`
+- Validator API: `validate(config, schema, block_path, framework_ids) -> (is_valid, errors, block_present)`
+  - `block_present` distinguishes "operator hasn't opted in" (vacuous success) from "operator opted in and config valid"
+  - Sprint 2B's hook calls this BEFORE constructing the merged-aliases output
+- Validator CLI: `--config / --block / --schema / --framework-defaults / --no-collision-check / --json / --quiet`
+- Exit codes: 0 valid · 78 invalid · 64 usage error
+- Bash twin: `.claude/scripts/lib/validate-model-aliases-extra.sh` (mirrors endpoint-validator pattern)
+
+Cut: `feat/cycle-099-sprint-2B` from main (`75321b90`+).
+
+Quality-gate chain (cycle-099 standard, established across 13 PRs):
+
+1. **Implement test-first**: AC-S2.7 / AC-S2.8 / AC-S2.9 / AC-S2.12 bats files first. Each test should have positive control + named regression IDs (cycle-099 traceability convention).
+2. **Subagent dual-review** (general-purpose + paranoid cypherpunk) IN PARALLEL via `Agent({subagent_type: "general-purpose", run_in_background: true})`. Paranoid cypherpunk catches CRITICAL/HIGH security bypasses pre-merge across cycle-099 (e.g., `permissions:{}` FR-1.4 bypass on Sprint 2A, `*.sh`-only-glob CRITICAL on Sprint 1D).
+3. **Bridgebuilder kaironic INLINE**: `.claude/skills/bridgebuilder-review/resources/entry.sh --pr <N>`. Typical 2-iter plateau for code PRs; iter-1 catches real defects, iter-2 catches polish + plateau-signal false alarms (persistent low-confidence findings = plateau).
+4. **Admin-squash** after plateau: `gh pr merge <N> --admin --squash --delete-branch`.
+5. **Update RESUMPTION.md + memory** entries.
+
+Specific SDD references for T2.3/T2.4:
+
+- SDD §1.4.4 — `model-overlay-hook.py` purpose + concurrency + atomic-write + 0600 permission
+- SDD §3.5 — `merged-aliases.sh` shape spec (shell-escape rules, version header)
+- SDD §6.3 — flock acquisition order (shared first; upgrade to exclusive if write needed); 5s shared / 30s exclusive timeouts; env-var configurable via `LOA_OVERLAY_LOCK_TIMEOUT_*_MS`
+- SDD §6.6 — NFS/SMB advisory-flock hazard; `LOA_ALLOW_NETWORK_FS_FOR_MERGED_ALIASES=1` opt-in
+- SDD §6.3.2 — degraded read-only fallback default; `LOA_OVERLAY_STRICT=1` opt-in for fail-closed; stale-lock recovery via `kill -0` PID check; NFR-Op-6 contract
+- SDD §7.5.1 — latency measurement methodology
+
+Known cycle-099 gotchas to pre-empt (memory entries available):
+
+- **Cross-runtime parity traps** (`feedback_cross_runtime_parity_traps.md`) — JSON Unicode (`ensure_ascii=False`), nested-key-sort recursion, JS `in`-walks-prototype, YAML scalar type semantics, bash sourcing executes shell metas. Even though Sprint 2B is Python+bash (no TS yet), the patterns apply.
+- **Charclass dot-dot bypass** (`feedback_charclass_dotdot_bypass.md`) — pair `[a-zA-Z0-9._-]+` regex with `[[ "$input" != *..* ]]` companion check; Sprint 2A's schema added `not.anyOf` rejection. Apply same pattern in T2.4's id usage.
+- **Allowlist tree-restriction** (`feedback_allowlist_tree_restriction.md`) — env-var overrides MUST require explicit TEST_MODE gate (mirroring `LOA_MODEL_RESOLVER_TEST_MODE` + `BATS_TEST_DIRNAME`).
+- **Curl --config smuggling** (`feedback_curl_config_smuggling.md`) — N/A for 2B (no HTTP); reference for any wrapper-pattern reuse.
+- **Subshell export gotcha** (`feedback_subshell_export_gotcha.md`) — bash `export` inside `$(...)` doesn't propagate; T2.4's atomic-write logic should call helpers BEFORE entering subshells.
+- **Stash safety** (`.claude/rules/stash-safety.md`) — never pipe `git stash` output through `tail`; never append `|| true`. Use `stash_with_guard` helper. T2.4's tests around lock-recovery must respect this if they shell out to git.
+
+Backwards-compat invariants (cycle-099 G-2):
+
+- **Cycle-098 vintage `.loa.config.yaml`** (without any of the new top-level fields) MUST resolve identically before/after Sprint 2B (AC-S2.3 in cycle-099 sprint.md). T2.3's hook MUST short-circuit gracefully when no `model_aliases_extra` block exists (vacuous success — Sprint 2A's validator already returns `(True, [], False)` for this case).
+- **Production `.claude/defaults/model-config.yaml`** loads through the hook without errors. Add a smoke test step against the real production yaml in the dedicated CI workflow (cycle-099 §`Production-yaml smoke-test` lesson from sprint-1E.a).
+
+Beads still UNHEALTHY/MIGRATION_NEEDED ([#661](https://github.com/0xHoneyJar/loa/issues/661)). `--no-verify` policy active. Each commit MUST carry `[NO-VERIFY-RATIONALE: ...]` tag.
+
+Slice if context-tight:
+  - 2B.a: T2.3 only (Python hook, no writer side effects yet — validate-and-print mode)
+  - 2B.b: T2.4 writer (atomic + flock + SHA256 + shlex.quote)
+  - 2B.c: T2.5 model-adapter.sh sourcing integration
+
+Conversation-budget discipline (cycle-099 lesson): T2.4's atomic-write + flock + shell-escape surface is the trickiest in Sprint 2; if subagent dual-review catches a CRITICAL flock or atomic-rename bug pre-merge, allocate buffer for 3-iter BB convergence. If iter-1 plateau-signals (anthropic-only because OpenAI/Google APIs intermittently 404/error, but iter-2 confirms), call plateau early.
+
+After Sprint-2B ships:
+  - Sprint-2C candidate: T2.6 (FR-3.9 6-stage resolver, Python canonical + bash twin) — extends Sprint 1D's golden corpus runners with full `resolution_path` arrays
+  - Sprint-2D: T2.7 (tier_groups defaults) + T2.8 (prefer_pro_models overlay)
+  - Sprint-2E: T2.9 (legacy compat) + T2.10 (permissions baseline)
+  - Sprint-2F: T2.11 (endpoint allowlist integration with cycle-099 sprint-1E validator)
+  - Sprint-2G: T2.12 (model-invoke --validate-bindings) + T2.13 (LOA_DEBUG_MODEL_RESOLUTION)
+  - Sprint-2H: T2.14 (operator example block) + T2.16 (network-fs runbook)
+
+---
+
+## Open backlog at session-end (2026-05-06)
 
 ### Sprint 1 remaining
 
