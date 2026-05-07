@@ -1,0 +1,37 @@
+# Loa Framework Configuration
+persistence_mode: standard
+integrity_enforcement: strict
+drift_resolution: code
+
+disabled_agents: []
+
+memory:
+  notes_file: grimoires/loa/NOTES.md
+  trajectory_dir: grimoires/loa/a2a/trajectory
+  trajectory_retention_days: 30
+  auto_restore: true
+
+edd:
+  enabled: true
+  min_test_scenarios: 3
+  trajectory_audit: true
+  require_citations: true
+
+compaction:
+  enabled: true
+  threshold: 5
+
+integrations:
+  - github
+
+# Hackathon-mode interview tuning — 4-day Solana Frontier ship clock
+interview:
+  mode: minimal
+  pacing: batch
+  backpressure:
+    no_infer: true
+    show_work: true
+    min_confirmation_questions: 1
+  phase_gates:
+    between_phases: false
+    before_generation: true

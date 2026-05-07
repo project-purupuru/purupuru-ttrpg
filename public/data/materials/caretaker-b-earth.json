@@ -1,0 +1,23 @@
+{
+  "cardId": "caretaker-b-earth",
+  "thicknessMap": "materials/textures/earth-thickness-rare.webp",
+  "normalMap": "materials/textures/earth-normal-rare.webp",
+  "lod_levels": [],
+  "foundry_approved": true,
+  "cssBridgeTokens": [],
+  "ecsPipeline": {
+    "mode": "reserved",
+    "note": "cycle-089 cards-as-particles SoA migration target; current Godot-composition at ~30 entities insufficient to justify DOTS cost"
+  },
+  "nodeGraph": {
+    "version": "0.4",
+    "labelDictionary": {},
+    "subgraphs": [],
+    "nodes": [],
+    "edges": []
+  },
+  "adaptive_disclosure_hooks": {
+    "placeholder": true,
+    "cycle_activates": "087"
+  }
+}
