@@ -1,6 +1,6 @@
 # cycle-099-model-registry — Session Resumption Brief
 
-**Last updated**: 2026-05-07 (**Sprint 2E SHIPPED at #750 (v1.132.0)** + **PR #751 BB OpenAI endpoint_family routing fix** + **PR #752 gpt-5.5 temperature_supported + flatline SSOT migration (closes #753)** + **PR #754 gen-adapter-maps.sh `LC_ALL=C` locale-pin (closes Brief I Option D)** + **BB E2E TRIPLE-PROVIDER VERIFIED on PR #754 (closes Brief I Option A)** + **Sprint 2F SHIPPED at #760 (T2.12 model-invoke --validate-bindings + T2.13 LOA_DEBUG_MODEL_RESOLUTION; CYP F1+F2+F3+F4+F7 + GP HIGH-1+MED-2+LOW-4 + BB iter-1 F1+F5+F6+F7 all addressed pre-merge)**. Cycle-099 Sprint 2 has 5 operator-tooling tasks remaining (T2.9, T2.10, T2.11, T2.14, T2.16). **Next: cycle-098 Sprint 4 (L4 graduated-trust, parked) OR Sprint 2G (T2.9 + T2.10 + T2.11 endpoint allowlist + permissions baseline + legacy deprecation) OR Sprint 2H (T2.14 + T2.16 docs)**)
+**Last updated**: 2026-05-07 (**Sprint 2E SHIPPED at #750 (v1.132.0)** + **PR #751 BB OpenAI endpoint_family routing fix** + **PR #752 gpt-5.5 temperature_supported + flatline SSOT migration (closes #753)** + **PR #754 gen-adapter-maps.sh `LC_ALL=C` locale-pin (closes Brief I Option D)** + **BB E2E TRIPLE-PROVIDER VERIFIED on PR #754 (closes Brief I Option A)** + **Sprint 2F SHIPPED at #760 (T2.12 model-invoke --validate-bindings + T2.13 LOA_DEBUG_MODEL_RESOLUTION)** + **PR #762 cheval-triage trio (closes #755 symlinks + #756 alias validation + #759 B1 degraded consensus)** + **PR #763 #761 _stage1_explicit_pin URL-shape rejection (Sprint 2F V15 xfail flips green)**. Main HEAD `cfbeea00`. Cycle-099 Sprint 2 has 5 operator-tooling tasks remaining (T2.9, T2.10, T2.11, T2.14, T2.16). Open follow-ups: #757 codex-headless long-prompt, B2 of #759 Phase 1 raw-output preservation. **Next session: cycle-098 Sprint 4 (L4 graduated-trust) is the recommended big-impact lift — paste-ready handoff in §"Brief J — Next-session handoff" below**)
 **Author**: deep-name + Claude Opus 4.7 1M
 **Purpose**: Crash-recovery + cross-session continuity. Read first when resuming cycle-099 work.
 
@@ -368,6 +368,80 @@ Sprint-1E.b remediation lessons worth carrying forward:
 
 Refs: SDD §1.9.1 (endpoint validator) + §6.5 (8-step canonicalization);
 Flatline SDD pass #2 SKP-006 CRITICAL 870 + pass #3 IMP-002 HIGH_CONSENSUS 880.
+```
+
+---
+
+## Brief J — Next-session handoff (paste-ready)
+
+**Recommendation: Cycle-098 Sprint 4 (L4 graduated-trust)** — biggest-impact piece, parked since 2026-05-04. Pre-written prompt below incorporates everything shipped today (cycle-099 Sprint 2F + cheval triage + #761 closure) and references the canonical Brief B in `grimoires/loa/cycles/cycle-098-agent-network/RESUMPTION.md`.
+
+Paste this entire block into a fresh Claude Code session:
+
+```
+Read grimoires/loa/cycles/cycle-098-agent-network/RESUMPTION.md FIRST and the sections "Brief B" + "Open backlog at session-end". Sprint 1 + 1.5 + 2 + 3 + H1 + H2 + /bug #711 ALL SHIPPED on main. 480+ tests cumulative.
+
+Today's main HEAD: cfbeea00 (post-cycle-099-Sprint-2F + cheval triage + #761).
+Cycle-099 status: Sprint 2 main thread closed (T2.1+T2.3-T2.8+T2.12+T2.13 shipped); 5 operator-tooling tasks remain (T2.9-T2.11+T2.14+T2.16); #757 codex-headless long-prompt + B2 of #759 Phase 1 raw-output preservation are the only open cheval follow-ups.
+
+Execute Sprint 4: L4 graduated-trust per PRD FR-L4-1..8 (#656). Wire compose-with from Sprint 1 audit envelope + protected-class-router (cycle-098 SDD §1.4.2 + §5.6).
+
+Branch: feat/cycle-098-sprint-4 from origin/main (cfbeea00).
+
+Slice into 4 sub-sprints (4A/4B/4C/4D) per the proven Sprint 1/2/3 pattern. Full quality-gate chain (Sprint 3 / H1 / H2 / #711 / cycle-099 Sprint 2F all used this successfully):
+
+  1. /implement (test-first per sub-sprint)
+  2. Subagent dual-review IN PARALLEL (general-purpose + cypherpunk) via Agent({run_in_background:true})
+  3. Remediation pass — fix HIGH/MEDIUM findings inline; add tests; regenerate any codegen
+  4. Bridgebuilder kaironic INLINE (.claude/skills/bridgebuilder-review/resources/entry.sh --pr <N>) — never via subagent dispatch
+  5. Address BB iter-1 findings inline (or call plateau by API-unavailability if a provider errors — cycle-099 precedent established at sprint-1A through #762)
+  6. Admin-squash merge after CI green (Shell Tests BHM-T1/T5 #661 flake admin-merged through; macOS bash 3.2 TS codegen flake admin-merged through; both documented in operational gotchas)
+
+Patterns proven across H1/H2/#711 + cycle-099 Sprint 2F (apply in Sprint 4):
+  - Shared fixture lib at tests/lib/signing-fixtures.sh exposes signing_fixtures_setup --strict + signing_fixtures_tamper_with_chain_repair + signing_fixtures_inject_chain_valid_envelope
+  - Chain-valid envelope helper for tamper tests (#708 F-006 pattern; sprint H2)
+  - Observer/path allowlist for any operator-configurable execution surfaces (#708 F-005 pattern; sprint H2)
+  - Per-event-type schema registry under .claude/data/trajectory-schemas/<primitive>-events/ (Sprint 3 pattern)
+  - Test-mode flag (_l3_test_mode pattern from Sprint 3 remediation) for production-vs-test escape hatches
+  - Sentinel-counter idempotency tests (#714 F4 pattern)
+  - bash 5.2 strict-mode `${assoc_array[@]+_}` guard for empty associative arrays (cycle-099 #756 pattern)
+  - Lazy-load via importlib.spec_from_file_location, NOT sys.path.insert (cycle-099 CYP-F8 convention)
+  - Schema-mirror in degraded-path output: degraded JSON should match the regular path's shape so downstream parsers don't branch on path type (#759 B1 pattern)
+
+Sprint 4 scope (sprint.md §"Sprint 4"):
+  - .claude/skills/graduated-trust/SKILL.md + .claude/scripts/lib/graduated-trust-lib.sh + tests
+  - Hash-chained ledger at .run/trust-ledger.jsonl (TRACKED in git per SDD §3.7) — note: TRACKED, unlike L3 cycles.jsonl which is UNTRACKED
+  - Tier transitions per operator-defined TransitionRule array (configured in .loa.config.yaml)
+  - Auto-drop on recordOverride() with cooldown (default 7d) enforcement
+  - Force-grant audit-logged exception (trust.force_grant event type)
+  - Concurrent-write tests (runtime + cron + CLI per FR-L4-6)
+  - Reconstructable from git history (FR-L4-7) — git log -p to rebuild trust-ledger
+  - Auto-raise stub: ships as stub returning eligibility_required (FU-3 deferral per PRD)
+
+Composes with:
+  - Sprint 1A audit envelope (audit_emit + chain hash)
+  - Sprint 1B signing (Ed25519 signed envelopes)
+  - Sprint 1B protected-class-router.sh
+  - Sprint 1B operator-identity.sh (LedgerEntry references actor identity)
+  - H1 signing-fixtures.sh (signing_fixtures_setup --strict for tests)
+  - H2 chain-valid envelope helper (signing_fixtures_inject_chain_valid_envelope for tamper-realism tests)
+
+Operational gotchas (carry forward from today's session):
+  - bypassPermissions enabled in .claude/settings.local.json (effective on session start)
+  - Beads UNHEALTHY/MIGRATION_NEEDED #661 — use `git commit --no-verify` with `[NO-VERIFY-RATIONALE: …]` in commit body
+  - gen-adapter-maps.sh now has `export LC_ALL=C` (PR #754) — locale-immune; future generators should follow the same pattern
+  - Pre-existing CI flakes admin-merged through: macOS bash 3.2 (TS codegen, when triggered), beads BHM-T1/T5 (Shell Tests)
+  - Cycle-099 quality-gate chain (proven pattern): test-first → subagent dual-review (gp + cypherpunk parallel via Agent run_in_background:true) → BB kaironic INLINE (skip on chore-release; treat all-3-providers-error as plateau by API-unavailability) → admin-squash → update RESUMPTION + memory
+
+Cost expectation: ~$50-100 per sub-sprint (4-slice; full quality gate chain). Models: claude-opus-4-7 1M for build+inline review; gpt-5.5-pro + gemini-3.1-pro-preview for bridgebuilder/flatline (when reachable; gracefully degrades to single-model when others 404/error).
+
+Begin: `git fetch origin main && git checkout -b feat/cycle-098-sprint-4 origin/main`. Read sprint.md §"Sprint 4" for full task list + ACs. Slice 4A.
+
+If you'd rather close cycle-099 first, alternative paths:
+  - #757 codex-headless long-prompt (~47KB stdin failure) — needs reproducer + investigation; workaround exists (fall back to OpenAI API which loses plan billing)
+  - Sprint 2G (T2.9 + T2.10 + T2.11) — security-adjacent operator-tooling closure; ~5-7h
+  - Sprint 2H (T2.14 + T2.16) — operator-facing docs; ~2-3h quick win
+  - B2 of #759 — Phase 1 raw-output preservation (orchestrator state across phases, structural)
 ```
 
 ---
