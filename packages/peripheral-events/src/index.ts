@@ -27,18 +27,25 @@ export {
   BaziQuizState,
   CompletedQuizState,
   QuizStep,
+  signQuizState,
+  verifyQuizState,
 } from "./bazi-quiz-state"
 
 // Claim message · server-signed payload for genesis-stone mint
 export {
   buildClaimMessage,
   byteToElement,
+  CLAIM_MESSAGE_SIGNED_BYTES,
   ClaimMessage,
   ClaimNonce,
   elementToByte,
+  encodeClaimMessage,
   QuizStateHash,
+  signClaimMessage,
   SolanaCluster,
+  verifyClaimSignature,
 } from "./claim-message"
+export type { SignedClaimMessage } from "./claim-message"
 
 // Canonical eventId derivation · stable hash across re-encodes
 export {

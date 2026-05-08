@@ -5,10 +5,11 @@
 // instruction is Ed25519Program with claim-signer pubkey + canonical
 // ClaimMessage bytes. Anchor decodes message and validates fields.
 //
-// S1-T2 ships the schema. S2-T3 fills server-side ed25519 signing.
 // Nonce store: Vercel KV with NX EX 300 · single-region iad1 · fail-closed.
 
+import bs58 from "bs58"
 import { Schema as S } from "effect"
+import nacl from "tweetnacl"
 
 import { Element, SolanaPubkey } from "./world-event"
 
@@ -111,4 +112,160 @@ export const buildClaimMessage = (params: {
     expiresAt: issuedAt + ttl,
     nonce: params.nonce,
   }
+}
+
+// ---------------------------------------------------------------------------
+// Canonical signed-bytes layout · 98-byte 7-field projection of ClaimMessage
+// ---------------------------------------------------------------------------
+//
+// THIS LAYOUT MUST EXACTLY MATCH the reconstitution in
+// programs/purupuru-anchor/programs/purupuru-anchor/src/lib.rs
+// (claim_genesis_stone instruction). Drift = silent forgery vulnerability:
+// Ed25519Program would verify the off-chain bytes fine, but the on-chain
+// reconstitution would produce different bytes and reject with
+// ErrorCode::MessageMismatch. Test catches this in invariant suite.
+//
+//   offset  size  field
+//   ------  ----  -------------------------------------------------
+//   [ 0..32] 32B  wallet pubkey (raw bytes from bs58.decode · 32B)
+//   [32..33]  1B  element byte (1=Wood · 2=Fire · 3=Earth · 4=Metal · 5=Water)
+//   [33..34]  1B  weather byte (1..5 · same element scale per SDD §3.3)
+//   [34..66] 32B  quiz_state_hash (raw bytes from hex · 32B sha256 digest)
+//   [66..74]  8B  issued_at (i64 little-endian · unix seconds)
+//   [74..82]  8B  expires_at (i64 little-endian · unix seconds)
+//   [82..98] 16B  nonce (raw bytes from hex · UUID v4 collapsed)
+//   ============= 98 bytes total
+//
+// The OTHER four ClaimMessage fields (domain, version, cluster, programId)
+// are NOT in the signed bytes for v0. Domain separation is enforced ON-CHAIN
+// via Anchor program constants (declare_id!() pins program · hardcoded
+// CLAIM_SIGNER_PUBKEY pins signer · cluster is implicitly devnet at deploy
+// time · domain is implicit in the dedicated CLAIM_SIGNER key). If
+// claim-signer is ever shared across programs/clusters, upgrade this
+// layout to include those fields BEFORE doing so.
+export const CLAIM_MESSAGE_SIGNED_BYTES = 98 as const
+
+const OFFSET_WALLET = 0
+const OFFSET_ELEMENT = 32
+const OFFSET_WEATHER = 33
+const OFFSET_QUIZ_HASH = 34
+const OFFSET_ISSUED_AT = 66
+const OFFSET_EXPIRES_AT = 74
+const OFFSET_NONCE = 82
+
+const PUBKEY_BYTES = 32
+const QUIZ_HASH_BYTES = 32
+const NONCE_BYTES = 16
+const ED25519_SECRET_BYTES = 64
+const ED25519_SIG_BYTES = 64
+
+// Encode a ClaimMessage to its 98-byte canonical signed representation.
+// Throws on malformed inputs (rejects rather than silently truncating).
+export function encodeClaimMessage(msg: ClaimMessage): Uint8Array {
+  const buf = new Uint8Array(CLAIM_MESSAGE_SIGNED_BYTES)
+
+  // [0..32] wallet pubkey
+  const walletBytes = bs58.decode(msg.wallet)
+  if (walletBytes.length !== PUBKEY_BYTES) {
+    throw new Error(
+      `wallet pubkey must decode to ${PUBKEY_BYTES} bytes, got ${walletBytes.length}`,
+    )
+  }
+  buf.set(walletBytes, OFFSET_WALLET)
+
+  // [32] element byte
+  if (msg.element < 1 || msg.element > 5) {
+    throw new Error(`element byte must be in 1..5, got ${msg.element}`)
+  }
+  buf[OFFSET_ELEMENT] = msg.element
+
+  // [33] weather byte
+  if (msg.weather < 1 || msg.weather > 5) {
+    throw new Error(`weather byte must be in 1..5, got ${msg.weather}`)
+  }
+  buf[OFFSET_WEATHER] = msg.weather
+
+  // [34..66] quiz_state_hash · 32 bytes from hex
+  if (msg.quizStateHash.length !== QUIZ_HASH_BYTES * 2) {
+    throw new Error(
+      `quizStateHash must be ${QUIZ_HASH_BYTES * 2} hex chars, got ${msg.quizStateHash.length}`,
+    )
+  }
+  const hashBytes = Buffer.from(msg.quizStateHash, "hex")
+  if (hashBytes.length !== QUIZ_HASH_BYTES) {
+    throw new Error(
+      `quizStateHash must decode to ${QUIZ_HASH_BYTES} bytes (non-hex chars?)`,
+    )
+  }
+  buf.set(hashBytes, OFFSET_QUIZ_HASH)
+
+  // [66..74] issued_at · i64 LE
+  // [74..82] expires_at · i64 LE
+  const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength)
+  dv.setBigInt64(OFFSET_ISSUED_AT, BigInt(msg.issuedAt), true)
+  dv.setBigInt64(OFFSET_EXPIRES_AT, BigInt(msg.expiresAt), true)
+
+  // [82..98] nonce · 16 bytes from hex
+  if (msg.nonce.length !== NONCE_BYTES * 2) {
+    throw new Error(
+      `nonce must be ${NONCE_BYTES * 2} hex chars, got ${msg.nonce.length}`,
+    )
+  }
+  const nonceBytes = Buffer.from(msg.nonce, "hex")
+  if (nonceBytes.length !== NONCE_BYTES) {
+    throw new Error(`nonce must decode to ${NONCE_BYTES} bytes (non-hex chars?)`)
+  }
+  buf.set(nonceBytes, OFFSET_NONCE)
+
+  return buf
+}
+
+// Output of signClaimMessage · the three pieces an Ed25519Program instruction
+// requires (off-chain assembly is sprint-3 work · this just produces the trio).
+export interface SignedClaimMessage {
+  /** 98-byte canonical encoding · MUST match anchor program reconstitution */
+  messageBytes: Uint8Array
+  /** 64-byte ed25519 detached signature */
+  signature: Uint8Array
+  /** 32-byte ed25519 public key for the claim-signer · used by anchor's signer check */
+  signerPubkey: Uint8Array
+}
+
+// Sign a ClaimMessage with the claim-signer secret · returns trio for
+// downstream Ed25519Program instruction assembly.
+//
+// secret: 64-byte ed25519 secret key (per Solana keypair JSON format ·
+// bytes [0..32]=seed · bytes [32..64]=public key). Caller decodes from
+// CLAIM_SIGNER_SECRET_BS58 env var.
+export function signClaimMessage(
+  msg: ClaimMessage,
+  secret: Uint8Array,
+): SignedClaimMessage {
+  if (secret.length !== ED25519_SECRET_BYTES) {
+    throw new Error(
+      `claim-signer secret must be ${ED25519_SECRET_BYTES} bytes, got ${secret.length}`,
+    )
+  }
+  const messageBytes = encodeClaimMessage(msg)
+  const keypair = nacl.sign.keyPair.fromSecretKey(secret)
+  const signature = nacl.sign.detached(messageBytes, keypair.secretKey)
+  return {
+    messageBytes,
+    signature,
+    signerPubkey: keypair.publicKey,
+  }
+}
+
+// Verify a ClaimMessage signature · used by tests + as a defensive check
+// before submitting to chain. Returns false on length mismatches rather
+// than throwing (treat as untrusted input).
+export function verifyClaimSignature(
+  messageBytes: Uint8Array,
+  signature: Uint8Array,
+  signerPubkey: Uint8Array,
+): boolean {
+  if (messageBytes.length !== CLAIM_MESSAGE_SIGNED_BYTES) return false
+  if (signature.length !== ED25519_SIG_BYTES) return false
+  if (signerPubkey.length !== PUBKEY_BYTES) return false
+  return nacl.sign.detached.verify(messageBytes, signature, signerPubkey)
 }

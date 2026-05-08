@@ -16,5 +16,9 @@
   "devDependencies": {
     "typescript": "^5",
     "vitest": "^2"
+  },
+  "dependencies": {
+    "bs58": "^6.0.0",
+    "tweetnacl": "^1.0.3"
   }
 }
