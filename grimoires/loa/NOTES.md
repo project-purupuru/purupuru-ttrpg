@@ -45,9 +45,36 @@
 | 2026-05-07 | Sprint 1 is single-day (1.0 day, 2026-05-07 → 2026-05-08) rather than the template default 2.5 days | 4-day ship clock to 2026-05-11; ladder must complete v0.1→v0.2→v0.3→v0.4 in that window | claude (planning-sprints) |
 | 2026-05-07 | Sprint 1 sprite-count target = 1000 with 750/500 fallbacks; final N committed as `OBSERVATORY_SPRITE_COUNT` constant after Task 1.2 pre-bench | PRD NFR-2 explicitly requires pre-bench; SDD §6.4 ladder; locking the constant means Sprints 2–4 don't re-bench | claude (planning-sprints) |
 
+## Sprint-1 Spike Outputs (2026-05-07)
+
+### Task 1.1 — Pixi mount pattern under Next 16 + React 19 (resolves PRD Q-pixi)
+
+The validated pattern (`components/observatory/PentagramCanvas.tsx`):
+
+1. **Client island**: file starts with `"use client"`. Server component (`app/observatory/page.tsx`) is a thin shell — no DOM, no Pixi. Boundary lives at `<ObservatoryClient />` mount.
+2. **Mount in `useEffect`** with a captured `cancelled` flag. The effect kicks off an async IIFE that calls `app.init({...})`. If the component unmounts before `init` resolves (StrictMode double-effect, fast-nav, HMR), the IIFE checks `cancelled` and calls `app.destroy(true, { children: true })` immediately to prevent double-mounted canvases.
+3. **Cleanup**: returns `() => { cancelled = true; ...; app.destroy(true, { children: true }); }`. The `try/catch` around destroy swallows the StrictMode-double-init race.
+4. **No `getComputedStyle` in the ticker** (R1.3): per-frame CSS-var reads are too slow. Breath cadence is read via the per-element `BREATH_SECONDS` constant in `lib/sim/entities.ts`, which mirrors the `--breath-{element}` declarations in `app/globals.css:189–193`.
+5. **Sprite click**: `eventMode = "static"`, `cursor = "pointer"`, `pointertap` handler. Forwarded via `onSpriteClick` prop (no-op in v0.1; consumed in Sprint 4 by FocusCard).
+6. **Resize**: `ResizeObserver(host)` re-runs `createPentagram(center, radius)` and re-anchors all sprite positions + edges.
+7. **Texture load**: `Assets.load('/art/puruhani/puruhani-{element}.png')` in parallel for all 5 elements. Per-element solid-color circle fallback (`ELEMENT_FALLBACK_HEX`) renders if the texture load throws — R1.6 mitigation lands by construction.
+
+Pattern reusable for Sprints 2–4: migration tweens (Sprint 2) and weather modulation (Sprint 3) hook into `app.ticker.add` with the same cancelled-flag-guarded async init.
+
+### Task 1.2 — Sprite-count pre-bench (resolves PRD NFR-2)
+
+`OBSERVATORY_SPRITE_COUNT` constant lives at `lib/sim/entities.ts:14`. Default: **1000**. Methodology for the demo-machine bench:
+
+1. Open Chrome DevTools → Performance panel → Record on `/observatory` after intro completes (~1.5s in)
+2. Capture 10s of idle frames; read sustained frame interval from the Frames track (target: ≤16.67ms = 60fps)
+3. If sustained <60fps at 1000: drop to 750, repeat. Floor is 500. Below 500: switch to `ParticleContainer` (Pixi v8 bulk-render path) — wraps `spriteLayer` and trades per-sprite event handlers for batch draws.
+4. Record the chosen N as a comment on `lib/sim/entities.ts:14` for traceability
+
+Demo-machine bench pending; v0.1 ships at the 1000 default with the fallback ladder ready in code (just change the constant).
+
 ## Open at Handoff (for next session)
 
-When zerker returns to do the implementation PRD, see `grimoires/loa/context/00-hackathon-brief.md` "Open gaps" section — 8 unanswered questions that block architecture (movement model, action vocabulary, weather source, demo entry, success criterion, etc.).
+The 8 hackathon-brief gaps were closed during `/plan-and-analyze` (see Decision Log Q1–Q6). Remaining open item is `Q-pixi` resolution above (now closed) and the demo-machine sprite bench (Task 1.2 methodology above). Sprint 2 (v0.2 mocked liveness) is next per PRD §9 ladder.
 
 ## What Already Lives in the Kit
 
