@@ -10,6 +10,29 @@ export interface Vec2 {
   y: number;
 }
 
+export type HenloArchetype =
+  | "hopeful"
+  | "empty"
+  | "naughty"
+  | "loyal"
+  | "overstimulated";
+
+export interface AvatarSeed {
+  eyeKind: 0 | 1 | 2 | 3 | 4;
+  mouthKind: 0 | 1 | 2 | 3 | 4;
+  browTilt: -1 | 0 | 1;
+  dropletPos: 0 | 1 | 2 | 3;
+  bodyTilt: number;
+}
+
+export interface PuruhaniIdentity {
+  trader: Wallet;
+  username: string;
+  displayName: string;
+  archetype: HenloArchetype;
+  pfp: AvatarSeed;
+}
+
 export interface Puruhani {
   id: string;
   trader: Wallet;
@@ -20,6 +43,7 @@ export interface Puruhani {
   state: "idle" | "migrating" | "burst";
   breath_phase: number;
   resting_position: Vec2;
+  identity: PuruhaniIdentity;
 }
 
 export interface PentagramGeometry {

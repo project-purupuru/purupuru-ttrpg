@@ -10,8 +10,9 @@
 import type { Element, ScoreReadAdapter, Wallet } from "@/lib/score";
 import { ELEMENTS } from "@/lib/score";
 import type { PentagramGeometry, Puruhani, Vec2 } from "./types";
+import { identityFor } from "./identity";
 
-export const OBSERVATORY_SPRITE_COUNT = 1000;
+export const OBSERVATORY_SPRITE_COUNT = 80;
 
 const BREATH_SECONDS: Record<Element, number> = {
   wood: 6,
@@ -118,9 +119,10 @@ export async function seedPopulation(
 
   const entities: Puruhani[] = [];
   for (let i = 0; i < n; i++) {
-    const trader = syntheticAddress(i + 1);
-    const profile = await scoreAdapter.getWalletProfile(trader);
+    const seed = i + 1;
     const primaryElement = elementBuckets[i];
+    const identity = identityFor(seed, primaryElement);
+    const profile = await scoreAdapter.getWalletProfile(identity.trader);
     const affinity = profile?.elementAffinity ?? {
       wood: 20, fire: 20, earth: 20, water: 20, metal: 20,
     };
@@ -129,7 +131,7 @@ export async function seedPopulation(
     const phaseRng = rng(i + 13);
     entities.push({
       id: ulid("p", i),
-      trader,
+      trader: identity.trader,
       primaryElement,
       affinity,
       position: { ...resting },
@@ -137,6 +139,7 @@ export async function seedPopulation(
       state: "idle",
       breath_phase: phaseRng(),
       resting_position: { ...resting },
+      identity,
     });
   }
   return entities;

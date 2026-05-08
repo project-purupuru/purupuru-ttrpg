@@ -3,7 +3,6 @@
 import { useEffect, useRef } from "react";
 import {
   Application,
-  Assets,
   Container,
   Graphics,
   Sprite,
@@ -22,19 +21,25 @@ import {
   restingPositionFor,
   seedPopulation,
 } from "@/lib/sim/entities";
-import type { Puruhani } from "@/lib/sim/types";
+import type { Puruhani, PuruhaniIdentity } from "@/lib/sim/types";
 import { activityStream, type ActivityEvent } from "@/lib/activity";
+import { avatarToCanvas } from "@/lib/sim/avatar";
+import {
+  tideUnitVectorsFor,
+  tideMagnitude,
+  orbitalWobble,
+} from "@/lib/sim/tides";
 
 interface PentagramCanvasProps {
-  onSpriteClick?: (trader: string) => void;
+  onSpriteClick?: (identity: PuruhaniIdentity) => void;
 }
 
 const ELEMENT_HEX: Record<Element, number> = {
-  wood: 0x4a8c3f,
+  wood: 0xb8c940,
   fire: 0xd14a3a,
-  earth: 0xb87c3a,
-  water: 0x3a6fb8,
-  metal: 0xc8c8c8,
+  earth: 0xdcb245,
+  water: 0x3a4ec5,
+  metal: 0x7e5ca7,
 };
 
 const ELEMENT_KANJI: Record<Element, string> = {
@@ -44,6 +49,11 @@ const ELEMENT_KANJI: Record<Element, string> = {
   water: "水",
   metal: "金",
 };
+
+// Avatar texture sizing — generated bigger than display so retina
+// rendering stays crisp. Display target ≈ 40px on screen.
+const AVATAR_TEX_SIZE = 96;
+const AVATAR_DISPLAY = 40;
 
 interface Migration {
   fromX: number;
@@ -57,12 +67,33 @@ interface Migration {
 
 interface SpriteEntry {
   entity: Puruhani;
-  node: Sprite | Graphics;
+  node: Sprite;
   baseScale: number;
   pulse: number;       // 0..1, decays — drives action-flash
   vx: number;          // wander velocity (px / 16ms-ish frame)
   vy: number;
   migration: Migration | null;
+}
+
+function topAffinity(
+  affinity: Record<Element, number>,
+  primary: Element,
+): Element {
+  let best: Element = primary;
+  let bestVal = -1;
+  for (const el of ELEMENTS) {
+    if (el === primary) continue;
+    if (affinity[el] > bestVal) {
+      bestVal = affinity[el];
+      best = el;
+    }
+  }
+  return best;
+}
+
+function makeAvatarTexture(identity: PuruhaniIdentity, primary: Element, accent: Element): Texture {
+  const cnv = avatarToCanvas(identity.pfp, primary, accent, AVATAR_TEX_SIZE);
+  return Texture.from(cnv);
 }
 
 function drawVertex(
@@ -166,6 +197,7 @@ export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
       const center = { x: app.screen.width / 2, y: app.screen.height / 2 };
       const radius = Math.min(app.screen.width, app.screen.height) * 0.38;
       let geometry = createPentagram(center, radius);
+      let tideUnits = tideUnitVectorsFor(geometry);
 
       // ─── Pentagon edges (生 generation) ────────────────────────────────────
       const pentagonG = new Graphics();
@@ -185,18 +217,6 @@ export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
       }
       app.stage.addChild(vertexLayer);
 
-      // ─── Sprite textures ───────────────────────────────────────────────────
-      const textures: Partial<Record<Element, Texture>> = {};
-      try {
-        await Promise.all(
-          ELEMENTS.map(async (el) => {
-            textures[el] = await Assets.load(`/art/puruhani/puruhani-${el}.png`);
-          }),
-        );
-      } catch {
-        // Fall back to solid-color circles if asset load fails (R1.6 mitigation)
-      }
-
       // ─── Entities ──────────────────────────────────────────────────────────
       const entities: Puruhani[] = await seedPopulation(
         OBSERVATORY_SPRITE_COUNT,
@@ -211,33 +231,23 @@ export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
       const spriteLayer = new Container();
       const sprites: SpriteEntry[] = [];
       const spritesByActor = new Map<string, SpriteEntry>();
+      const baseScale = AVATAR_DISPLAY / AVATAR_TEX_SIZE;
 
       for (const entity of entities) {
-        const tex = textures[entity.primaryElement];
-        let node: Sprite | Graphics;
-        let baseScale: number;
-        if (tex) {
-          const sprite = new Sprite(tex);
-          sprite.anchor.set(0.5);
-          baseScale = 14 / Math.max(sprite.texture.width, sprite.texture.height);
-          sprite.scale.set(baseScale);
-          node = sprite;
-        } else {
-          const g = new Graphics();
-          g.circle(0, 0, 4);
-          g.fill({ color: ELEMENT_HEX[entity.primaryElement] });
-          baseScale = 1;
-          node = g;
-        }
+        const accent = topAffinity(entity.affinity, entity.primaryElement);
+        const tex = makeAvatarTexture(entity.identity, entity.primaryElement, accent);
+        const node = new Sprite(tex);
+        node.anchor.set(0.5);
+        node.scale.set(baseScale);
         node.x = entity.position.x;
         node.y = entity.position.y;
         node.eventMode = "static";
         node.cursor = "pointer";
-        node.on("pointertap", () => onSpriteClick?.(entity.trader));
+        node.on("pointertap", () => onSpriteClick?.(entity.identity));
         spriteLayer.addChild(node);
         const entry: SpriteEntry = {
-          entity, node, baseScale, pulse: 0,
-          vx: 0, vy: 0, migration: null,
+          entity, node, baseScale,
+          pulse: 0, vx: 0, vy: 0, migration: null,
         };
         sprites.push(entry);
         spritesByActor.set(entity.trader, entry);
@@ -250,14 +260,13 @@ export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
         if (entry) {
           entry.pulse = 1;
           // Attack/gift: actor "walks toward" target element vertex
-          // (impulse + spring tug-of-war reads as a brief excursion)
           if (event.targetElement) {
             const v = geometry.vertex(event.targetElement);
             const dx = v.x - entry.entity.position.x;
             const dy = v.y - entry.entity.position.y;
             const len = Math.hypot(dx, dy);
             if (len > 0) {
-              const speed = 14;  // px-per-frame impulse
+              const speed = 14;
               entry.vx += (dx / len) * speed;
               entry.vy += (dy / len) * speed;
             }
@@ -270,11 +279,12 @@ export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
       };
       const unsubActivity = activityStream.subscribe(onActivity);
 
-      // ─── Migration scheduler — sprites rotate to new elements over time ────
-      // Picks a small random batch every ~250ms and starts a 2.5-4s ease.
+      // ─── Migration scheduler ───────────────────────────────────────────────
+      // With 80 sprites we want roughly one migration every 1.5s — frequent
+      // enough that the diagram is visibly mutable, sparse enough that the
+      // motion isn't dominated by transitions.
       let migrationAccum = 0;
-      const MIGRATION_TICK_MS = 250;
-      const MIGRATION_RATE = 0.004;  // ~0.4% of sprites per tick → ~16/s for N=1000
+      const MIGRATION_TICK_MS = 1500;
 
       function pickDifferent(curr: Element): Element {
         let other: Element = curr;
@@ -312,14 +322,12 @@ export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
         if (m.newElement) {
           s.entity.primaryElement = m.newElement;
           s.entity.resting_position = { x: m.toX, y: m.toY };
-          // Texture / tint swap
-          const tex = textures[m.newElement];
-          if (tex && s.node instanceof Sprite) {
-            s.node.texture = tex;
-            s.baseScale = 14 / Math.max(tex.width, tex.height);
-          } else if (s.node instanceof Graphics) {
-            s.node.tint = ELEMENT_HEX[m.newElement];
-          }
+          // Regenerate avatar texture with new primary tint — face/personality
+          // (pfp seed) stays the same; body color shifts to the new element.
+          const accent = topAffinity(s.entity.affinity, m.newElement);
+          const oldTex = s.node.texture;
+          s.node.texture = makeAvatarTexture(s.entity.identity, m.newElement, accent);
+          oldTex.destroy(true);
         }
         s.migration = null;
       }
@@ -329,19 +337,25 @@ export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
       }
 
       // ─── Main ticker ───────────────────────────────────────────────────────
+      let tMs = 0;
+      // Tuning notes:
+      //   tide-strength = 0.030 → equilibrium offset ≈ 24px in tide direction
+      //   anchor k = 0.0012  → counters tide so cluster doesn't escape
+      //   With amp ∈ [0.6, 1.4] the offset breathes between ~14px and ~34px,
+      //   producing the visible "circulation" along the 生 generation arc.
+      const TIDE_STRENGTH = 0.030;
+
       const ticker = (delta: { deltaMS: number }) => {
         const dt = delta.deltaMS;
+        tMs += dt;
 
-        // Migration scheduler
+        // Migration scheduler — one sprite every MIGRATION_TICK_MS ms
         if (!reduce) {
           migrationAccum += dt;
           while (migrationAccum >= MIGRATION_TICK_MS) {
             migrationAccum -= MIGRATION_TICK_MS;
-            const count = Math.max(1, Math.floor(sprites.length * MIGRATION_RATE));
-            for (let i = 0; i < count; i++) {
-              const idx = Math.floor(Math.random() * sprites.length);
-              startMigration(sprites[idx]);
-            }
+            const idx = Math.floor(Math.random() * sprites.length);
+            startMigration(sprites[idx]);
           }
         }
 
@@ -359,15 +373,20 @@ export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
               (s.migration.toY - s.migration.fromY) * eased;
             if (t >= 1) commitMigration(s);
           } else if (!reduce) {
-            // Idle wander — soft spring + jitter + damping
+            // ─── Wuxing tide-flow ─────────────────────────────────────────
+            const tide = tideUnits[s.entity.primaryElement];
+            const amp = tideMagnitude(s.entity.primaryElement, tMs);
+            s.vx += tide.x * amp * TIDE_STRENGTH * dt;
+            s.vy += tide.y * amp * TIDE_STRENGTH * dt;
+
+            // Anchor spring (slightly tighter than the 1000-sprite era so
+            // the cluster identity stays clear with fewer members).
             const dxRest = s.entity.resting_position.x - s.entity.position.x;
             const dyRest = s.entity.resting_position.y - s.entity.position.y;
-            const k = 0.0009;            // spring stiffness
+            const k = 0.0012;
             s.vx += dxRest * k * dt;
             s.vy += dyRest * k * dt;
-            // Random ambient impulse (city wandering feel)
-            s.vx += (Math.random() - 0.5) * 0.07 * dt;
-            s.vy += (Math.random() - 0.5) * 0.07 * dt;
+
             // Damping
             const damping = 0.94;
             s.vx *= damping;
@@ -383,14 +402,23 @@ export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
             s.entity.position.y += s.vy;
           }
 
-          s.node.x = s.entity.position.x;
-          s.node.y = s.entity.position.y;
+          // Per-sprite orbital wobble — applied as a render-time offset on
+          // top of the physics state, so it never accumulates into the
+          // velocity loop. Keeps each individual visibly alive.
+          if (!reduce && !s.migration) {
+            const wob = orbitalWobble(s.entity.breath_phase, tMs);
+            s.node.x = s.entity.position.x + wob.x;
+            s.node.y = s.entity.position.y + wob.y;
+          } else {
+            s.node.x = s.entity.position.x;
+            s.node.y = s.entity.position.y;
+          }
 
-          // Pulse decay + scale
+          // Pulse decay + scale (with gentle breath jiggle)
           if (s.pulse > 0) s.pulse = Math.max(0, s.pulse - dt / 600);
           const phase = s.entity.breath_phase;
-          const breath = 1 + 0.08 * Math.sin(2 * Math.PI * phase);
-          const pulseScale = 1 + s.pulse * 1.2;
+          const breath = 1 + 0.06 * Math.sin(2 * Math.PI * phase);
+          const pulseScale = 1 + s.pulse * 0.4;
           s.node.scale.set(s.baseScale * (reduce ? 1 : breath) * pulseScale);
         }
       };
@@ -402,6 +430,7 @@ export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
         const cy = app.screen.height / 2;
         const r = Math.min(app.screen.width, app.screen.height) * 0.38;
         geometry = createPentagram({ x: cx, y: cy }, r);
+        tideUnits = tideUnitVectorsFor(geometry);
 
         // Re-build vertex layer
         app.stage.removeChild(vertexLayer);

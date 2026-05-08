@@ -21,11 +21,12 @@ export function ObservatoryClient() {
   const [distribution, setDistribution] = useState<Record<Element, number>>(ZERO_DISTRIBUTION);
   const [cosmicIntensity, setCosmicIntensity] = useState(0);
   const [cycleBalance, setCycleBalance] = useState(0.5);
+  const [totalActive, setTotalActive] = useState(0);
   const [weather, setWeather] = useState<WeatherState>(weatherFeed.current());
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    const refetch = async () => {
       const [dist, energy] = await Promise.all([
         scoreAdapter.getElementDistribution(),
         scoreAdapter.getEcosystemEnergy(),
@@ -34,10 +35,17 @@ export function ObservatoryClient() {
       setDistribution(dist);
       setCosmicIntensity(energy.cosmic_intensity ?? 0);
       setCycleBalance(energy.cycle_balance ?? 0.5);
-    })();
+      setTotalActive(Math.round(energy.total_active ?? 0));
+    };
+    refetch();
+    // Re-poll on a 3s cadence so the KPI strip drifts visibly. Mock
+    // values are sine-modulated by Date.now(); a real adapter would
+    // emit live updates here.
+    const id = setInterval(refetch, 3000);
     const unsub = weatherFeed.subscribe(setWeather);
     return () => {
       cancelled = true;
+      clearInterval(id);
       unsub();
     };
   }, []);
@@ -47,6 +55,7 @@ export function ObservatoryClient() {
       {!introDone && <IntroAnimation onDone={() => setIntroDone(true)} />}
       <TopBar />
       <KpiStrip
+        totalActive={totalActive}
         distribution={distribution}
         cosmicIntensity={cosmicIntensity}
         cycleBalance={cycleBalance}

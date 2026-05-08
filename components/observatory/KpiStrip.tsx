@@ -11,10 +11,12 @@ const ELEMENT_KANJI: Record<Element, string> = {
 };
 
 export function KpiStrip({
+  totalActive,
   distribution,
   cosmicIntensity,
   cycleBalance,
 }: {
+  totalActive: number;
   distribution: Record<Element, number>;
   cosmicIntensity: number;
   cycleBalance: number;
@@ -22,6 +24,17 @@ export function KpiStrip({
   const total = ELEMENTS.reduce((sum, el) => sum + distribution[el], 0);
   return (
     <section className="flex shrink-0 items-stretch gap-4 border-b border-puru-surface-border bg-puru-cloud-bright shadow-puru-tile px-6 py-4">
+      <Tile label="live presence">
+        <div className="flex items-baseline gap-2">
+          <span className="font-puru-mono text-2xl tabular-nums text-puru-ink-rich">
+            {totalActive}
+          </span>
+          <span className="font-puru-mono text-2xs uppercase tracking-[0.22em] text-puru-ink-soft">
+            puruhani
+          </span>
+          <LivenessDot />
+        </div>
+      </Tile>
       <Tile label="wuxing distribution">
         <div className="flex h-7 w-full overflow-hidden rounded-puru-sm">
           {ELEMENTS.map((el) => {
@@ -30,7 +43,7 @@ export function KpiStrip({
               <span
                 key={el}
                 aria-label={`${el} ${Math.round(w)}%`}
-                className="flex items-center justify-center font-puru-card text-sm text-puru-cloud-bright"
+                className="flex items-center justify-center font-puru-card text-sm text-puru-cloud-bright transition-[width] duration-700 ease-out"
                 style={{
                   width: `${w}%`,
                   backgroundColor: `var(--puru-${el}-vivid)`,
@@ -45,7 +58,7 @@ export function KpiStrip({
       <Tile label="cycle balance">
         <div className="flex h-7 w-full overflow-hidden rounded-puru-sm bg-puru-cloud-dim">
           <span
-            className="bg-puru-wood-vivid"
+            className="bg-puru-wood-vivid transition-[width] duration-700 ease-out"
             style={{ width: `${Math.round(cycleBalance * 100)}%` }}
           />
         </div>
@@ -60,6 +73,20 @@ export function KpiStrip({
         </span>
       </Tile>
     </section>
+  );
+}
+
+function LivenessDot() {
+  // 8px element-vivid dot using the existing breathe-fire keyframe.
+  return (
+    <span
+      aria-hidden
+      className="ml-1 inline-block h-2 w-2 rounded-full"
+      style={{
+        backgroundColor: "var(--puru-fire-vivid)",
+        animation: "breathe-fire var(--breath-fire) ease-in-out infinite",
+      }}
+    />
   );
 }
 
