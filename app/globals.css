@@ -31,12 +31,10 @@
 :root {
   color-scheme: light dark;
 
-  /* ── Cloud surfaces (warm cream, not void) ─────────────────────────── */
-  --puru-cloud-raised: oklch(1.00 0.005 90);
+  /* ── Cloud surfaces (warm cream, not void) — canonical world-purupuru ── */
   --puru-cloud-bright: oklch(0.97 0.010 90);
   --puru-cloud-base:   oklch(0.94 0.015 90);
   --puru-cloud-dim:    oklch(0.88 0.020 90);
-  --puru-cloud-edge:   oklch(0.82 0.025 85);
   --puru-cloud-deep:   oklch(0.78 0.025 85);
   --puru-cloud-shadow: oklch(0.65 0.030 85);
 
@@ -227,11 +225,9 @@
    ───────────────────────────────────────────────────────────────────────────── */
 
 [data-theme="old-horai"] {
-  --puru-cloud-raised: oklch(0.30 0.018 80);
   --puru-cloud-bright: oklch(0.24 0.015 80);
   --puru-cloud-base:   oklch(0.20 0.012 80);
   --puru-cloud-dim:    oklch(0.14 0.010 80);
-  --puru-cloud-edge:   oklch(0.32 0.012 80);
   --puru-cloud-deep:   oklch(0.10 0.008 80);
   --puru-cloud-shadow: oklch(0.06 0.006 80);
 
@@ -412,14 +408,25 @@
   --color-puru-water-tint: var(--puru-water-tint);
   --color-puru-metal-tint: var(--puru-metal-tint);
 
-  /* Surfaces */
-  --color-puru-cloud-raised: var(--puru-cloud-raised);
+  /* Cloud surfaces (warm-dark stack — five levels, brightness only) */
   --color-puru-cloud-bright: var(--puru-cloud-bright);
   --color-puru-cloud-base:   var(--puru-cloud-base);
   --color-puru-cloud-dim:    var(--puru-cloud-dim);
-  --color-puru-cloud-edge:   var(--puru-cloud-edge);
   --color-puru-cloud-deep:   var(--puru-cloud-deep);
   --color-puru-cloud-shadow: var(--puru-cloud-shadow);
+
+  /* Surface chrome (borders, glaze, tracks) — depth without brightness shifts */
+  --color-puru-surface-border:           var(--puru-surface-border);
+  --color-puru-surface-highlight:        var(--puru-surface-highlight);
+  --color-puru-surface-highlight-strong: var(--puru-surface-highlight-strong);
+  --color-puru-surface-track:            var(--puru-surface-track);
+
+  /* Honey-tint for active pill / chip backgrounds */
+  --color-puru-honey-tint: var(--puru-honey-tint);
+
+  /* Shadow utilities — `shadow-puru-tile` / `shadow-puru-tile-hover` */
+  --shadow-puru-tile:       var(--shadow-tile);
+  --shadow-puru-tile-hover: var(--shadow-tile-hover);
 
   /* Ink */
   --color-puru-ink-rich:  var(--puru-ink-rich);
@@ -550,6 +557,42 @@ button { font: inherit; border: none; background: none; cursor: pointer; }
 :focus:not(:focus-visible) { outline: none; }
 
 button, a, [role="button"], [tabindex] { touch-action: manipulation; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Brand press — asymmetric squash on interactive surfaces
+   (world-purupuru sites/world Button.svelte:87, Pill.svelte:56)
+   ───────────────────────────────────────────────────────────────────────── */
+.puru-press {
+  transition: transform var(--duration-press) var(--ease-puru-bounce);
+  transform-origin: center;
+}
+.puru-press:active {
+  transform: scaleY(0.96) scaleX(1.02);
+}
+
+/* Soft ceramic-tile hover lift for rows / list items.
+   Uses surface-highlight (alpha-only inset glaze, no bg-color shift —
+   same brightness, just the warm light catches the top edge). */
+.puru-row {
+  position: relative;
+  transition: box-shadow var(--duration-fast) var(--ease-puru-settle);
+}
+.puru-row:hover {
+  box-shadow: var(--surface-glaze);
+}
+
+/* Wordmark drift — subtle zubora-inspired float for static SVG wordmarks.
+   Per-letter zubora (PuruWordmark.svelte:124–137) requires inline SVG paths;
+   this is the lightweight whole-glyph version for img-based wordmarks. */
+@keyframes wordmark-drift {
+  0%, 100% { transform: translate(0, 0); }
+  25%      { transform: translate(0.6px, -0.9px); }
+  50%      { transform: translate(-0.4px, -0.4px); }
+  75%      { transform: translate(0.4px, 0.2px); }
+}
+.puru-wordmark-drift {
+  animation: wordmark-drift 3.2s var(--ease-puru-breathe) infinite;
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

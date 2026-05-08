@@ -46,8 +46,8 @@ export function ActivityRail() {
   }, []);
 
   return (
-    <aside className="flex h-full min-h-0 flex-col overflow-hidden border-l border-puru-cloud-edge bg-puru-cloud-bright">
-      <header className="shrink-0 border-b border-puru-cloud-edge bg-puru-cloud-raised px-6 py-5">
+    <aside className="flex h-full min-h-0 flex-col overflow-hidden border-l border-puru-surface-border bg-puru-cloud-bright shadow-puru-tile">
+      <header className="shrink-0 border-b border-puru-surface-border bg-puru-cloud-bright px-6 py-5">
         <h3 className="font-puru-display text-xl text-puru-ink-rich">
           Recent activity
         </h3>
@@ -61,7 +61,7 @@ export function ActivityRail() {
       ) : (
         <ul className="flex-1 divide-y divide-puru-cloud-dim/70 overflow-y-auto overflow-x-hidden">
           {events.map((e) => (
-            <li key={e.id} className="flex items-center gap-3 px-5 py-3">
+            <li key={e.id} className="puru-row flex items-center gap-3 px-5 py-3">
               <span
                 className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full font-puru-card text-base text-puru-cloud-bright"
                 style={{ backgroundColor: `var(--puru-${e.element}-vivid)` }}
