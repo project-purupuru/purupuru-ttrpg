@@ -1,0 +1,22 @@
+# Tech Debt Markers
+
+> Extracted 2026-05-07. Search executed:
+> `grep -rn -E "TODO|FIXME|HACK|XXX|@deprecated|@ts-ignore|@ts-expect-error" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.mjs" --include="*.css" -- app lib`
+
+## Application code
+
+**Zero matches.** Clean scaffold.
+
+## Inferred / structural debt (not flagged in source comments)
+
+These are not source-code debt markers but observations from the ride:
+
+| # | Item | Source | Severity |
+|---|------|--------|----------|
+| 1 | `app/page.tsx` is a design-system showcase, not the observatory simulation | `app/page.tsx:12–158` | Expected — first sprint task |
+| 2 | `lib/score/index.ts:17` binds a single `scoreAdapter` directly to the mock; swapping requires a code edit (no env toggle, no DI container) | `lib/score/index.ts:14–17` | Acceptable for hackathon scope |
+| 3 | `lib/score/mock.ts` returns plausibly-shaped but **non-time-evolving** data — `joinedAt` is computed as `now - 30d` on every call; `lastActiveAt` is `new Date()`. A long-running session will see drifting timestamps | `lib/score/mock.ts:41–42` | Low — flagged for animation/timeline work |
+| 4 | No tests anywhere in `app/` or `lib/` | (search returned 0) | Hackathon-acceptable; flag for post-ship hardening |
+| 5 | `public/data/materials/*.json` (18 files) reference `cycle-089`, `cycle-087`, "Godot-composition", "DOTS" — vestiges of an upstream pipeline; no code currently reads them | `public/data/materials/jani-fire.json` (representative) | Flagged in hygiene-report.md |
+| 6 | `next.config.ts` is empty default — no Turbopack tuning, no image domain config, no headers | `next.config.ts:3–5` | Acceptable until needed |
+| 7 | `README.md` is generic `create-next-app` boilerplate; doesn't describe purupuru-ttrpg | `README.md:1–37` | Flagged for replacement |

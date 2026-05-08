@@ -1,0 +1,21 @@
+# Environment Variables
+
+> Extracted 2026-05-07 from app/, lib/, and root config files.
+
+Search executed:
+```
+grep -rn "process.env|os.environ|os.Getenv" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.mjs" --include="*.css" -- app lib next.config.ts postcss.config.mjs eslint.config.mjs
+```
+
+Result: **zero matches** in application code.
+
+## Implication
+
+The hackathon scaffold has no env-var dependencies in `app/` or `lib/`. There is no `.env`, `.env.local`, or `.env.example` in the repo. `.gitignore` includes `.env*` patterns but no env files are tracked or referenced.
+
+[INFERRED] When real backends are wired (Score API, on-chain RPC, IRL weather), env vars will become necessary. None exist today.
+
+## Notes
+
+- `next/font/google` (Inter, Geist Mono) makes outbound network calls at build time but does not require env config.
+- Pixi.js, motion, lucide-react, clsx, tailwind-merge are all client-side and env-free.

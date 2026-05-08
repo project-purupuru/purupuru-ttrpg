@@ -1,0 +1,33 @@
+# API Routes / Page Routes
+
+> Extracted 2026-05-07 from app/ directory.
+
+## Page Routes (App Router)
+
+| Route | File | Purpose |
+|-------|------|---------|
+| `/` | `app/page.tsx` (default export `Home`) | Design-system showcase. Renders wordmark, wuxing roster (5 puruhani sprites), typography scale, jani sister roster, kit-contents list. |
+
+## Route Handlers / API Endpoints
+
+None. There is no `app/api/` directory. There are no `route.ts` files anywhere under `app/`.
+
+## Server Actions
+
+None.
+
+## Middleware
+
+None. No `middleware.ts` at root or under `app/`.
+
+## Static Assets Served from /public
+
+- Brand: `/brand/purupuru-wordmark.svg`, `/brand/purupuru-wordmark-white.svg`
+- Puruhani sprites: `/art/puruhani/puruhani-{wood,fire,earth,water,metal}.png`
+- Jani sprites: `/art/jani/jani-{wood,fire,earth,water,metal}.png`
+- Card layers: `/art/cards/{backgrounds,behavioral,frames,frames_pot,rarity-treatments}/*.svg`
+- Element effects: `/art/element-effects/{wood,fire,earth,water,metal,harmony}_glow.svg`
+- Patterns: `/art/patterns/grain-warm.webp`
+- Map: `/art/tsuheji-map.png`
+- Material configs: `/data/materials/*.json` (18 files)
+- Fonts: `/fonts/fot-yuruka-std.{woff2,ttf}`, `/fonts/zcool-kuaile.woff2`

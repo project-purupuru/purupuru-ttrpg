@@ -12,12 +12,16 @@
 ## Blockers & Dependencies
 
 - Going Next.js + React + Tailwind 4 + Pixi.js v8 (vanilla, not @pixi/react). 3D path (react-three-fiber) is optional polish if time permits.
+- ~~[BLOCKER] PRD created without codebase grounding~~ — user reversed decision and is running `/ride` (2026-05-07).
 
 ## Session Continuity
 | Timestamp | Agent | Summary |
 |-----------|-------|---------|
 | 2026-05-07 | mounting-framework | Mounted Loa v0.6.0 on empty repo |
 | 2026-05-07 | scaffold | Next.js 16.2.6 + React 19.2.4 + Tailwind 4 + Pixi 8.18.1 scaffold. Design system established in app/globals.css (OKLCH wuxing palette × 4 shades, light + Old Horai dark, per-element breathing rhythms, motion vocabulary keyframes, fluid typography scale, 5 brand font stacks). Local fonts (FOT-Yuruka Std, ZCOOL KuaiLe) via @font-face; Inter + Geist Mono via next/font/google. Brand wordmark + 5 puruhani PNGs + 5 jani sister PNGs + 30+ card-system SVG layers + tsuheji map + 18 Threlte material configs in /public. Score read-adapter contract + deterministic mock at lib/score. cn() utility at lib/utils. Build clean. Kit landing at app/page.tsx showcases brand wordmark, full typography (incl. JP/CN), wuxing roster, and jani sister roster. |
+| 2026-05-07 | riding-codebase | First `/ride` against the scaffold. 17/17 artifacts persisted. Drift score 7/10 (healthy with intentional gaps): 12 aligned, 3 ghosts (observatory sim, action vocab, pentagram — all expected forward-looking), 1 stale (README is generic boilerplate), 1 shadow (18 inert material JSONs from upstream pipeline), 0 hallucinated. Consistency score 9/10. Governance: 4 gaps; only LICENSE worth fixing pre-ship. PRD: 24 GROUNDED / 5 INFERRED / 4 ASSUMPTION (73%/15%/12%). SDD: 38 GROUNDED / 6 INFERRED / 4 ASSUMPTION (79%/13%/8%). Four ASSUMPTIONs are the planning gates: (1) sprite-budget pre-bench; (2) Pixi mount under Next 16; (3) movement model; (4) action vocab finality. Reality files (~5500 tokens, within 8500 budget) ready for `/reality` queries. |
+| 2026-05-07 | designing-architecture | SDD v2.0 written — supersedes v1.0 reality snapshot. Forward-looking architecture for observatory simulation aligned to PRD §9 4-pass ladder (v0.1 idle frame → v0.2 mocked liveness → v0.3 weather coupling → v0.4 polish). New modules defined: `lib/activity/` (ActivityStream + mock), `lib/weather/` (WeatherFeed + mock), `lib/sim/` (pentagram geometry + entities + migrations + modulation), `app/observatory/` (server shell), `components/observatory/` (8 components incl. PentagramCanvas, KpiStrip, ActivityRail, WeatherTile, FocusCard, IntroAnimation). Adapter-binding pattern preserved verbatim from `lib/score/index.ts:17`. New deps: Vitest + Playwright (testing only). Three remaining ASSUMPTIONs all gated by v0.1 spike: Pixi mount pattern, sprite-count headroom (1000 → 500 fallback ladder), test framework choice. Risk register: 10 risks logged with mitigations; biggest = R-2 (sprite budget) — pre-bench is explicit v0.1 task. |
+| 2026-05-07 | planning-sprints | Sprint plan written for cycle-001 (observatory-v0). Covers Sprint 1 = v0.1 idle frame in full detail; Sprints 2–4 (v0.2–v0.4) listed in Sprint Overview as forward trajectory only — each will be planned via `/sprint-plan` after the prior passes review+audit. Sprint 1 is MEDIUM scope (10 tasks): 2 spikes (Pixi mount, 500/750/1000 sprite pre-bench) + test-framework wiring + activity/weather STUB adapters + sim/pentagram + sim/entities + observatory route+client + PentagramCanvas + 5 chrome components. Goal IDs auto-assigned from PRD §6: G-1 demo-end-to-end, G-2 visual identity, G-3 mock honesty, G-4 sim alive. Sprint 1 covers G-2 complete + G-1/G-3/G-4 partial (per PRD §9 iteration ladder, by design). E2E validation task deferred to Sprint 4. Critical-path: spikes 1.1+1.2 first → 1.3 test deps → 1.6 pentagram math → 1.7 entities → 1.9 PentagramCanvas. Initialized `grimoires/loa/ledger.json` (cycle-001, active). |
 
 ## Decision Log
 | Date | Decision | Rationale | Decided By |
@@ -27,6 +31,19 @@
 | 2026-05-07 | Defer PRD to next session | Scope this session to scaffold only; user will run /plan separately for the actual implementation | zerker |
 | 2026-05-07 | Skip shadcn init | Tailwind 4 setup differs; use cn() helper + copy individual primitives later as needed | claude (acked) |
 | 2026-05-07 | Hackathon interview mode (minimal+batch) | Saves ~12 conversational rounds across /plan, /architect, /sprint-plan — wired in .loa.config.yaml | claude (acked) |
+| 2026-05-07 | Spatial frame: wuxing pentagram (5 vertices, pentagon=生 generation, inner star=克 destruction) | Diagram IS the IP; brand-aligned by construction | zerker |
+| 2026-05-07 | v0 action vocabulary: mint / attack / gift (the "tight 3") | Smallest viable set with 3 distinct migration grammars (vertex-spawn / inner-star / pentagon-edge) | zerker |
+| 2026-05-07 | POV: god's-eye observatory + click-to-reveal focus card; no wallet connect | Pure visualization for hackathon; defers auth complexity | zerker |
+| 2026-05-07 | Layout idiom: TopBar + KpiStrip + grid-cols-[1fr_380px] (pentagram canvas + activity rail + weather tile) | Score-dashboard composition rhythm, translated to purupuru visual tokens | zerker |
+| 2026-05-07 | Audience: Frontier-only submission | Trims polish target; perf only needs to handle one demo machine | zerker (Q1) |
+| 2026-05-07 | Elevator pitch: "the live observatory of every puruhani in the world, breathing and reacting to weather and on-chain action" | Anchors first-paint: judge should "get it" in ~30s | zerker (Q2) |
+| 2026-05-07 | Demo entry: brief intro animation (wordmark fade → sim reveal) | Establishes brand presence before observatory ambient takes over | zerker (Q3) |
+| 2026-05-07 | IRL weather: mocked feed, same shape as a real `WeatherFeed` adapter | Avoids network/API-key dependency; swappable later | zerker (Q4) |
+| 2026-05-07 | Entity count target at v0.1 idle: 500-1000 sprites | Pixi territory; pre-bench in v0.1 to confirm headroom | zerker (Q5) |
+| 2026-05-07 | Coordination: independent FE, no shared interfaces with `project-purupuru/game` for these 4 days | Eliminates external dependency; revisit post-hackathon | zerker (Q6) |
+| 2026-05-07 | Sprint plan covers Sprint 1 (v0.1) only — Sprints 2–4 listed as overview forecast, planned individually after each predecessor passes audit | User instruction "v0.1 idle frame is the next sprint" + ladder discipline (PRD §9 "each pass renders a working surface; iterate without re-architecting") | claude (planning-sprints) |
+| 2026-05-07 | Sprint 1 is single-day (1.0 day, 2026-05-07 → 2026-05-08) rather than the template default 2.5 days | 4-day ship clock to 2026-05-11; ladder must complete v0.1→v0.2→v0.3→v0.4 in that window | claude (planning-sprints) |
+| 2026-05-07 | Sprint 1 sprite-count target = 1000 with 750/500 fallbacks; final N committed as `OBSERVATORY_SPRITE_COUNT` constant after Task 1.2 pre-bench | PRD NFR-2 explicitly requires pre-bench; SDD §6.4 ladder; locking the constant means Sprints 2–4 don't re-bench | claude (planning-sprints) |
 
 ## Open at Handoff (for next session)
 

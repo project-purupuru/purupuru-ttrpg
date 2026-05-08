@@ -1,0 +1,19 @@
+# Test Files
+
+> Extracted 2026-05-07.
+
+## Application tests
+
+**None.** No `*.test.ts(x)`, `*.spec.ts(x)`, `__tests__/`, vitest config, jest config, or playwright config under `app/` or `lib/`.
+
+## Test framework dependencies
+
+`package.json` lists none. No `vitest`, `jest`, `@testing-library/*`, `playwright`, or `cypress`.
+
+## Framework-internal tests (excluded from app scope)
+
+`.claude/lib/__tests__/` and `.claude/skills/bridgebuilder-review/resources/__tests__/` contain Loa framework tests. These are System Zone — out of scope for application reality.
+
+## Implication for the hackathon
+
+Test-first is non-negotiable for the Loa `/bug` and `/implement` skills, but the **scaffold itself ships testless**. When the first sprint introduces simulation engine code, tests will need to be added to satisfy the `/audit-sprint` quality gate. Fixture for a deterministic Pixi mount + the seeded `mockScoreAdapter` is the obvious starting point.

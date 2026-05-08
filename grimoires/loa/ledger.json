@@ -1,0 +1,33 @@
+{
+  "version": "1.0.0",
+  "next_sprint_number": 2,
+  "active_cycle": "cycle-001",
+  "cycles": [
+    {
+      "id": "cycle-001",
+      "label": "observatory-v0",
+      "status": "active",
+      "created_at": "2026-05-07T00:30:00Z",
+      "prd": "grimoires/loa/prd.md",
+      "sdd": "grimoires/loa/sdd.md",
+      "sprints": [
+        {
+          "global_id": 1,
+          "local_id": "sprint-1",
+          "pass": "v0.1",
+          "theme": "Idle frame",
+          "scope": "MEDIUM",
+          "task_count": 10,
+          "duration_days": 1.0,
+          "start_date": "2026-05-07",
+          "end_date": "2026-05-08",
+          "status": "planned",
+          "epic_bead": "bd-1lg",
+          "task_beads": ["bd-39o", "bd-2ga", "bd-95f", "bd-bek", "bd-tb4", "bd-3kg", "bd-1b0", "bd-3m6", "bd-2og", "bd-122"],
+          "spec_path": "grimoires/loa/sprint.md",
+          "spec_section": "Sprint 1: v0.1 — Idle Frame"
+        }
+      ]
+    }
+  ]
+}
