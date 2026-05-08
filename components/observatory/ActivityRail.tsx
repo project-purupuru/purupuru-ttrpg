@@ -126,7 +126,7 @@ export function ActivityRail() {
           </p>
         </div>
       ) : (
-        <ul className="flex-1 divide-y divide-puru-cloud-dim/70 overflow-y-auto overflow-x-hidden">
+        <ul className="flex-1 overflow-y-auto overflow-x-hidden">
           {events.map((e) => {
             const actor = resolve(e.actor);
             const target = e.target ? resolve(e.target) : null;
