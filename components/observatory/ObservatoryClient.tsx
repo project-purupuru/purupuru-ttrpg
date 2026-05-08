@@ -58,9 +58,13 @@ export function ObservatoryClient() {
         <div className="relative min-h-0">
           <PentagramCanvas />
         </div>
-        <aside className="grid grid-rows-[1fr_auto]">
-          <ActivityRail />
-          <WeatherTile state={weather} />
+        <aside className="grid min-h-0 grid-rows-[1fr_auto] overflow-hidden">
+          <div className="min-h-0 overflow-hidden">
+            <ActivityRail />
+          </div>
+          <div className="shrink-0">
+            <WeatherTile state={weather} />
+          </div>
         </aside>
       </main>
     </div>

@@ -14,8 +14,8 @@ function timeAgo(iso: string, now: number): string {
 }
 
 function shortAddr(addr: string): string {
-  if (!addr || addr.length < 10) return addr;
-  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+  if (!addr || addr.length < 8) return addr;
+  return `…${addr.slice(-4)}`;
 }
 
 const KIND_LABEL = {
@@ -36,7 +36,7 @@ export function ActivityRail() {
 
   useEffect(() => {
     const unsub = activityStream.subscribe((e) => {
-      setEvents((prev) => [e, ...prev].slice(0, 20));
+      setEvents((prev) => [e, ...prev].slice(0, 50));
     });
     const tick = setInterval(() => setNow(Date.now()), 1000);
     return () => {
@@ -46,8 +46,8 @@ export function ActivityRail() {
   }, []);
 
   return (
-    <aside className="flex min-h-0 flex-col border-l border-puru-cloud-dim bg-puru-cloud-bright">
-      <header className="border-b border-puru-cloud-dim px-5 py-4">
+    <aside className="flex h-full min-h-0 flex-col overflow-hidden border-l border-puru-cloud-dim bg-puru-cloud-bright">
+      <header className="shrink-0 border-b border-puru-cloud-dim px-5 py-4">
         <h3 className="font-puru-mono text-2xs uppercase tracking-[0.22em] text-puru-ink-soft">
           recent activity
         </h3>
@@ -62,9 +62,9 @@ export function ActivityRail() {
           </p>
         </div>
       ) : (
-        <ul className="flex-1 divide-y divide-puru-cloud-dim overflow-y-auto">
+        <ul className="flex-1 divide-y divide-puru-cloud-dim overflow-y-auto overflow-x-hidden">
           {events.map((e) => (
-            <li key={e.id} className="flex items-start gap-3 px-5 py-3">
+            <li key={e.id} className="flex items-center gap-3 px-5 py-3">
               <span
                 className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full font-puru-card text-base text-puru-cloud-bright"
                 style={{ backgroundColor: `var(--puru-${e.element}-vivid)` }}
@@ -73,13 +73,17 @@ export function ActivityRail() {
                 {KIND_GLYPH[e.kind]}
               </span>
               <div className="flex min-w-0 flex-1 flex-col">
-                <p className="truncate font-puru-mono text-sm text-puru-ink-rich">
-                  <span className="font-puru-display">{shortAddr(e.actor)}</span>
+                <p className="truncate font-puru-mono text-xs">
+                  <span className="font-puru-display text-sm text-puru-ink-rich">
+                    {shortAddr(e.actor)}
+                  </span>
                   <span className="text-puru-ink-soft"> {KIND_LABEL[e.kind]}</span>
                   {e.target ? (
                     <>
                       <span className="text-puru-ink-soft"> → </span>
-                      <span className="font-puru-display">{shortAddr(e.target)}</span>
+                      <span className="font-puru-display text-sm text-puru-ink-base">
+                        {shortAddr(e.target)}
+                      </span>
                     </>
                   ) : null}
                 </p>
