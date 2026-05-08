@@ -1,7 +1,6 @@
 export type {
   Element,
   ElementDistribution,
-  EcosystemEnergy,
   ScoreReadAdapter,
   Wallet,
   WalletBadge,

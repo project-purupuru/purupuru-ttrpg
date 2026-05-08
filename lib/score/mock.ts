@@ -1,7 +1,6 @@
 import type {
   Element,
   ElementDistribution,
-  EcosystemEnergy,
   ScoreReadAdapter,
   Wallet,
   WalletBadge,
@@ -73,16 +72,5 @@ export const mockScoreAdapter: ScoreReadAdapter = {
       acc[el] = 50 + Math.round(35 * Math.abs(Math.sin(i * 1.3 + t / 19)));
       return acc;
     }, {} as ElementDistribution);
-  },
-
-  async getEcosystemEnergy(): Promise<EcosystemEnergy> {
-    // Polyrhythmic sines — periods chosen to avoid an obvious repeat
-    // and to stay within plausible-looking value ranges.
-    const t = Date.now() / 1000;
-    return {
-      total_active: Math.round(247 + 22 * Math.sin(t / 13) + 8 * Math.sin(t / 4.7)),
-      cosmic_intensity: 0.62 + 0.09 * Math.sin(t / 23) + 0.04 * Math.sin(t / 7.3),
-      cycle_balance:  0.78 + 0.07 * Math.sin(t / 31) + 0.03 * Math.sin(t / 11.1),
-    };
   },
 };

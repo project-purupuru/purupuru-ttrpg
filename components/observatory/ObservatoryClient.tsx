@@ -95,15 +95,12 @@ export function ObservatoryClient() {
     return () => document.removeEventListener("click", onDocClick);
   }, [focused]);
 
-  // KPI sources after the accuracy-validation pass:
+  // KPI sources — every metric derives from an observable signal that
+  // correlates with the canvas:
   //   live presence    → OBSERVATORY_SPRITE_COUNT (matches what the canvas renders)
   //   wuxing dist      → scoreAdapter.getElementDistribution() (same source the canvas seeds from)
   //   cycle balance    → derived from recentActivity below (mints+gifts vs attacks)
   //   cosmic intensity → weather.cosmic_intensity (same source the canvas tide+halo read)
-  //
-  // getEcosystemEnergy() is intentionally NOT used here — its
-  // total_active / cycle_balance / cosmic_intensity fields are
-  // sine-drift mock values not grounded in any observable signal.
   useEffect(() => {
     let cancelled = false;
     const refetch = async () => {
