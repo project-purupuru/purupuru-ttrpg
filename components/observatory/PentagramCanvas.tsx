@@ -7,28 +7,119 @@ import {
   Container,
   Graphics,
   Sprite,
+  Text,
   Texture,
 } from "pixi.js";
 import { ELEMENTS, scoreAdapter, type Element } from "@/lib/score";
-import { createPentagram, pentagonEdges, innerStarEdges } from "@/lib/sim/pentagram";
+import {
+  createPentagram,
+  pentagonEdges,
+  innerStarEdges,
+} from "@/lib/sim/pentagram";
 import {
   advanceBreath,
   OBSERVATORY_SPRITE_COUNT,
+  restingPositionFor,
   seedPopulation,
 } from "@/lib/sim/entities";
 import type { Puruhani } from "@/lib/sim/types";
+import { activityStream, type ActivityEvent } from "@/lib/activity";
 
 interface PentagramCanvasProps {
   onSpriteClick?: (trader: string) => void;
 }
 
-const ELEMENT_FALLBACK_HEX: Record<Element, number> = {
+const ELEMENT_HEX: Record<Element, number> = {
   wood: 0x4a8c3f,
   fire: 0xd14a3a,
   earth: 0xb87c3a,
   water: 0x3a6fb8,
   metal: 0xc8c8c8,
 };
+
+const ELEMENT_KANJI: Record<Element, string> = {
+  wood: "木",
+  fire: "火",
+  earth: "土",
+  water: "水",
+  metal: "金",
+};
+
+interface SpriteEntry {
+  entity: Puruhani;
+  node: Sprite | Graphics;
+  baseScale: number;
+  pulse: number; // 0..1, decays — drives action-flash
+}
+
+function drawVertex(
+  layer: Container,
+  el: Element,
+  v: { x: number; y: number },
+): void {
+  const halo = new Graphics();
+  halo.circle(0, 0, 38);
+  halo.fill({ color: ELEMENT_HEX[el], alpha: 0.18 });
+  halo.x = v.x;
+  halo.y = v.y;
+  layer.addChild(halo);
+
+  const disk = new Graphics();
+  disk.circle(0, 0, 26);
+  disk.fill({ color: ELEMENT_HEX[el] });
+  disk.x = v.x;
+  disk.y = v.y;
+  layer.addChild(disk);
+
+  const ring = new Graphics();
+  ring.circle(0, 0, 26);
+  ring.stroke({ width: 1.5, color: 0xffffff, alpha: 0.45 });
+  ring.x = v.x;
+  ring.y = v.y;
+  layer.addChild(ring);
+
+  const label = new Text({
+    text: ELEMENT_KANJI[el],
+    style: {
+      fontFamily: "ZCOOL KuaiLe, FOT-Yuruka Std, serif",
+      fontSize: 28,
+      fill: 0xffffff,
+      align: "center",
+    },
+  });
+  label.anchor.set(0.5, 0.55);
+  label.x = v.x;
+  label.y = v.y;
+  layer.addChild(label);
+}
+
+function drawPentagon(g: Graphics, geometry: ReturnType<typeof createPentagram>): void {
+  g.clear();
+  for (const [from, to] of pentagonEdges()) {
+    const a = geometry.vertex(from);
+    const b = geometry.vertex(to);
+    g.moveTo(a.x, a.y).lineTo(b.x, b.y);
+  }
+  g.stroke({ width: 2, color: 0xc4b890, alpha: 0.7 });
+}
+
+function drawStar(g: Graphics, geometry: ReturnType<typeof createPentagram>): void {
+  g.clear();
+  for (const [from, to] of innerStarEdges()) {
+    const a = geometry.vertex(from);
+    const b = geometry.vertex(to);
+    g.moveTo(a.x, a.y).lineTo(b.x, b.y);
+  }
+  g.stroke({ width: 1, color: 0x9a8b6f, alpha: 0.4 });
+}
+
+function rng(seed: number): () => number {
+  let s = seed | 0;
+  return () => {
+    s = (s * 1664525 + 1013904223) | 0;
+    return ((s >>> 0) % 1_000_000) / 1_000_000;
+  };
+}
 
 export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -60,42 +151,24 @@ export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
       host.appendChild(app.canvas);
 
       const center = { x: app.screen.width / 2, y: app.screen.height / 2 };
-      const radius = Math.min(app.screen.width, app.screen.height) * 0.36;
-      const geometry = createPentagram(center, radius);
+      const radius = Math.min(app.screen.width, app.screen.height) * 0.38;
+      let geometry = createPentagram(center, radius);
 
       // ─── Pentagon edges (生 generation) ────────────────────────────────────
-      const lines = new Graphics();
-      lines.alpha = 0.55;
-      for (const [from, to] of pentagonEdges()) {
-        const a = geometry.vertex(from);
-        const b = geometry.vertex(to);
-        lines.moveTo(a.x, a.y).lineTo(b.x, b.y);
-      }
-      lines.stroke({ width: 1.5, color: 0xa8a8a8 });
+      const pentagonG = new Graphics();
+      drawPentagon(pentagonG, geometry);
 
       // ─── Inner-star edges (克 destruction) ─────────────────────────────────
-      const star = new Graphics();
-      star.alpha = 0.22;
-      for (const [from, to] of innerStarEdges()) {
-        const a = geometry.vertex(from);
-        const b = geometry.vertex(to);
-        star.moveTo(a.x, a.y).lineTo(b.x, b.y);
-      }
-      star.stroke({ width: 1, color: 0x808080 });
+      const starG = new Graphics();
+      drawStar(starG, geometry);
 
-      app.stage.addChild(lines);
-      app.stage.addChild(star);
+      app.stage.addChild(pentagonG);
+      app.stage.addChild(starG);
 
-      // ─── Vertex glyphs ─────────────────────────────────────────────────────
-      const vertexLayer = new Container();
+      // ─── Vertex glyphs (large halo + filled disk + ring + kanji) ───────────
+      let vertexLayer = new Container();
       for (const el of ELEMENTS) {
-        const v = geometry.vertex(el);
-        const dot = new Graphics();
-        dot.circle(0, 0, 6);
-        dot.fill({ color: ELEMENT_FALLBACK_HEX[el] });
-        dot.x = v.x;
-        dot.y = v.y;
-        vertexLayer.addChild(dot);
+        drawVertex(vertexLayer, el, geometry.vertex(el));
       }
       app.stage.addChild(vertexLayer);
 
@@ -123,7 +196,8 @@ export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
       }
 
       const spriteLayer = new Container();
-      const sprites: Array<{ entity: Puruhani; node: Sprite | Graphics; baseScale: number }> = [];
+      const sprites: SpriteEntry[] = [];
+      const spritesByActor = new Map<string, SpriteEntry>();
 
       for (const entity of entities) {
         const tex = textures[entity.primaryElement];
@@ -132,13 +206,13 @@ export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
         if (tex) {
           const sprite = new Sprite(tex);
           sprite.anchor.set(0.5);
-          baseScale = 16 / Math.max(sprite.texture.width, sprite.texture.height);
+          baseScale = 14 / Math.max(sprite.texture.width, sprite.texture.height);
           sprite.scale.set(baseScale);
           node = sprite;
         } else {
           const g = new Graphics();
-          g.circle(0, 0, 5);
-          g.fill({ color: ELEMENT_FALLBACK_HEX[entity.primaryElement] });
+          g.circle(0, 0, 4);
+          g.fill({ color: ELEMENT_HEX[entity.primaryElement] });
           baseScale = 1;
           node = g;
         }
@@ -148,68 +222,79 @@ export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
         node.cursor = "pointer";
         node.on("pointertap", () => onSpriteClick?.(entity.trader));
         spriteLayer.addChild(node);
-        sprites.push({ entity, node, baseScale });
+        const entry: SpriteEntry = { entity, node, baseScale, pulse: 0 };
+        sprites.push(entry);
+        spritesByActor.set(entity.trader, entry);
       }
       app.stage.addChild(spriteLayer);
 
+      // ─── Activity stream — flash actor sprites on event ────────────────────
+      const onActivity = (event: ActivityEvent) => {
+        const entry = spritesByActor.get(event.actor);
+        if (entry) entry.pulse = 1;
+        if (event.target) {
+          const tEntry = spritesByActor.get(event.target);
+          if (tEntry) tEntry.pulse = 0.6;
+        }
+      };
+      const unsubActivity = activityStream.subscribe(onActivity);
+
       // ─── Idle ticker ───────────────────────────────────────────────────────
       const ticker = (delta: { deltaMS: number }) => {
-        if (reduce) return;
         for (const s of sprites) {
-          advanceBreath(s.entity, delta.deltaMS);
+          if (!reduce) advanceBreath(s.entity, delta.deltaMS);
           const phase = s.entity.breath_phase;
-          const breathScale = 1 + 0.08 * Math.sin(2 * Math.PI * phase);
-          s.node.scale.set(s.baseScale * breathScale);
+          const breath = 1 + 0.08 * Math.sin(2 * Math.PI * phase);
+          // Pulse decay (action flash) — eases toward 0 over ~0.6s
+          if (s.pulse > 0) {
+            s.pulse = Math.max(0, s.pulse - delta.deltaMS / 600);
+          }
+          const pulseScale = 1 + s.pulse * 1.2;
+          s.node.scale.set(s.baseScale * (reduce ? 1 : breath) * pulseScale);
         }
       };
       app.ticker.add(ticker);
-      rafCleanup = () => app.ticker.remove(ticker);
 
       // ─── Resize handling ───────────────────────────────────────────────────
       const ro = new ResizeObserver(() => {
         const cx = app.screen.width / 2;
         const cy = app.screen.height / 2;
-        const r = Math.min(app.screen.width, app.screen.height) * 0.36;
-        const g = createPentagram({ x: cx, y: cy }, r);
-        // Re-place vertex dots
-        vertexLayer.removeChildren();
+        const r = Math.min(app.screen.width, app.screen.height) * 0.38;
+        geometry = createPentagram({ x: cx, y: cy }, r);
+
+        // Re-build vertex layer
+        app.stage.removeChild(vertexLayer);
+        vertexLayer.destroy({ children: true });
+        vertexLayer = new Container();
         for (const el of ELEMENTS) {
-          const v = g.vertex(el);
-          const dot = new Graphics();
-          dot.circle(0, 0, 6);
-          dot.fill({ color: ELEMENT_FALLBACK_HEX[el] });
-          dot.x = v.x;
-          dot.y = v.y;
-          vertexLayer.addChild(dot);
+          drawVertex(vertexLayer, el, geometry.vertex(el));
         }
-        // Re-anchor sprites
-        for (const s of sprites) {
-          const blended = g.affinityBlend(s.entity.affinity);
-          s.entity.resting_position = blended;
-          s.entity.position = { ...blended };
-          s.node.x = blended.x;
-          s.node.y = blended.y;
+        app.stage.addChild(vertexLayer);
+
+        // Re-anchor sprites at new resting positions
+        for (let i = 0; i < sprites.length; i++) {
+          const s = sprites[i];
+          const positionRng = rng(i + 1009);
+          const resting = restingPositionFor(
+            s.entity.primaryElement,
+            s.entity.affinity,
+            geometry,
+            positionRng,
+          );
+          s.entity.resting_position = resting;
+          s.entity.position = { ...resting };
+          s.node.x = resting.x;
+          s.node.y = resting.y;
         }
-        // Re-draw edges
-        lines.clear();
-        for (const [from, to] of pentagonEdges()) {
-          const a = g.vertex(from);
-          const b = g.vertex(to);
-          lines.moveTo(a.x, a.y).lineTo(b.x, b.y);
-        }
-        lines.stroke({ width: 1.5, color: 0xa8a8a8 });
-        star.clear();
-        for (const [from, to] of innerStarEdges()) {
-          const a = g.vertex(from);
-          const b = g.vertex(to);
-          star.moveTo(a.x, a.y).lineTo(b.x, b.y);
-        }
-        star.stroke({ width: 1, color: 0x808080 });
+
+        drawPentagon(pentagonG, geometry);
+        drawStar(starG, geometry);
       });
       ro.observe(host);
-      const prevCleanup = rafCleanup;
+
       rafCleanup = () => {
-        prevCleanup?.();
+        app.ticker.remove(ticker);
+        unsubActivity();
         ro.disconnect();
       };
     })();

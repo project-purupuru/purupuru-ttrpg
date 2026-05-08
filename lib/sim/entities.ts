@@ -1,11 +1,15 @@
 /**
- * Puruhani entity registry — seed an idle population at affinity-weighted positions.
- * v0.1: deterministic, breath-driven, no migration. Sprint 2 wires action grammars.
+ * Puruhani entity registry — seed an idle population in 5 element zones.
+ *
+ * Position model: each sprite sits in a "zone" around its primaryElement
+ * vertex with jitter, plus a small pull toward its secondary element.
+ * This produces 5 distinct visible clusters (the wuxing diagram reading)
+ * rather than a center-of-mass collapse from pure affinityBlend.
  */
 
 import type { Element, ScoreReadAdapter, Wallet } from "@/lib/score";
 import { ELEMENTS } from "@/lib/score";
-import type { PentagramGeometry, Puruhani } from "./types";
+import type { PentagramGeometry, Puruhani, Vec2 } from "./types";
 
 export const OBSERVATORY_SPRITE_COUNT = 1000;
 
@@ -21,7 +25,7 @@ export function breathPeriodMs(element: Element): number {
   return BREATH_SECONDS[element] * 1000;
 }
 
-function syntheticAddress(seed: number): Wallet {
+export function syntheticAddress(seed: number): Wallet {
   const hex = Math.abs(seed).toString(16).padStart(8, "0");
   return `0x${hex}${hex}${hex}${hex}${hex}`;
 }
@@ -36,6 +40,51 @@ function rng(seed: number): () => number {
 
 function ulid(prefix: string, i: number): string {
   return `${prefix}-${i.toString(36).padStart(6, "0")}`;
+}
+
+function topSecondary(
+  affinity: Record<Element, number>,
+  primary: Element,
+): { element: Element; weight: number } {
+  let best: Element = primary;
+  let bestVal = -1;
+  for (const el of ELEMENTS) {
+    if (el === primary) continue;
+    if (affinity[el] > bestVal) {
+      bestVal = affinity[el];
+      best = el;
+    }
+  }
+  const total = ELEMENTS.reduce((s, el) => s + affinity[el], 0);
+  return { element: best, weight: total > 0 ? bestVal / total : 0 };
+}
+
+function zoneOffset(rngFn: () => number, zoneRadius: number): Vec2 {
+  // Uniform random point in a disk: r = R*sqrt(u), θ = 2π*v
+  const r = zoneRadius * Math.sqrt(rngFn());
+  const t = 2 * Math.PI * rngFn();
+  return { x: r * Math.cos(t), y: r * Math.sin(t) };
+}
+
+export function restingPositionFor(
+  primary: Element,
+  affinity: Record<Element, number>,
+  geometry: PentagramGeometry,
+  rngFn: () => number,
+): Vec2 {
+  const primaryV = geometry.vertex(primary);
+  const zone = geometry.radius * 0.2;
+  const jitter = zoneOffset(rngFn, zone);
+  const sec = topSecondary(affinity, primary);
+  const secV = geometry.vertex(sec.element);
+  // Pull toward secondary, capped — typical secondary weight is 0.15-0.25,
+  // so multiplier 0.6 gives a 9-15% pull which reads as drift without
+  // breaking the cluster identity.
+  const pull = Math.min(sec.weight, 0.4) * 0.6;
+  return {
+    x: primaryV.x + jitter.x + pull * (secV.x - primaryV.x),
+    y: primaryV.y + jitter.y + pull * (secV.y - primaryV.y),
+  };
 }
 
 export async function seedPopulation(
@@ -62,7 +111,8 @@ export async function seedPopulation(
     const affinity = profile?.elementAffinity ?? {
       wood: 20, fire: 20, earth: 20, water: 20, metal: 20,
     };
-    const resting = geometry.affinityBlend(affinity);
+    const positionRng = rng(i + 1009);
+    const resting = restingPositionFor(primaryElement, affinity, geometry, positionRng);
     const phaseRng = rng(i + 13);
     entities.push({
       id: ulid("p", i),
