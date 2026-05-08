@@ -65,6 +65,7 @@ interface Migration {
   duration: number;  // ms
   elapsed: number;   // ms
   newElement: Element | null;  // null = transient interaction (no rotation)
+  lastTrailAt: number;  // elapsed ms at which we last dropped a trail dot
 }
 
 interface SpriteEntry {
@@ -345,6 +346,31 @@ export function PentagramCanvas({ onSpriteClick, focusedTrader = null }: Pentagr
         sprites.push(entry);
       }
       app.stage.addChild(shadowLayer);
+
+      // ─── Migration trails — fading watercolor breadcrumbs ──────────────
+      // Sprites in flight drop a soft element-tinted blob every 70ms.
+      // Each blob ages out over 2.4s, so a typical 3s migration leaves
+      // a visible arc that decays after the sprite lands. Three concentric
+      // alpha-stacked circles per dot give the watercolor edge feel
+      // without needing a BlurFilter (per dig 2026-05-08 §2 Strava
+      // Global Heatmap — bilinear smoothing of historical paths into
+      // emergent texture rather than hard polylines).
+      interface TrailDot {
+        x: number;
+        y: number;
+        color: number;
+        age: number;
+      }
+      const trails: TrailDot[] = [];
+      const TRAIL_LIFE_MS = 1900;
+      const TRAIL_EMIT_MS = 110;
+      const TRAILS_MAX = 200; // hard cap as a safety net
+
+      const trailsLayer = new Container();
+      const trailsG = new Graphics();
+      trailsLayer.addChild(trailsG);
+      app.stage.addChild(trailsLayer);
+
       app.stage.addChild(spriteLayer);
 
       // ─── Focus glow — soft element-tinted ring under the selected sprite ──
@@ -394,6 +420,10 @@ export function PentagramCanvas({ onSpriteClick, focusedTrader = null }: Pentagr
           duration: 2500 + Math.random() * 1500,
           elapsed: 0,
           newElement: newEl,
+          // Negative seed so the very first trail dot drops on the next
+          // tick rather than waiting EMIT_MS — keeps short migrations
+          // from missing the first dot entirely.
+          lastTrailAt: -1000,
         };
         s.vx = 0;
         s.vy = 0;
@@ -490,6 +520,23 @@ export function PentagramCanvas({ onSpriteClick, focusedTrader = null }: Pentagr
               (s.migration.toX - s.migration.fromX) * eased;
             s.entity.position.y = s.migration.fromY +
               (s.migration.toY - s.migration.fromY) * eased;
+            // Drop a trail dot at every TRAIL_EMIT_MS of migration time.
+            // Color is the *origin* element so the trail reads as
+            // "where this puruhani is leaving from" — fading behind it
+            // as it crosses to its new zone.
+            if (
+              !reduce &&
+              s.migration.elapsed - s.migration.lastTrailAt >= TRAIL_EMIT_MS &&
+              trails.length < TRAILS_MAX
+            ) {
+              s.migration.lastTrailAt = s.migration.elapsed;
+              trails.push({
+                x: s.entity.position.x,
+                y: s.entity.position.y,
+                color: ELEMENT_HEX[s.entity.primaryElement],
+                age: 0,
+              });
+            }
             if (t >= 1) commitMigration(s);
           } else if (!reduce) {
             // ─── Wuxing tide-flow ─────────────────────────────────────────
@@ -557,6 +604,32 @@ export function PentagramCanvas({ onSpriteClick, focusedTrader = null }: Pentagr
           s.focusAlpha += (focusTarget - s.focusAlpha) * focusLerp;
           s.node.tint = lerpHex(FOCUS_DIM_TINT, 0xffffff, s.focusAlpha);
           s.shadow.alpha = SHADOW_BASE_ALPHA * (0.55 + 0.45 * s.focusAlpha);
+        }
+
+        // ─── Migration trails — age + soft-edged render ─────────────────────
+        // Each dot drawn as 3 concentric alpha-stacked circles so the
+        // edge feels watercolor rather than flat-disk. Always clear+
+        // redraw so a single Graphics holds the whole field — under
+        // typical activity (1-3 active migrations) this is ≤90 circles.
+        trailsG.clear();
+        for (let i = trails.length - 1; i >= 0; i--) {
+          const trail = trails[i];
+          trail.age += dt;
+          if (trail.age >= TRAIL_LIFE_MS) {
+            trails.splice(i, 1);
+            continue;
+          }
+          const u = trail.age / TRAIL_LIFE_MS;
+          const fade = 1 - u;
+          // Three soft layers: outer halo (faintest, biggest) → mid-ring →
+          // dense core. The core dims slightly faster than the halo so
+          // older trails read as soft clouds, fresher ones as bright dots.
+          trailsG.circle(trail.x, trail.y, 16);
+          trailsG.fill({ color: trail.color, alpha: fade * 0.06 });
+          trailsG.circle(trail.x, trail.y, 9);
+          trailsG.fill({ color: trail.color, alpha: fade * fade * 0.13 });
+          trailsG.circle(trail.x, trail.y, 4);
+          trailsG.fill({ color: trail.color, alpha: fade * fade * 0.26 });
         }
 
         // ─── Focus glow — draw soft element-tinted ring under selected ─────

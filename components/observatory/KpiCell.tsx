@@ -46,7 +46,7 @@ export function KpiCell({
       {aside !== undefined && aside !== null ? (
         <span
           aria-hidden
-          className="pointer-events-none absolute -bottom-2 -right-1 select-none font-puru-display text-5xl leading-none opacity-20"
+          className="pointer-events-none absolute -bottom-2 -right-1 select-none font-puru-display text-5xl leading-none opacity-10"
           style={asideStyle}
         >
           {aside}

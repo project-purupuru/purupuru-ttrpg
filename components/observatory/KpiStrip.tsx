@@ -110,15 +110,13 @@ export function KpiStrip({
  * Top-strip world-stat tile.
  *
  * Distinct hierarchy from the sidebar's KpiCell:
- *   - sidebar  → small corner watermark, decorative
- *   - top strip → big leading icon on the left, spans both rows, with
- *                 label-then-value stacked to its right
+ *   - sidebar  → corner watermark (bottom-right) at text-5xl
+ *   - top strip → large right-edge accent (vertically centered) at
+ *                 text-6xl — slightly bleeds past the cell edge so it
+ *                 reads as ambient decoration rather than a chart glyph
  *
- * Combined strip: shared `bg-puru-cloud-bright`, divided only by the
- * parent's `divide-x` lines. Depth carried by the section's outer
- * `shadow-puru-tile` + top/bottom borders. The icon is large enough
- * (text-4xl) to anchor the cell visually but still inline / structural,
- * not a corner watermark — that's the sidebar's job.
+ * Both at opacity-10 so the eye lands on the value first; icon is
+ * felt, not seen.
  */
 function Stat({
   label,
@@ -132,19 +130,26 @@ function Stat({
   iconStyle?: CSSProperties;
 }) {
   return (
-    <div className="flex flex-1 items-center gap-4 bg-puru-cloud-bright px-5 py-4">
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <span className="truncate font-puru-mono text-2xs uppercase tracking-[0.22em] text-puru-ink-soft">
-          {label}
-        </span>
-        <span className="truncate font-puru-mono text-2xl leading-none tabular-nums text-puru-ink-rich">
-          {value}
-        </span>
-      </div>
+    <div className="relative flex flex-1 flex-col gap-1 overflow-hidden bg-puru-cloud-bright px-5 py-4">
+      <span className="relative z-10 truncate font-puru-mono text-2xs uppercase tracking-[0.22em] text-puru-ink-soft">
+        {label}
+      </span>
+      <span className="relative z-10 truncate font-puru-mono text-2xl leading-none tabular-nums text-puru-ink-rich">
+        {value}
+      </span>
       <span
         aria-hidden
-        className="shrink-0 font-puru-display text-4xl leading-none text-puru-ink-base opacity-20"
-        style={iconStyle}
+        className="pointer-events-none absolute -right-8 top-1/2 -translate-y-1/2 select-none font-puru-display text-[140px] leading-none text-puru-ink-base opacity-[0.09]"
+        style={{
+          ...iconStyle,
+          // Fade the right edge to transparent so the oversized icon
+          // visually dissolves off the card rather than hard-clipping
+          // at the overflow boundary. Reads as a bleeding gradient.
+          maskImage:
+            "linear-gradient(to left, transparent 0%, black 45%, black 100%)",
+          WebkitMaskImage:
+            "linear-gradient(to left, transparent 0%, black 45%, black 100%)",
+        }}
       >
         {icon}
       </span>
