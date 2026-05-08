@@ -6,6 +6,8 @@
 //
 // S1-T7 result route uses this · S2-T2 wires HMAC validation upstream.
 
+import { createHash } from "node:crypto"
+
 import type { Element } from "./world-event"
 
 // 5 questions × 4 answers = each answer leans toward one element.
@@ -44,12 +46,10 @@ export const archetypeFromAnswers = (
 // Hash quiz state (answers) for ClaimMessage's quizStateHash field.
 // Server recomputes this at mint time · ClaimMessage binds claim to validated answers.
 //
-// Synchronous · Node crypto · same approach as event-id.ts (no Web Crypto type deps).
+// Synchronous · Node crypto · same approach as event-id.ts. peripheral-events
+// is server-only by design (SDD §1 L2 substrate) so node:crypto is in scope.
 export const quizStateHashOf = (
   answers: ReadonlyArray<0 | 1 | 2 | 3>,
 ): string => {
-  // Lazy import keeps this file pure when imported into bundler-only contexts
-  // that don't ship Node's "crypto" (e.g. browser builds). Server routes have it.
-  const { createHash } = require("node:crypto") as typeof import("node:crypto")
   return createHash("sha256").update(answers.join(",")).digest("hex")
 }

@@ -52,7 +52,10 @@ import { PurupuruAnchor } from "../target/types/purupuru_anchor"
 // ─── Constants from lib.rs · MUST match (drift = test failure) ────────
 
 const CLAIM_SIGNER_PUBKEY_STR = "E6E69osQmgzpQk9h19ebtMm8YEkAHJfnHwXThr6o2Gsd"
-const COLLECTION_MINT_PUBKEY_STR = "3Be59FPQnnSs5Z7Mxs6XtUD1NrrMEVAzhA751aRi2zj1"
+// COLLECTION_MINT_PUBKEY_STR documented for cross-reference · the on-chain
+// program reads this via its hardcoded const · tests don't mint full NFTs
+// so don't need to assemble the collection account directly.
+// "3Be59FPQnnSs5Z7Mxs6XtUD1NrrMEVAzhA751aRi2zj1"
 const TOKEN_METADATA_PROGRAM_ID = new anchor.web3.PublicKey(
   "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s",
 )
@@ -120,7 +123,6 @@ function makeFreshClaim(
     expiresAt: number
   }> = {},
 ): ClaimMessage {
-  const now = Math.floor(Date.now() / 1000)
   return buildClaimMessage({
     programId: anchor.web3.SystemProgram.programId.toBase58(),
     wallet: authority.toBase58() as ClaimMessage["wallet"],
@@ -223,6 +225,7 @@ describe("claim_genesis_stone · invariant tests (S2-T1 Phase C)", () => {
           "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
         ),
         tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any)
       .instruction()
 

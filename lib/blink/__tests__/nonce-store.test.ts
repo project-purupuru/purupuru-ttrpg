@@ -120,7 +120,7 @@ describe("claimNonce · fail-closed semantics", () => {
     const store = makeMemoryStore()
     // @ts-expect-error · simulating a runtime type violation from upstream code
     expect(await claimNonce(undefined, store)).toBe("kv-down")
-    // @ts-expect-error
+    // @ts-expect-error · simulating numeric input slipping past TS at the boundary
     expect(await claimNonce(123, store)).toBe("kv-down")
     expect(store.calls.length).toBe(0)
   })
