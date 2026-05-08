@@ -139,7 +139,7 @@ function drawVertex(
 ): VertexHandle {
   const halo = new Graphics();
   halo.circle(0, 0, 38);
-  halo.fill({ color: ELEMENT_HEX[el], alpha: 0.18 });
+  halo.fill({ color: ELEMENT_HEX[el], alpha: 0.26 });
   halo.x = v.x;
   halo.y = v.y;
   layer.addChild(halo);
@@ -322,7 +322,7 @@ export function PentagramCanvas({ onSpriteClick, focusedTrader = null }: Pentagr
       // Subscribed locally so the canvas reacts without prop-driven
       // re-mounts. Initial state pulled via current() so the first
       // frame already reflects the weather.
-      const HALO_BASE_ALPHA = 0.18;
+      const HALO_BASE_ALPHA = 0.26;
       const HALO_AMP_GAIN = 0.18;
       const initial = weatherFeed.current();
       let cosmicIntensity = Math.max(0, Math.min(1, initial.cosmic_intensity ?? 0));
@@ -782,13 +782,14 @@ export function PentagramCanvas({ onSpriteClick, focusedTrader = null }: Pentagr
       style={{
         perspective: "1400px",
         perspectiveOrigin: "center 60%",
-        // Background lives on the OUTER wrapper (which doesn't tilt) so
-        // the rotateX(6deg) on the canvas mount can't reveal page-void
-        // along the top edge. Grain at ~12% via translucent base-color
-        // overlay — felt, not seen.
+        // Background lives on the OUTER wrapper (no tilt) so the inner
+        // rotateX(6deg) on the canvas mount can't reveal page-void along
+        // the top edge. Grain texture tints through at ~50% via a
+        // translucent base-color overlay — no blend mode (which warps
+        // unevenly under the perspective).
         background: [
-          "linear-gradient(color-mix(in oklch, var(--puru-cloud-base) 88%, transparent), color-mix(in oklch, var(--puru-cloud-base) 88%, transparent))",
-          "url('/art/patterns/grain-warm.webp') center / 240px 240px repeat",
+          "linear-gradient(color-mix(in oklch, var(--puru-cloud-base) 50%, transparent), color-mix(in oklch, var(--puru-cloud-base) 50%, transparent))",
+          "url('/art/patterns/grain-warm.webp') center / 120px 120px repeat",
           "var(--puru-cloud-base)",
         ].join(", "),
       }}
