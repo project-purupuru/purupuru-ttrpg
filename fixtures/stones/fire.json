@@ -1,0 +1,22 @@
+{
+  "name": "Genesis Stone · Fire",
+  "symbol": "PGS",
+  "description": "A Fire-element imprint of the awareness layer · the day's tide read warmth when this stone was claimed · purupuru world.",
+  "image": "https://raw.githubusercontent.com/project-purupuru/purupuru-ttrpg/feat/awareness-layer-spine/public/art/puruhani/puruhani-fire.png",
+  "external_url": "https://purupuru.world",
+  "attributes": [
+    { "trait_type": "Element", "value": "Fire" },
+    { "trait_type": "Generation", "value": "Genesis" },
+    { "trait_type": "Path", "value": "Summer" }
+  ],
+  "properties": {
+    "category": "image",
+    "creators": [],
+    "files": [
+      {
+        "uri": "https://raw.githubusercontent.com/project-purupuru/purupuru-ttrpg/feat/awareness-layer-spine/public/art/puruhani/puruhani-fire.png",
+        "type": "image/png"
+      }
+    ]
+  }
+}

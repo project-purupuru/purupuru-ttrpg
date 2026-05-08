@@ -1,0 +1,22 @@
+{
+  "name": "Genesis Stone · Water",
+  "symbol": "PGS",
+  "description": "A Water-element imprint of the awareness layer · the day's tide read deep when this stone was claimed · purupuru world.",
+  "image": "https://raw.githubusercontent.com/project-purupuru/purupuru-ttrpg/feat/awareness-layer-spine/public/art/puruhani/puruhani-water.png",
+  "external_url": "https://purupuru.world",
+  "attributes": [
+    { "trait_type": "Element", "value": "Water" },
+    { "trait_type": "Generation", "value": "Genesis" },
+    { "trait_type": "Path", "value": "Winter" }
+  ],
+  "properties": {
+    "category": "image",
+    "creators": [],
+    "files": [
+      {
+        "uri": "https://raw.githubusercontent.com/project-purupuru/purupuru-ttrpg/feat/awareness-layer-spine/public/art/puruhani/puruhani-water.png",
+        "type": "image/png"
+      }
+    ]
+  }
+}

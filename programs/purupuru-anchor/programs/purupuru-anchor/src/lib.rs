@@ -39,6 +39,9 @@ use anchor_lang::solana_program::ed25519_program::ID as ED25519_PROGRAM_ID;
 use anchor_lang::solana_program::sysvar::instructions::{
     load_current_index_checked, load_instruction_at_checked, ID as INSTRUCTIONS_SYSVAR_ID,
 };
+use mpl_token_metadata::instructions::CreateV1CpiBuilder;
+use mpl_token_metadata::types::{Collection, PrintSupply, TokenStandard};
+use mpl_token_metadata::ID as TOKEN_METADATA_PROGRAM_ID;
 
 declare_id!("7u27WmTz2hZHvvhL89XcSCY3eFhxEfHjUN5MjzMY6v38");
 
@@ -57,10 +60,44 @@ const CLAIM_SIGNER_PUBKEY: Pubkey = pubkey!("E6E69osQmgzpQk9h19ebtMm8YEkAHJfnHwX
 /// CPI's collection field so child stones group under the parent in Phantom's
 /// collectibles tab.
 ///
-/// **TBD until S2-T1.5 bootstrap-collection.ts runs · UPDATE BEFORE DEPLOY.**
-/// Compiles with the System Program sentinel for now · Phase B replaces this
-/// constant + adds the Metaplex CPI that uses it.
-const COLLECTION_MINT_PUBKEY: Pubkey = pubkey!("11111111111111111111111111111111");
+/// Minted 2026-05-08 via scripts/bootstrap-collection.ts (S2-T1.5) ·
+/// authority is operator's id.json · supply 1 · isCollection metadata flag set.
+const COLLECTION_MINT_PUBKEY: Pubkey = pubkey!("3Be59FPQnnSs5Z7Mxs6XtUD1NrrMEVAzhA751aRi2zj1");
+
+/// Per-element metadata URIs · published JSON files at:
+///   fixtures/stones/{wood,fire,earth,metal,water}.json
+///
+/// Hardcoded per-element so the on-chain mint always points at known-good
+/// metadata · no client-supplied URI (which could be a phishing redirect).
+/// If asset URLs change, redeploy with new constants (frozen authority post-
+/// deploy makes this a one-shot per element family).
+const URI_WOOD: &str = "https://raw.githubusercontent.com/project-purupuru/purupuru-ttrpg/feat/awareness-layer-spine/fixtures/stones/wood.json";
+const URI_FIRE: &str = "https://raw.githubusercontent.com/project-purupuru/purupuru-ttrpg/feat/awareness-layer-spine/fixtures/stones/fire.json";
+const URI_EARTH: &str = "https://raw.githubusercontent.com/project-purupuru/purupuru-ttrpg/feat/awareness-layer-spine/fixtures/stones/earth.json";
+const URI_METAL: &str = "https://raw.githubusercontent.com/project-purupuru/purupuru-ttrpg/feat/awareness-layer-spine/fixtures/stones/metal.json";
+const URI_WATER: &str = "https://raw.githubusercontent.com/project-purupuru/purupuru-ttrpg/feat/awareness-layer-spine/fixtures/stones/water.json";
+
+fn element_name(byte: u8) -> &'static str {
+    match byte {
+        1 => "Wood",
+        2 => "Fire",
+        3 => "Earth",
+        4 => "Metal",
+        5 => "Water",
+        _ => "Unknown", // unreachable · gated by ElementOutOfRange require!
+    }
+}
+
+fn element_uri(byte: u8) -> &'static str {
+    match byte {
+        1 => URI_WOOD,
+        2 => URI_FIRE,
+        3 => URI_EARTH,
+        4 => URI_METAL,
+        5 => URI_WATER,
+        _ => URI_FIRE, // unreachable · gated by ElementOutOfRange require!
+    }
+}
 
 // ─────────────────────────────────────────────────────────────────────────
 // Program
@@ -135,38 +172,64 @@ pub mod purupuru_anchor {
             &canonical,
         )?;
 
-        // Logging · helpful for devnet smoke + demo · stripped before mainnet.
         msg!(
-            "✅ claim_genesis_stone validated · wallet={} element={} weather={} expires_in={}s",
+            "claim_genesis_stone validated · wallet={} element={} weather={} expires_in={}s",
             wallet,
             element,
             weather,
             expires_at - now,
         );
 
-        // ─── Phase B · Metaplex CPI mint ────────────────────────────────
+        // ─── Phase B · Metaplex CreateV1 CPI · mint NFT into collection ──
         //
-        // TODO(S2-T1 Phase B · pair-tight): CreateV1CpiBuilder mints NFT with
-        //   - mint = ctx.accounts.mint (fresh keypair from API)
-        //   - metadata + master_edition = derived PDAs
-        //   - update_authority = sponsored-payer (or the program · TBD)
-        //   - token_owner = wallet (the user)
-        //   - collection = Some({ key: COLLECTION_MINT_PUBKEY, verified: false })
-        //   - token_standard = NonFungible
-        //   - print_supply = Zero
+        // Single CPI handles: SPL Mint init (supply=1 · decimals=0) + Metadata
+        // PDA + Master Edition PDA + collection field reference.
         //
-        //   Sub-decisions to pair on:
-        //     1. NonFungible vs ProgrammableNonFungible (royalty enforcement)
-        //     2. Anchor-spl 0.31.1 vs direct mpl-token-metadata 5.x
-        //     3. Should sponsored-payer or claim-signer hold update authority?
-        //     4. Idempotent re-claim (PDA seed [b"stone", wallet]) — currently
-        //        nonce + KV blocks replay; do we ALSO want PDA-level uniqueness?
+        // Authority pattern (per S2-T1 design decision):
+        //   payer            = sponsored-payer (rent for new accounts · gasless UX)
+        //   authority        = user wallet     (mint authority · receives the NFT)
+        //   update_authority = user wallet     (owns metadata · we never update it)
+        //   token_owner      = user wallet     (where the NFT lands)
+        //
+        // Collection field is set with verified=false. Phantom shows the stone
+        // grouped under "Genesis Stones" with a yellow unverified badge.
+        // verifyCollectionV1 (post-hackathon background job) flips to verified=true.
 
-        // ─── Phase C · indexer event ────────────────────────────────────
+        let stone_name = format!("Genesis Stone · {}", element_name(element));
+        let stone_uri = element_uri(element).to_string();
+
+        CreateV1CpiBuilder::new(&ctx.accounts.token_metadata_program.to_account_info())
+            .metadata(&ctx.accounts.metadata.to_account_info())
+            .master_edition(Some(&ctx.accounts.master_edition.to_account_info()))
+            .mint(&ctx.accounts.mint.to_account_info(), true)
+            .authority(&ctx.accounts.authority.to_account_info())
+            .payer(&ctx.accounts.sponsored_payer.to_account_info())
+            .update_authority(&ctx.accounts.authority.to_account_info(), true)
+            .system_program(&ctx.accounts.system_program.to_account_info())
+            .sysvar_instructions(&ctx.accounts.instructions_sysvar.to_account_info())
+            .spl_token_program(Some(&ctx.accounts.token_program.to_account_info()))
+            .name(stone_name)
+            .symbol("PGS".to_string())
+            .uri(stone_uri)
+            .seller_fee_basis_points(0)
+            .token_standard(TokenStandard::NonFungible)
+            .print_supply(PrintSupply::Zero)
+            .collection(Collection {
+                verified: false,
+                key: COLLECTION_MINT_PUBKEY,
+            })
+            .invoke()?;
+
+        // ─── Phase C · indexer event ─────────────────────────────────────
         //
-        // TODO(S2-T1 Phase C): emit!(StoneClaimed {
-        //     wallet, element, weather, mint: ctx.accounts.mint.key()
-        // });
+        // Emitted in tx logs · zerker's indexer subscribes via
+        // `connection.onLogs(programId)` and rebuilds the awareness-layer feed.
+        emit!(StoneClaimed {
+            wallet,
+            element,
+            weather,
+            mint: ctx.accounts.mint.key(),
+        });
 
         Ok(())
     }
@@ -178,27 +241,58 @@ pub mod purupuru_anchor {
 
 #[derive(Accounts)]
 pub struct ClaimGenesisStone<'info> {
-    /// Authority calling this instruction · the user wallet · also the mint
-    /// recipient. NOT the sponsored-payer (sponsored-payer pays tx fees but
-    /// has no mint authority).
+    /// User wallet · mint authority + update authority + NFT recipient.
+    /// MUTABLE because the CreateV1 CPI will assign metadata authority to it.
+    #[account(mut)]
     pub authority: Signer<'info>,
 
-    /// Solana instructions sysvar · gives us read access to the prior
-    /// Ed25519Program ix data via load_instruction_at_checked.
+    /// Sponsored-payer · pays rent for new mint + metadata + master_edition
+    /// accounts (~0.012 SOL total). Separate keypair from claim-signer per
+    /// SDD §6.1 three-keypair model · drained sponsored-payer = mint goes
+    /// down for refill, but user funds + claim authority unaffected.
+    #[account(mut)]
+    pub sponsored_payer: Signer<'info>,
+
+    /// Fresh mint keypair generated server-side per claim · signs the tx so
+    /// SPL Mint init can finalize the supply-1 invariant. Becomes the NFT's
+    /// permanent on-chain identity.
+    /// CHECK: validated by Metaplex CreateV1 (must be uninitialized signer).
+    #[account(mut)]
+    pub mint: Signer<'info>,
+
+    /// Metaplex Metadata PDA at seeds:
+    ///   [b"metadata", token_metadata_program_id, mint_pubkey]
+    /// Created + populated by CreateV1 CPI.
+    /// CHECK: PDA derivation validated by Metaplex.
+    #[account(mut)]
+    pub metadata: UncheckedAccount<'info>,
+
+    /// Metaplex Master Edition PDA at seeds:
+    ///   [b"metadata", token_metadata_program_id, mint_pubkey, b"edition"]
+    /// Enforces NonFungible supply=1 invariant.
+    /// CHECK: PDA derivation validated by Metaplex.
+    #[account(mut)]
+    pub master_edition: UncheckedAccount<'info>,
+
+    /// Solana instructions sysvar · used twice in this ix:
+    ///   1. Sp2 ed25519 verification (parse prior Ed25519Program ix)
+    ///   2. Passed to Metaplex CreateV1 (it reads sysvar for some checks)
     /// CHECK: address-validated against canonical sysvar pubkey.
     #[account(address = INSTRUCTIONS_SYSVAR_ID)]
     pub instructions_sysvar: AccountInfo<'info>,
 
-    // TODO(Phase B): expand with Metaplex accounts:
-    //   - mint: Account<Mint> · fresh keypair · init via SPL
-    //   - metadata: PDA at [b"metadata", token_metadata_program, mint]
-    //   - master_edition: PDA at [b"metadata", token_metadata_program, mint, b"edition"]
-    //   - mint_authority + update_authority + payer
-    //   - collection_metadata: PDA for Genesis Stones collection
-    //   - token_metadata_program · spl_token_program · system_program · rent
-    //
-    // Anchor's `#[account(init, payer = ..., mint::decimals = 0, mint::authority = ...)]`
-    // can scaffold the mint init · the Metaplex CPI then layers metadata on top.
+    /// Solana System Program · for new account allocation rent.
+    pub system_program: Program<'info, System>,
+
+    /// SPL Token program · for SPL Mint initialization.
+    /// CHECK: address validated by Metaplex CPI internally.
+    #[account(address = anchor_spl::token::ID)]
+    pub token_program: AccountInfo<'info>,
+
+    /// Metaplex Token Metadata program · target of the CreateV1 CPI.
+    /// CHECK: address pinned to the canonical Metaplex program.
+    #[account(address = TOKEN_METADATA_PROGRAM_ID)]
+    pub token_metadata_program: AccountInfo<'info>,
 }
 
 // ─────────────────────────────────────────────────────────────────────────

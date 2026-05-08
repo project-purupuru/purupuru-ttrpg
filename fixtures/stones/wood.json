@@ -1,0 +1,22 @@
+{
+  "name": "Genesis Stone · Wood",
+  "symbol": "PGS",
+  "description": "A Wood-element imprint of the awareness layer · the day's tide read green when this stone was claimed · purupuru world.",
+  "image": "https://raw.githubusercontent.com/project-purupuru/purupuru-ttrpg/feat/awareness-layer-spine/public/art/puruhani/puruhani-wood.png",
+  "external_url": "https://purupuru.world",
+  "attributes": [
+    { "trait_type": "Element", "value": "Wood" },
+    { "trait_type": "Generation", "value": "Genesis" },
+    { "trait_type": "Path", "value": "Spring" }
+  ],
+  "properties": {
+    "category": "image",
+    "creators": [],
+    "files": [
+      {
+        "uri": "https://raw.githubusercontent.com/project-purupuru/purupuru-ttrpg/feat/awareness-layer-spine/public/art/puruhani/puruhani-wood.png",
+        "type": "image/png"
+      }
+    ]
+  }
+}

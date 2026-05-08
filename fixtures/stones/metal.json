@@ -1,0 +1,22 @@
+{
+  "name": "Genesis Stone · Metal",
+  "symbol": "PGS",
+  "description": "A Metal-element imprint of the awareness layer · the day's tide read precise when this stone was claimed · purupuru world.",
+  "image": "https://raw.githubusercontent.com/project-purupuru/purupuru-ttrpg/feat/awareness-layer-spine/public/art/puruhani/puruhani-metal.png",
+  "external_url": "https://purupuru.world",
+  "attributes": [
+    { "trait_type": "Element", "value": "Metal" },
+    { "trait_type": "Generation", "value": "Genesis" },
+    { "trait_type": "Path", "value": "Autumn" }
+  ],
+  "properties": {
+    "category": "image",
+    "creators": [],
+    "files": [
+      {
+        "uri": "https://raw.githubusercontent.com/project-purupuru/purupuru-ttrpg/feat/awareness-layer-spine/public/art/puruhani/puruhani-metal.png",
+        "type": "image/png"
+      }
+    ]
+  }
+}

@@ -145,6 +145,10 @@ importers:
         version: 2.0.0(@types/node@20.0.0)(@vitest/ui@4.1.5)
 
   programs/purupuru-anchor:
+    dependencies:
+      '@purupuru/peripheral-events':
+        specifier: workspace:^
+        version: link:../../packages/peripheral-events
     devDependencies:
       '@coral-xyz/anchor':
         specifier: ^0.31.1

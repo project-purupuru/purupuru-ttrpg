@@ -1,0 +1,22 @@
+{
+  "name": "Genesis Stone · Earth",
+  "symbol": "PGS",
+  "description": "An Earth-element imprint of the awareness layer · the day's tide read steady when this stone was claimed · purupuru world.",
+  "image": "https://raw.githubusercontent.com/project-purupuru/purupuru-ttrpg/feat/awareness-layer-spine/public/art/puruhani/puruhani-earth.png",
+  "external_url": "https://purupuru.world",
+  "attributes": [
+    { "trait_type": "Element", "value": "Earth" },
+    { "trait_type": "Generation", "value": "Genesis" },
+    { "trait_type": "Path", "value": "Late Summer" }
+  ],
+  "properties": {
+    "category": "image",
+    "creators": [],
+    "files": [
+      {
+        "uri": "https://raw.githubusercontent.com/project-purupuru/purupuru-ttrpg/feat/awareness-layer-spine/public/art/puruhani/puruhani-earth.png",
+        "type": "image/png"
+      }
+    ]
+  }
+}
