@@ -9,11 +9,13 @@
 // to fetch + watch the action JSON; the WalletProvider context the adapter
 // hook depends on is also browser-only.
 
+import { useMemo } from "react"
 import {
   ConnectionProvider,
   WalletProvider,
 } from "@solana/wallet-adapter-react"
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui"
+import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom"
 import { Blink, useAction } from "@dialectlabs/blinks"
 import { useActionSolanaWalletAdapter } from "@dialectlabs/blinks/hooks/solana"
 import "@dialectlabs/blinks/index.css"
@@ -51,13 +53,24 @@ function BlinkInner({ url, stylePreset = "default" }: BlinkPreviewProps) {
   return <Blink blink={blink} adapter={adapter} stylePreset={stylePreset} />
 }
 
-// Outer · provides wallet/connection context (read-only · empty wallets array
-// means Blink's wallet-required actions will prompt connect-flow if exercised
-// · our preview's main goal is the visual render, not signing).
+// Outer · provides wallet/connection context.
+//
+// Why we register Phantom even for read-only-feeling preview:
+// Dialect's BlinkComponent disables ALL buttons (including type:"post" chain
+// links that don't actually need a signature) when the wallet provider has
+// no registered wallets · because there's nothing for the connect-flow to
+// open. Registering Phantom (the most common Solana wallet) gives the connect
+// flow a target · buttons enable · users click "claim your stone" → Phantom
+// modal → connect → tx flow proceeds (sprint-3 wires real claim_genesis_stone).
 export function BlinkPreview(props: BlinkPreviewProps) {
+  // useMemo keeps the adapter instance stable across re-renders · otherwise
+  // every render would construct a new PhantomWalletAdapter and the WalletProvider
+  // would re-initialize, breaking the connect flow mid-session.
+  const wallets = useMemo(() => [new PhantomWalletAdapter()], [])
+
   return (
     <ConnectionProvider endpoint={DEVNET_RPC}>
-      <WalletProvider wallets={[]} autoConnect={false}>
+      <WalletProvider wallets={wallets} autoConnect={false}>
         <WalletModalProvider>
           <BlinkInner {...props} />
         </WalletModalProvider>
