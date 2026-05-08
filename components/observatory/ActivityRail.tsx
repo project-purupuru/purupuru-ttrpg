@@ -90,7 +90,7 @@ export function ActivityRail() {
               Activity
             </h3>
           </div>
-          <span className="inline-flex shrink-0 items-center gap-1.5 font-puru-body text-2xs uppercase tracking-[0.22em] text-puru-ink-dim">
+          <span className="inline-flex shrink-0 items-center gap-2.5 font-puru-body text-2xs uppercase tracking-[0.22em] text-puru-ink-dim">
             <span
               className="puru-live-dot inline-block h-1.5 w-1.5 rounded-full"
               style={{ backgroundColor: "var(--puru-wood-vivid)" }}
