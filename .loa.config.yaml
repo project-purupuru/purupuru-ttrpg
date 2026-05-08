@@ -35,3 +35,16 @@ interview:
   phase_gates:
     between_phases: false
     before_generation: true
+
+# Run mode — autonomous sprint execution
+run_mode:
+  enabled: true
+  defaults:
+    max_cycles: 20
+    timeout_hours: 8
+  sprint_plan:
+    branch_prefix: "feature/"
+    default_branch_name: "observatory-v0"
+    consolidate_pr: true
+    commit_prefix: "feat"
+    include_commits_by_sprint: true
