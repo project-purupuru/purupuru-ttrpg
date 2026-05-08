@@ -1,13 +1,15 @@
-// Local Blink preview page · renders Solana Action JSON as a card.
-// Replacement for dial.to (paused) · also useful as permanent dev tool.
+// Local Blink preview page · renders Solana Action JSON via the OFFICIAL
+// @dialectlabs/blinks React component (BlinkPreview wrapper).
+// What you see here is what users see in Phantom mobile + dial.to + Twitter.
 //
 // Usage:
 //   /preview                       → defaults to /api/actions/quiz/start
 //   /preview?url=<absolute-or-rel> → renders any action URL
-//   buttons inside the card link to /preview?url=<button.href>
-//   so you can walk the full chain visually.
+//   /preview?url=...&style=x-dark  → switch dialect style preset
 
 import Link from "next/link"
+
+import { BlinkPreview } from "./blink-preview"
 
 interface ActionResponse {
   icon: string
@@ -21,7 +23,7 @@ interface ActionResponse {
 }
 
 interface PageProps {
-  searchParams: Promise<{ url?: string }>
+  searchParams: Promise<{ url?: string; style?: string }>
 }
 
 async function fetchAction(targetUrl: string): Promise<{
@@ -47,14 +49,15 @@ async function fetchAction(targetUrl: string): Promise<{
   }
 }
 
-function previewHref(actionUrl: string): string {
-  return `/preview?url=${encodeURIComponent(actionUrl)}`
-}
+const STYLE_PRESETS = ["default", "x-dark", "x-light"] as const
+type StylePreset = (typeof STYLE_PRESETS)[number]
 
 export default async function PreviewPage({ searchParams }: PageProps) {
   const params = await searchParams
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000"
   const targetUrl = params.url ?? `${baseUrl}/api/actions/quiz/start`
+  const stylePreset: StylePreset =
+    STYLE_PRESETS.find((p) => p === params.style) ?? "x-dark"
 
   const { data, status, raw } = await fetchAction(targetUrl)
 
@@ -65,10 +68,15 @@ export default async function PreviewPage({ searchParams }: PageProps) {
     <main className="h-dvh overflow-y-auto bg-puru-cloud-deep p-6 md:p-12 font-puru-body">
       <div className="mx-auto max-w-2xl space-y-6 pb-24">
         {/* Header · which endpoint we're previewing */}
-        <header className="space-y-2">
-          <h1 className="text-puru-ink-base text-2xl font-puru-display">
-            Blink Preview
-          </h1>
+        <header className="space-y-3">
+          <div className="flex items-baseline justify-between gap-4">
+            <h1 className="text-puru-ink-base text-2xl font-puru-display">
+              Blink Preview
+            </h1>
+            <span className="text-puru-ink-dim text-xs font-puru-mono">
+              @dialectlabs/blinks · {stylePreset}
+            </span>
+          </div>
           <div className="text-puru-ink-soft text-xs font-puru-mono break-all">
             <span className="text-puru-ink-dim">target → </span>
             <span>{targetUrl}</span>
@@ -76,82 +84,58 @@ export default async function PreviewPage({ searchParams }: PageProps) {
               [HTTP {status || "fail"}]
             </span>
           </div>
-          <div className="flex gap-3 text-xs text-puru-ink-dim font-puru-mono">
+          <div className="flex flex-wrap gap-3 text-xs text-puru-ink-dim font-puru-mono">
             <Link
-              href="/preview"
+              href={`/preview?style=${stylePreset}`}
               className="underline hover:text-puru-ink-base"
             >
               ↻ start over (Q1)
             </Link>
             <Link
-              href={`/preview?url=${encodeURIComponent(`${baseUrl}/api/actions/today`)}`}
+              href={`/preview?url=${encodeURIComponent(`${baseUrl}/api/actions/today`)}&style=${stylePreset}`}
               className="underline hover:text-puru-ink-base"
             >
               ☼ ambient
             </Link>
+            <span className="text-puru-ink-dim">|</span>
+            {STYLE_PRESETS.map((p) => (
+              <Link
+                key={p}
+                href={`/preview?url=${encodeURIComponent(targetUrl)}&style=${p}`}
+                className={`underline ${
+                  p === stylePreset
+                    ? "text-puru-ink-base font-bold"
+                    : "hover:text-puru-ink-base"
+                }`}
+              >
+                {p}
+              </Link>
+            ))}
           </div>
         </header>
 
-        {/* Card · the actual Blink render */}
-        {data ? (
-          <article className="bg-puru-cloud-bright border border-puru-cloud-shadow rounded-2xl shadow-xl overflow-hidden">
-            {/* Icon */}
-            <div className="aspect-square bg-puru-cloud-base relative overflow-hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={data.icon}
-                alt={data.title}
-                className="w-full h-full object-cover"
-              />
-            </div>
-
-            {/* Body */}
-            <div className="p-6 space-y-3">
-              <h2 className="text-puru-ink-rich text-lg font-puru-display leading-puru-tight">
-                {data.title}
-              </h2>
-              <p className="text-puru-ink-base text-sm leading-puru-relaxed whitespace-pre-line">
-                {data.description}
-              </p>
-              {data.error?.message && (
-                <p className="text-puru-fire-vivid text-xs font-puru-mono">
-                  ⚠ {data.error.message}
-                </p>
-              )}
-            </div>
-
-            {/* Buttons · each links to /preview?url=<href> so the chain works */}
-            {data.links?.actions && data.links.actions.length > 0 && (
-              <div className="px-6 pb-6 space-y-2">
-                {data.links.actions.map((btn, i) => (
-                  <Link
-                    key={i}
-                    href={previewHref(btn.href)}
-                    className="block w-full px-4 py-3 text-sm text-puru-ink-rich bg-puru-cloud-base border border-puru-cloud-shadow rounded-xl hover:bg-puru-cloud-dim transition-colors text-left"
-                  >
-                    {btn.label}
-                  </Link>
-                ))}
-              </div>
-            )}
-          </article>
-        ) : (
-          <div className="bg-puru-fire-pastel border border-puru-fire-vivid rounded-xl p-4 text-puru-ink-rich text-sm">
-            <p className="font-puru-display text-base mb-2">Could not parse action JSON</p>
-            <pre className="text-xs font-puru-mono whitespace-pre-wrap break-all">
-              {raw}
-            </pre>
-          </div>
-        )}
+        {/* The card · rendered by the OFFICIAL Dialect Blink component.
+           This is the production rendering · what users actually see. */}
+        <BlinkPreview url={targetUrl} stylePreset={stylePreset} />
 
         {/* Raw JSON · always shown for debug */}
         {data && (
           <details className="text-xs">
             <summary className="cursor-pointer text-puru-ink-dim font-puru-mono hover:text-puru-ink-base">
-              ▾ raw JSON
+              ▾ raw JSON returned by {targetUrl.split("/").slice(-3).join("/")}
             </summary>
             <pre className="mt-2 p-4 bg-puru-cloud-shadow rounded-lg text-puru-ink-soft overflow-x-auto whitespace-pre-wrap break-all">
               {JSON.stringify(data, null, 2)}
+            </pre>
+          </details>
+        )}
+        {!data && raw && (
+          <details className="text-xs" open>
+            <summary className="cursor-pointer text-puru-fire-vivid font-puru-mono">
+              ▾ raw response (parse failed)
+            </summary>
+            <pre className="mt-2 p-4 bg-puru-fire-pastel rounded-lg text-puru-ink-rich overflow-x-auto whitespace-pre-wrap break-all">
+              {raw}
             </pre>
           </details>
         )}
