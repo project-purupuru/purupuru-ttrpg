@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import {
   Application,
+  Assets,
   Container,
   Graphics,
   Sprite,
@@ -51,6 +52,26 @@ const ELEMENT_KANJI: Record<Element, string> = {
   water: "水",
   metal: "金",
 };
+
+// Element icon PNGs — self-hosted under /public/art/elements/. Pulled
+// from project-purupuru/world-purupuru S3 originally, but Pixi v8's
+// Assets.load runs the bitmap decode in a worker spawned from a blob
+// URL, which can't follow cross-origin redirects even when CORS is
+// permissive. Same-origin paths sidestep the issue entirely.
+// `metal` uses the jani-face placeholder until a symbolic metal icon
+// ships (see /asset-test §03b for candidates).
+const ELEMENT_ICON_URL: Record<Element, string> = {
+  wood:  "/art/elements/wood-sprout.png",
+  fire:  "/art/elements/fire-flame.png",
+  earth: "/art/elements/earth-sun.png",
+  water: "/art/elements/water-drop.png",
+  metal: "/art/elements/metal-jani-face.png",
+};
+
+// Vertex glyph display size — sprites are anchored at center; the
+// halo (radius 38) sits behind so the icon reads as a labeled
+// presence on a soft colored aura.
+const VERTEX_ICON_SIZE = 56;
 
 // Avatar texture sizing — generated bigger than display so retina
 // rendering stays crisp. Display target ≈ 40px on screen.
@@ -107,14 +128,14 @@ function makeAvatarTexture(identity: PuruhaniIdentity, primary: Element, accent:
 // per ref doc 03-observatory-visual-references-dig-2026-05-08.md).
 interface VertexHandle {
   halo: Graphics;
-  disk: Graphics;
-  ring: Graphics;
+  icon: Sprite | null;
 }
 
 function drawVertex(
   layer: Container,
   el: Element,
   v: { x: number; y: number },
+  iconTextures: Record<Element, Texture> | null,
 ): VertexHandle {
   const halo = new Graphics();
   halo.circle(0, 0, 38);
@@ -123,35 +144,38 @@ function drawVertex(
   halo.y = v.y;
   layer.addChild(halo);
 
-  const disk = new Graphics();
-  disk.circle(0, 0, 26);
-  disk.fill({ color: ELEMENT_HEX[el] });
-  disk.x = v.x;
-  disk.y = v.y;
-  layer.addChild(disk);
+  let icon: Sprite | null = null;
+  const tex = iconTextures?.[el];
+  if (tex) {
+    icon = new Sprite(tex);
+    icon.anchor.set(0.5);
+    // Uniform scale that fits the icon inside a VERTEX_ICON_SIZE box.
+    // Setting width/height directly would non-uniformly squish icons
+    // whose source PNGs aren't square (e.g. jani-face is 399×384).
+    const dim = Math.max(tex.width, tex.height) || VERTEX_ICON_SIZE;
+    const scale = VERTEX_ICON_SIZE / dim;
+    icon.scale.set(scale);
+    icon.x = v.x;
+    icon.y = v.y;
+    layer.addChild(icon);
+  } else {
+    // Pre-load fallback — keep the kanji glyph briefly until textures arrive.
+    const label = new Text({
+      text: ELEMENT_KANJI[el],
+      style: {
+        fontFamily: "ZCOOL KuaiLe, FOT-Yuruka Std, serif",
+        fontSize: 28,
+        fill: 0xffffff,
+        align: "center",
+      },
+    });
+    label.anchor.set(0.5, 0.55);
+    label.x = v.x;
+    label.y = v.y;
+    layer.addChild(label);
+  }
 
-  const ring = new Graphics();
-  ring.circle(0, 0, 26);
-  ring.stroke({ width: 1.5, color: 0xffffff, alpha: 0.45 });
-  ring.x = v.x;
-  ring.y = v.y;
-  layer.addChild(ring);
-
-  const label = new Text({
-    text: ELEMENT_KANJI[el],
-    style: {
-      fontFamily: "ZCOOL KuaiLe, FOT-Yuruka Std, serif",
-      fontSize: 28,
-      fill: 0xffffff,
-      align: "center",
-    },
-  });
-  label.anchor.set(0.5, 0.55);
-  label.x = v.x;
-  label.y = v.y;
-  layer.addChild(label);
-
-  return { halo, disk, ring };
+  return { halo, icon };
 }
 
 function drawPentagon(g: Graphics, geometry: ReturnType<typeof createPentagram>): void {
@@ -256,11 +280,35 @@ export function PentagramCanvas({ onSpriteClick, focusedTrader = null }: Pentagr
       app.stage.addChild(pentagonG);
       app.stage.addChild(starG);
 
-      // ─── Vertex glyphs (large halo + filled disk + ring + kanji) ───────────
+      // ─── Vertex glyphs (large halo + element icon sprite) ──────────────────
+      // Preload all five element icon textures in parallel; cache for the
+      // resize re-build. Falls back to the kanji glyph if any URL fails.
+      let iconTextures: Record<Element, Texture> | null = null;
+      try {
+        const entries = await Promise.all(
+          ELEMENTS.map(async (el) => {
+            const tex = (await Assets.load(ELEMENT_ICON_URL[el])) as Texture;
+            return [el, tex] as const;
+          }),
+        );
+        iconTextures = Object.fromEntries(entries) as Record<Element, Texture>;
+      } catch (err) {
+        console.warn("[pentagram] element icon preload failed", err);
+      }
+      if (cancelled) {
+        app.destroy(true, { children: true });
+        return;
+      }
+
       let vertexLayer = new Container();
       const vertexByElement = {} as Record<Element, VertexHandle>;
       for (const el of ELEMENTS) {
-        vertexByElement[el] = drawVertex(vertexLayer, el, geometry.vertex(el));
+        vertexByElement[el] = drawVertex(
+          vertexLayer,
+          el,
+          geometry.vertex(el),
+          iconTextures,
+        );
       }
       app.stage.addChild(vertexLayer);
 
@@ -673,7 +721,12 @@ export function PentagramCanvas({ onSpriteClick, focusedTrader = null }: Pentagr
         vertexLayer.destroy({ children: true });
         vertexLayer = new Container();
         for (const el of ELEMENTS) {
-          vertexByElement[el] = drawVertex(vertexLayer, el, geometry.vertex(el));
+          vertexByElement[el] = drawVertex(
+            vertexLayer,
+            el,
+            geometry.vertex(el),
+            iconTextures,
+          );
         }
         app.stage.addChild(vertexLayer);
 
@@ -726,7 +779,19 @@ export function PentagramCanvas({ onSpriteClick, focusedTrader = null }: Pentagr
   return (
     <div
       className="relative h-full w-full overflow-hidden"
-      style={{ perspective: "1400px", perspectiveOrigin: "center 60%" }}
+      style={{
+        perspective: "1400px",
+        perspectiveOrigin: "center 60%",
+        // Background lives on the OUTER wrapper (which doesn't tilt) so
+        // the rotateX(6deg) on the canvas mount can't reveal page-void
+        // along the top edge. Grain at ~12% via translucent base-color
+        // overlay — felt, not seen.
+        background: [
+          "linear-gradient(color-mix(in oklch, var(--puru-cloud-base) 88%, transparent), color-mix(in oklch, var(--puru-cloud-base) 88%, transparent))",
+          "url('/art/patterns/grain-warm.webp') center / 240px 240px repeat",
+          "var(--puru-cloud-base)",
+        ].join(", "),
+      }}
     >
       <div
         ref={containerRef}
@@ -734,8 +799,6 @@ export function PentagramCanvas({ onSpriteClick, focusedTrader = null }: Pentagr
         style={{
           transform: "rotateX(6deg)",
           transformOrigin: "center 55%",
-          background:
-            "radial-gradient(ellipse 75% 65% at center, color-mix(in oklch, var(--puru-cloud-bright) 80%, var(--puru-cloud-base)) 0%, var(--puru-cloud-base) 38%, var(--puru-cloud-dim) 72%, var(--puru-cloud-deep) 100%)",
         }}
         data-testid="pentagram-canvas"
       >
