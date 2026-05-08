@@ -191,8 +191,17 @@ describe("claim_genesis_stone · invariant tests (S2-T1 Phase C)", () => {
     signature: Uint8Array
     omitEd25519?: boolean
     argOverrides?: Partial<ReturnType<typeof asAnchorArgs>>
-  }): Promise<{ tx: anchor.web3.Transaction; mintKp: anchor.web3.Keypair }> {
-    const sponsoredPayer = Keypair.generate() // test-scope · won't actually sign for reject tests
+  }): Promise<{
+    tx: anchor.web3.Transaction
+    mintKp: anchor.web3.Keypair
+    extraSigners: anchor.web3.Keypair[]
+  }> {
+    // Both mint and sponsored-payer are declared `Signer<'info>` in the
+    // Accounts struct · they MUST sign the tx or Solana rejects at sig
+    // verification BEFORE our program runs (which would mask our require!
+    // errors). Tests pass `extraSigners` to provider.sendAndConfirm so the
+    // tx makes it into the program · validation gates are then exercised.
+    const sponsoredPayer = Keypair.generate()
     const mintKp = Keypair.generate()
 
     const ed25519Ix = Ed25519Program.createInstructionWithPublicKey({
@@ -232,13 +241,13 @@ describe("claim_genesis_stone · invariant tests (S2-T1 Phase C)", () => {
     const tx = new anchor.web3.Transaction()
     if (!opts.omitEd25519) tx.add(ed25519Ix)
     tx.add(claimIx)
-    return { tx, mintKp }
+    return { tx, mintKp, extraSigners: [sponsoredPayer, mintKp] }
   }
 
   it("❌ rejects element=0 (ElementOutOfRange)", async () => {
     const claim = makeFreshClaim(provider.wallet.publicKey)
     const signed = signClaimMessage(claim, claimSignerSecret)
-    const { tx } = await buildClaimTx({
+    const { tx, extraSigners } = await buildClaimTx({
       claim,
       signedMessage: signed.messageBytes,
       signerPubkey: signed.signerPubkey,
@@ -246,7 +255,7 @@ describe("claim_genesis_stone · invariant tests (S2-T1 Phase C)", () => {
       argOverrides: { element: 0 },
     })
     try {
-      await provider.sendAndConfirm(tx)
+      await provider.sendAndConfirm(tx, extraSigners)
       expect.fail("expected ElementOutOfRange · got success")
     } catch (err: unknown) {
       expect(String(err)).to.match(/ElementOutOfRange/)
@@ -256,7 +265,7 @@ describe("claim_genesis_stone · invariant tests (S2-T1 Phase C)", () => {
   it("❌ rejects weather=6 (WeatherOutOfRange)", async () => {
     const claim = makeFreshClaim(provider.wallet.publicKey)
     const signed = signClaimMessage(claim, claimSignerSecret)
-    const { tx } = await buildClaimTx({
+    const { tx, extraSigners } = await buildClaimTx({
       claim,
       signedMessage: signed.messageBytes,
       signerPubkey: signed.signerPubkey,
@@ -264,7 +273,7 @@ describe("claim_genesis_stone · invariant tests (S2-T1 Phase C)", () => {
       argOverrides: { weather: 6 },
     })
     try {
-      await provider.sendAndConfirm(tx)
+      await provider.sendAndConfirm(tx, extraSigners)
       expect.fail("expected WeatherOutOfRange · got success")
     } catch (err: unknown) {
       expect(String(err)).to.match(/WeatherOutOfRange/)
@@ -278,14 +287,14 @@ describe("claim_genesis_stone · invariant tests (S2-T1 Phase C)", () => {
       expiresAt: 1700000300, // both well in the past
     }
     const signed = signClaimMessage(expiredClaim, claimSignerSecret)
-    const { tx } = await buildClaimTx({
+    const { tx, extraSigners } = await buildClaimTx({
       claim: expiredClaim,
       signedMessage: signed.messageBytes,
       signerPubkey: signed.signerPubkey,
       signature: signed.signature,
     })
     try {
-      await provider.sendAndConfirm(tx)
+      await provider.sendAndConfirm(tx, extraSigners)
       expect.fail("expected Expired · got success")
     } catch (err: unknown) {
       expect(String(err)).to.match(/Expired/)
@@ -295,7 +304,7 @@ describe("claim_genesis_stone · invariant tests (S2-T1 Phase C)", () => {
   it("❌ rejects tx without prior Ed25519Program ix (NoPriorInstruction)", async () => {
     const claim = makeFreshClaim(provider.wallet.publicKey)
     const signed = signClaimMessage(claim, claimSignerSecret)
-    const { tx } = await buildClaimTx({
+    const { tx, extraSigners } = await buildClaimTx({
       claim,
       signedMessage: signed.messageBytes,
       signerPubkey: signed.signerPubkey,
@@ -303,7 +312,7 @@ describe("claim_genesis_stone · invariant tests (S2-T1 Phase C)", () => {
       omitEd25519: true,
     })
     try {
-      await provider.sendAndConfirm(tx)
+      await provider.sendAndConfirm(tx, extraSigners)
       expect.fail("expected NoPriorInstruction · got success")
     } catch (err: unknown) {
       expect(String(err)).to.match(/NoPriorInstruction/)
@@ -315,14 +324,14 @@ describe("claim_genesis_stone · invariant tests (S2-T1 Phase C)", () => {
     const wrongSigner = nacl.sign.keyPair()
     const messageBytes = encodeClaimMessage(claim)
     const wrongSig = nacl.sign.detached(messageBytes, wrongSigner.secretKey)
-    const { tx } = await buildClaimTx({
+    const { tx, extraSigners } = await buildClaimTx({
       claim,
       signedMessage: messageBytes,
       signerPubkey: wrongSigner.publicKey, // wrong · not the hardcoded claim-signer
       signature: wrongSig,
     })
     try {
-      await provider.sendAndConfirm(tx)
+      await provider.sendAndConfirm(tx, extraSigners)
       expect.fail("expected SignerMismatch · got success")
     } catch (err: unknown) {
       expect(String(err)).to.match(/SignerMismatch/)
@@ -335,7 +344,7 @@ describe("claim_genesis_stone · invariant tests (S2-T1 Phase C)", () => {
     // anchor program reconstitutes 98B from the new args and detects mismatch.
     const claim = makeFreshClaim(provider.wallet.publicKey)
     const signed = signClaimMessage(claim, claimSignerSecret)
-    const { tx } = await buildClaimTx({
+    const { tx, extraSigners } = await buildClaimTx({
       claim,
       signedMessage: signed.messageBytes,
       signerPubkey: signed.signerPubkey,
@@ -343,7 +352,7 @@ describe("claim_genesis_stone · invariant tests (S2-T1 Phase C)", () => {
       argOverrides: { element: 3 }, // signed with FIRE=2, submitting EARTH=3
     })
     try {
-      await provider.sendAndConfirm(tx)
+      await provider.sendAndConfirm(tx, extraSigners)
       expect.fail("expected MessageMismatch · got success")
     } catch (err: unknown) {
       expect(String(err)).to.match(/MessageMismatch/)
