@@ -1,0 +1,23 @@
+{
+  "name": "@purupuru/medium-blink",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Blink medium renderer · GET-chain quiz + ambient + result + mint Action responses · BLINK_DESCRIPTOR upstream PR target · per SDD r2 §1+§4",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@purupuru/peripheral-events": "workspace:*"
+  },
+  "peerDependencies": {
+    "effect": "^3.10.0"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "vitest": "^2"
+  }
+}

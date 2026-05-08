@@ -28,7 +28,7 @@ absorbs: 14 SDD-flatline-r2 blockers + 4 PRD-flatline blockers · all become con
 
 ---
 
-## Sprint 1 · Day 1 (2026-05-08) · DAY-1 SPINE + 3 SPIKES
+## Sprint 1: Day 1 (2026-05-08) · DAY-1 SPINE + 3 SPIKES
 
 > **Objective**: end-to-end runnable spine + 3 high-risk spikes resolved · stretch DEFERRED until spine green.
 >
@@ -80,7 +80,7 @@ Spike 2 OR Spike 3 FAILS
 
 ---
 
-## Sprint 2 · Day 2 (2026-05-09) · LAYER IN STRETCH · GATES ON SPIKES
+## Sprint 2: Day 2 (2026-05-09) · LAYER IN STRETCH · GATES ON SPIKES
 
 > **Objective**: build out the proper claim_genesis_stone instruction (gates on Spike 2 passing) · upstream BLINK_DESCRIPTOR PR · gumi voice integration · cmp-boundary lint live.
 > 
@@ -129,7 +129,7 @@ Vercel KV setup blocked (provisioning · access)
 
 ---
 
-## Sprint 3 · Day 3 (2026-05-10) · DEPLOY · INDEXER · OBSERVABILITY · STRETCH WIRES
+## Sprint 3: Day 3 (2026-05-10) · DEPLOY · INDEXER · OBSERVABILITY · STRETCH WIRES
 
 > **Objective**: anchor program devnet-deployed · upgrade authority frozen · sybil protection live · observability + tiered alerts · zerker indexer integration starts · ambient Blink optionally wires to real Score (operator's "aliveness from prior collection" stretch).
 
@@ -176,7 +176,7 @@ S3-T9 zerker indexer not ready
 
 ---
 
-## Sprint 4 · Day 4 (2026-05-11) · DEMO · DECK · SUBMIT
+## Sprint 4: Day 4 (2026-05-11) · DEMO · DECK · SUBMIT
 
 > **Objective**: 3min demo recorded · deck final · colosseum submission filed before deadline.
 

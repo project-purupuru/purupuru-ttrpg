@@ -182,3 +182,49 @@ simstim:
   bridgebuilder_design_review: true   # Phase 3.5 active
   flatline:
     beads_loop: false                 # Phase 6.5 off · 4d clock
+
+# ─────────────────────────────────────────────────────────────────────────
+# Run Bridge · Autonomous Excellence Loop (added 2026-05-07 PM)
+# ─────────────────────────────────────────────────────────────────────────
+
+run_bridge:
+  enabled: true
+  defaults:
+    depth: 3
+    per_sprint: false  # full plan mode · iterate at plan-level
+    flatline_threshold: 0.05
+    consecutive_flatline: 2
+  timeouts:
+    per_iteration_hours: 4
+    total_hours: 24
+  github_trail:
+    post_comments: true
+    update_pr_body: true
+  ground_truth:
+    enabled: true
+  vision_registry:
+    enabled: true
+    auto_capture: true
+  rtfm:
+    enabled: false  # docs not v0 critical
+  lore:
+    enabled: true
+    categories:
+      - mibera
+      - neuromancer
+
+# ─────────────────────────────────────────────────────────────────────────
+# Run Mode · /run sprint-plan autonomous execution (added 2026-05-07 PM)
+# ─────────────────────────────────────────────────────────────────────────
+
+run_mode:
+  enabled: true
+  defaults:
+    max_cycles: 20
+    timeout_hours: 8
+  sprint_plan:
+    branch_prefix: "feat/"
+    default_branch_name: "awareness-layer-spine"
+    consolidate_pr: true
+    commit_prefix: "feat"
+    include_commits_by_sprint: true
