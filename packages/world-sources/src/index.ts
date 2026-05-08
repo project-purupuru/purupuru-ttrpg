@@ -10,7 +10,7 @@ export {
   scoreAdapter,
   scoreElementToCanonical,
   type ResolveScoreAdapterEnv,
-} from "./score-adapter.js"
+} from "./score-adapter"
 
 export type {
   EcosystemEnergy,
@@ -21,4 +21,4 @@ export type {
   WalletBadge,
   WalletProfile,
   WalletSignals,
-} from "./score-adapter.js"
+} from "./score-adapter"

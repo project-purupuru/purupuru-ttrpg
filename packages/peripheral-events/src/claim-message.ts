@@ -10,7 +10,7 @@
 
 import { Schema as S } from "effect"
 
-import { Element, SolanaPubkey } from "./world-event.js"
+import { Element, SolanaPubkey } from "./world-event"
 
 // Cluster discriminator · prevents cross-cluster signature replay.
 export const SolanaCluster = S.Literal(0, 1) // 0=devnet · 1=mainnet

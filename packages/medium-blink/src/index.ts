@@ -10,9 +10,9 @@ export {
   renderQuizStart,
   renderQuizStep,
   validateActionResponse,
-} from "./quiz-renderer.js"
+} from "./quiz-renderer"
 
-export type { RendererConfig } from "./quiz-renderer.js"
+export type { RendererConfig } from "./quiz-renderer"
 
 // Voice corpus · placeholder strings (zksoju-authored · gumi swaps in S2-T6).
 export {
@@ -20,14 +20,14 @@ export {
   ARCHETYPE_REVEALS,
   QUIZ_CORPUS,
   QUIZ_STEP_TITLES,
-} from "./voice-corpus.js"
+} from "./voice-corpus"
 
-export type { QuizQuestion } from "./voice-corpus.js"
+export type { QuizQuestion } from "./voice-corpus"
 
 // Solana Actions types + BLINK_DESCRIPTOR constants.
 export {
   BLINK_DESCRIPTOR,
-} from "./solana-actions-types.js"
+} from "./solana-actions-types"
 
 export type {
   ActionGetResponse,
@@ -35,4 +35,4 @@ export type {
   BlinkDescriptor,
   LinkedAction,
   NextActionLink,
-} from "./solana-actions-types.js"
+} from "./solana-actions-types"

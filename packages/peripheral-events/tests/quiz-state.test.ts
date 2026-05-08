@@ -3,7 +3,7 @@
 import { Schema as S } from "effect"
 import { describe, expect, it } from "vitest"
 
-import { BaziQuizState, CompletedQuizState } from "../src/bazi-quiz-state.js"
+import { BaziQuizState, CompletedQuizState } from "../src/bazi-quiz-state"
 
 describe("BaziQuizState · GET-chain URL state shape", () => {
   it("decodes valid in-progress state (step 3 with 2 prior answers)", () => {

@@ -27,7 +27,7 @@ import {
   type WalletBadge,
   type WalletProfile,
   type WalletSignals,
-} from "../../../lib/score/index.js"
+} from "../../../lib/score/index"
 
 export type {
   ScoreElement,

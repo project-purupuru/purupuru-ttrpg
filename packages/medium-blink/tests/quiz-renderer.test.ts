@@ -2,14 +2,14 @@
 
 import { describe, expect, it } from "vitest"
 
-import { BLINK_DESCRIPTOR } from "../src/solana-actions-types.js"
+import { BLINK_DESCRIPTOR } from "../src/solana-actions-types"
 import {
   renderAmbient,
   renderQuizResult,
   renderQuizStart,
   renderQuizStep,
   validateActionResponse,
-} from "../src/quiz-renderer.js"
+} from "../src/quiz-renderer"
 
 const testConfig = { baseUrl: "https://test.purupuru.app" }
 

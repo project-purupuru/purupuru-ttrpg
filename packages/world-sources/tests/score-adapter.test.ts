@@ -7,7 +7,7 @@ import {
   canonicalToScoreElement,
   resolveScoreAdapter,
   scoreElementToCanonical,
-} from "../src/score-adapter.js"
+} from "../src/score-adapter"
 
 describe("Score adapter element translation (lowercase ↔ uppercase)", () => {
   it("roundtrips all 5 elements lib/score → peripheral-events", () => {

@@ -9,14 +9,14 @@
 
 import type { Element } from "@purupuru/peripheral-events"
 
-import type { ActionGetResponse, LinkedAction } from "./solana-actions-types.js"
-import { BLINK_DESCRIPTOR } from "./solana-actions-types.js"
+import type { ActionGetResponse, LinkedAction } from "./solana-actions-types"
+import { BLINK_DESCRIPTOR } from "./solana-actions-types"
 import {
   AMBIENT_PROMPT,
   ARCHETYPE_REVEALS,
   QUIZ_CORPUS,
   QUIZ_STEP_TITLES,
-} from "./voice-corpus.js"
+} from "./voice-corpus"
 
 // Base URL configuration · injected by app-level wrapper.
 // Default to localhost:3000 for tests · prod sets env at runtime.

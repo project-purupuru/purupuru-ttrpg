@@ -8,7 +8,7 @@ import {
   byteToElement,
   ClaimMessage,
   elementToByte,
-} from "../src/claim-message.js"
+} from "../src/claim-message"
 
 describe("Element byte encoding (1=Wood..5=Water)", () => {
   it("roundtrips all 5 elements", () => {

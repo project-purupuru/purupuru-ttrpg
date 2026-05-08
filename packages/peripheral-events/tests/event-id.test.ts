@@ -4,8 +4,8 @@
 
 import { describe, expect, it } from "vitest"
 
-import { eventIdOf, verifyEventId } from "../src/event-id.js"
-import type { MintEvent } from "../src/world-event.js"
+import { eventIdOf, verifyEventId } from "../src/event-id"
+import type { MintEvent } from "../src/world-event"
 
 const baseMintFields: Omit<MintEvent, "eventId"> = {
   _tag: "MintEvent",

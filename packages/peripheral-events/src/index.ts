@@ -19,7 +19,7 @@ export {
   WorldEvent,
   eventReferencesPuruhani,
   eventTagOf,
-} from "./world-event.js"
+} from "./world-event"
 
 // Bazi quiz state · HMAC-validated · GET-chain URL state shape
 export {
@@ -27,7 +27,7 @@ export {
   BaziQuizState,
   CompletedQuizState,
   QuizStep,
-} from "./bazi-quiz-state.js"
+} from "./bazi-quiz-state"
 
 // Claim message · server-signed payload for genesis-stone mint
 export {
@@ -38,12 +38,18 @@ export {
   elementToByte,
   QuizStateHash,
   SolanaCluster,
-} from "./claim-message.js"
+} from "./claim-message"
 
 // Canonical eventId derivation · stable hash across re-encodes
 export {
   CURRENT_SCHEMA_VERSION,
   eventIdOf,
   verifyEventId,
-} from "./event-id.js"
-export type { SourceTag } from "./event-id.js"
+} from "./event-id"
+export type { SourceTag } from "./event-id"
+
+// Bazi resolver · derives archetype from quiz answer element votes
+export {
+  archetypeFromAnswers,
+  quizStateHashOf,
+} from "./bazi-resolver"

@@ -12,7 +12,7 @@
 
 import { createHash } from "node:crypto"
 
-import type { WorldEvent } from "./world-event.js"
+import type { WorldEvent } from "./world-event"
 
 // Source tags · prevents cross-source eventId collision per AC-1.4.
 export type SourceTag = "score" | "sonar" | "weather" | "test"

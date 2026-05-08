@@ -11,7 +11,7 @@ import {
   WorldEvent,
   eventReferencesPuruhani,
   eventTagOf,
-} from "../src/world-event.js"
+} from "../src/world-event"
 
 const sampleMint: MintEvent = {
   _tag: "MintEvent",
