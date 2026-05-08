@@ -59,8 +59,11 @@ export default async function PreviewPage({ searchParams }: PageProps) {
   const { data, status, raw } = await fetchAction(targetUrl)
 
   return (
-    <main className="min-h-screen bg-puru-cloud-deep p-6 md:p-12 font-puru-body">
-      <div className="mx-auto max-w-2xl space-y-6">
+    // h-dvh + overflow-y-auto override the globals.css `overflow: hidden` on
+    // html/body (set there for the Pixi canvas main app · doesn't suit a
+    // scrolling preview page).
+    <main className="h-dvh overflow-y-auto bg-puru-cloud-deep p-6 md:p-12 font-puru-body">
+      <div className="mx-auto max-w-2xl space-y-6 pb-24">
         {/* Header · which endpoint we're previewing */}
         <header className="space-y-2">
           <h1 className="text-puru-ink-base text-2xl font-puru-display">
@@ -100,12 +103,6 @@ export default async function PreviewPage({ searchParams }: PageProps) {
                 alt={data.title}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 flex items-center justify-center text-puru-ink-dim text-xs font-puru-mono pointer-events-none">
-                {/* Visible only if the img fails to load · gives you a placeholder */}
-                <span className="bg-puru-cloud-bright/90 px-3 py-1 rounded">
-                  icon → {data.icon}
-                </span>
-              </div>
             </div>
 
             {/* Body */}
