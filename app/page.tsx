@@ -1,9 +1,9 @@
 import { ObservatoryClient } from "@/components/observatory/ObservatoryClient";
 
 export const metadata = {
-  title: "purupuru — observatory",
+  title: "purupuru observatory · the world, breathing",
   description:
-    "The live observatory of every puruhani in the world, breathing and reacting to weather and on-chain action.",
+    "The substrate, made visible. Every puruhani in the world — what's actually happening, beneath the voices that surface it.",
 };
 
 export default function ObservatoryPage() {

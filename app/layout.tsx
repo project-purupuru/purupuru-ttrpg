@@ -13,8 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "purupuru observatory",
-  description: "live awareness layer — on-chain + IRL fused through wuxing",
+  title: "purupuru observatory · the world, breathing",
+  description:
+    "The substrate, made visible. Every puruhani in the world — what's actually happening, beneath the voices that surface it.",
 };
 
 export default function RootLayout({

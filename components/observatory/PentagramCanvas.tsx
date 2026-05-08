@@ -22,6 +22,7 @@ import {
   seedPopulation,
 } from "@/lib/sim/entities";
 import type { Puruhani, PuruhaniIdentity } from "@/lib/sim/types";
+import { weatherFeed } from "@/lib/weather";
 import { activityStream, type ActivityEvent } from "@/lib/activity";
 import { avatarToCanvas } from "@/lib/sim/avatar";
 import {
@@ -70,7 +71,6 @@ interface SpriteEntry {
   node: Sprite;
   shadow: Graphics;    // soft elliptical contact shadow underneath
   baseScale: number;
-  pulse: number;       // 0..1, decays — drives action-flash
   vx: number;          // wander velocity (px / 16ms-ish frame)
   vy: number;
   migration: Migration | null;
@@ -97,11 +97,22 @@ function makeAvatarTexture(identity: PuruhaniIdentity, primary: Element, accent:
   return Texture.from(cnv);
 }
 
+// Returns the vertex's mutable graphics handles so the ticker can
+// modulate visuals (halo alpha, disk/ring brightness) per the
+// element-energy state. Halo, disk, and ring all respond — total
+// "energy mass" across the 5 vertices is conserved (Flow-Lenia
+// per ref doc 03-observatory-visual-references-dig-2026-05-08.md).
+interface VertexHandle {
+  halo: Graphics;
+  disk: Graphics;
+  ring: Graphics;
+}
+
 function drawVertex(
   layer: Container,
   el: Element,
   v: { x: number; y: number },
-): void {
+): VertexHandle {
   const halo = new Graphics();
   halo.circle(0, 0, 38);
   halo.fill({ color: ELEMENT_HEX[el], alpha: 0.18 });
@@ -136,6 +147,8 @@ function drawVertex(
   label.x = v.x;
   label.y = v.y;
   layer.addChild(label);
+
+  return { halo, disk, ring };
 }
 
 function drawPentagon(g: Graphics, geometry: ReturnType<typeof createPentagram>): void {
@@ -157,6 +170,17 @@ function drawStar(g: Graphics, geometry: ReturnType<typeof createPentagram>): vo
   }
   g.stroke({ width: 1, color: 0x9a8b6f, alpha: 0.4 });
 }
+
+// Per-element phase offsets for the amplified-halo breath, so the soft
+// pulse on whichever element is currently amplified by IRL weather has
+// a unique cadence that doesn't lock with the per-sprite breath rates.
+const HALO_BREATH_PHASE: Record<Element, number> = {
+  wood: 0,
+  fire: 1.4,
+  earth: 2.7,
+  water: 4.1,
+  metal: 5.5,
+};
 
 function rng(seed: number): () => number {
   let s = seed | 0;
@@ -213,10 +237,65 @@ export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
 
       // ─── Vertex glyphs (large halo + filled disk + ring + kanji) ───────────
       let vertexLayer = new Container();
+      const vertexByElement = {} as Record<Element, VertexHandle>;
       for (const el of ELEMENTS) {
-        drawVertex(vertexLayer, el, geometry.vertex(el));
+        vertexByElement[el] = drawVertex(vertexLayer, el, geometry.vertex(el));
       }
       app.stage.addChild(vertexLayer);
+
+      // ─── Weather coupling — IRL infuses wuxing ─────────────────────────────
+      // The off-chain weather signal drives two visual channels:
+      //   1. cosmic_intensity → tide-flow amplitude multiplier
+      //      (high-energy days = stronger circulation around 生 cycle)
+      //   2. amplifiedElement + amplificationFactor → that element's halo
+      //      gently pulses brighter (0.18 → ~0.36) while it's amplified
+      //
+      // Subscribed locally so the canvas reacts without prop-driven
+      // re-mounts. Initial state pulled via current() so the first
+      // frame already reflects the weather.
+      const HALO_BASE_ALPHA = 0.18;
+      const HALO_AMP_GAIN = 0.18;
+      const initial = weatherFeed.current();
+      let cosmicIntensity = Math.max(0, Math.min(1, initial.cosmic_intensity ?? 0));
+      let amplifiedElement: Element = initial.amplifiedElement;
+      let amplificationFactor = initial.amplificationFactor;
+      const unsubWeather = weatherFeed.subscribe((s) => {
+        cosmicIntensity = Math.max(0, Math.min(1, s.cosmic_intensity ?? 0));
+        amplifiedElement = s.amplifiedElement;
+        amplificationFactor = s.amplificationFactor;
+      });
+
+      // ─── Element energy — mass-conserved homeostatic state ─────────────────
+      // Each vertex carries an "energy" scalar that responds to two
+      // drivers: the slow weather-driven equilibrium (amplified element
+      // pulled toward 1.4, others toward 0.9 — sum stays at 5.0), and
+      // transient event pulses drained from activityStream at an
+      // attention-budget rate. An event of element X bumps energy[X]
+      // by +0.5 and pulls 0.125 from each of the other four. Decay back
+      // to the weather equilibrium with a ~1.5s exponential timeconstant.
+      // Reference: dig 2026-05-08 §6 — Flow-Lenia mass-conservation.
+      const energy: Record<Element, number> = {
+        wood: 1, fire: 1, earth: 1, water: 1, metal: 1,
+      };
+      const PULSE_BUMP = 0.5;
+      const DECAY_TC_MS = 1500;
+      const ATTENTION_BUDGET_MS = 500;  // max 2 pulses/sec drained from queue
+      const pulseQueue: ActivityEvent[] = [];
+      let pulseAccum = 0;
+      const onActivity = (e: ActivityEvent) => {
+        // Cap queue so a stalled session doesn't accumulate forever
+        if (pulseQueue.length < 32) pulseQueue.push(e);
+      };
+      const unsubActivity = activityStream.subscribe(onActivity);
+
+      function applyPulse(el: Element) {
+        energy[el] += PULSE_BUMP;
+        const drain = PULSE_BUMP / 4;  // mass-conserved: total Δ = 0
+        for (const other of ELEMENTS) {
+          if (other === el) continue;
+          energy[other] -= drain;
+        }
+      }
 
       // ─── Entities ──────────────────────────────────────────────────────────
       const entities: Puruhani[] = await seedPopulation(
@@ -235,7 +314,6 @@ export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
       const shadowLayer = new Container();
       const spriteLayer = new Container();
       const sprites: SpriteEntry[] = [];
-      const spritesByActor = new Map<string, SpriteEntry>();
       const baseScale = AVATAR_DISPLAY / AVATAR_TEX_SIZE;
 
       for (const entity of entities) {
@@ -260,38 +338,12 @@ export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
 
         const entry: SpriteEntry = {
           entity, node, shadow, baseScale,
-          pulse: 0, vx: 0, vy: 0, migration: null,
+          vx: 0, vy: 0, migration: null,
         };
         sprites.push(entry);
-        spritesByActor.set(entity.trader, entry);
       }
       app.stage.addChild(shadowLayer);
       app.stage.addChild(spriteLayer);
-
-      // ─── Activity stream — interaction movement on event ───────────────────
-      const onActivity = (event: ActivityEvent) => {
-        const entry = spritesByActor.get(event.actor);
-        if (entry) {
-          entry.pulse = 1;
-          // Attack/gift: actor "walks toward" target element vertex
-          if (event.targetElement) {
-            const v = geometry.vertex(event.targetElement);
-            const dx = v.x - entry.entity.position.x;
-            const dy = v.y - entry.entity.position.y;
-            const len = Math.hypot(dx, dy);
-            if (len > 0) {
-              const speed = 14;
-              entry.vx += (dx / len) * speed;
-              entry.vy += (dy / len) * speed;
-            }
-          }
-        }
-        if (event.target) {
-          const tEntry = spritesByActor.get(event.target);
-          if (tEntry) tEntry.pulse = 0.6;
-        }
-      };
-      const unsubActivity = activityStream.subscribe(onActivity);
 
       // ─── Migration scheduler ───────────────────────────────────────────────
       // With 80 sprites we want roughly one migration every 1.5s — frequent
@@ -373,6 +425,65 @@ export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
           }
         }
 
+        // ─── Drain attention-budget queue ─────────────────────────────────
+        // Cap visible event-pulses to ~2/sec regardless of how fast
+        // events arrive — preserves the calm observatory rhythm vs a
+        // transaction-explorer firehose (dig 2026-05-08 §3 Watch Dogs
+        // Legion Player Attention System).
+        pulseAccum += dt;
+        while (pulseAccum >= ATTENTION_BUDGET_MS && pulseQueue.length > 0) {
+          pulseAccum -= ATTENTION_BUDGET_MS;
+          const e = pulseQueue.shift()!;
+          applyPulse(e.element);
+        }
+        // Drop excess accumulator if the queue empties — don't bank
+        // budget; the system should settle back to baseline cleanly.
+        if (pulseQueue.length === 0 && pulseAccum > ATTENTION_BUDGET_MS) {
+          pulseAccum = ATTENTION_BUDGET_MS;
+        }
+
+        // ─── Element-energy decay toward weather equilibrium ──────────────
+        // amplified element pulled toward 1.4, others toward 0.9 — sum
+        // stays at 5.0 (mass-conserved). Exponential approach with
+        // 1.5s timeconstant. ampNorm gates how strongly weather biases
+        // the equilibrium; at amplificationFactor < 0.85 the bias dies
+        // and all five sit at 1.0.
+        const ampNorm = Math.max(0, Math.min(1, (amplificationFactor - 0.85) / 0.30));
+        const targetAmp = 1 + 0.4 * ampNorm;
+        const targetDim = 1 - 0.1 * ampNorm;
+        const decay = Math.exp(-dt / DECAY_TC_MS);
+        for (const el of ELEMENTS) {
+          const target = el === amplifiedElement ? targetAmp : targetDim;
+          energy[el] = energy[el] * decay + target * (1 - decay);
+        }
+
+        // ─── Apply energy to vertex visuals ───────────────────────────────
+        // Halo: alpha follows raw energy; amplified element also carries
+        // the slow ~7s breath pulse on top so the lit vertex feels
+        // actively driven by something beyond the diagram.
+        for (const el of ELEMENTS) {
+          const v = vertexByElement[el];
+          if (!v) continue;
+          const e = energy[el];
+          let breathBoost = 0;
+          if (el === amplifiedElement && ampNorm > 0) {
+            const breath = 0.5 + 0.5 * Math.sin(tMs / 7000 + HALO_BREATH_PHASE[el]);
+            breathBoost = HALO_AMP_GAIN * ampNorm * (0.7 + 0.3 * breath);
+          }
+          // halo: 0.18 baseline · scales with energy (≈0.16 dim, ≈0.25 amp,
+          // ≈0.27 fresh-pulse) plus the weather breath on the amplified one
+          v.halo.alpha = HALO_BASE_ALPHA * e + breathBoost;
+          v.halo.scale.set(0.92 + 0.08 * e);
+          // disk + ring: subtle alpha lift with energy, never strong enough
+          // to break the ceramic-tile register
+          v.disk.alpha = 0.85 + 0.15 * e;
+          v.ring.alpha = 0.45 * (0.7 + 0.3 * e);
+        }
+
+        // Tide multiplier from cosmic energy. 0 → 1.0 (baseline),
+        // 1 → 1.5 (heavier circulation). Subtle on purpose.
+        const energyMul = 1 + 0.5 * cosmicIntensity;
+
         for (const s of sprites) {
           if (!reduce) advanceBreath(s.entity, dt);
 
@@ -389,7 +500,7 @@ export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
           } else if (!reduce) {
             // ─── Wuxing tide-flow ─────────────────────────────────────────
             const tide = tideUnits[s.entity.primaryElement];
-            const amp = tideMagnitude(s.entity.primaryElement, tMs);
+            const amp = tideMagnitude(s.entity.primaryElement, tMs) * energyMul;
             s.vx += tide.x * amp * TIDE_STRENGTH * dt;
             s.vy += tide.y * amp * TIDE_STRENGTH * dt;
 
@@ -433,12 +544,11 @@ export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
           s.shadow.x = s.entity.position.x;
           s.shadow.y = s.entity.position.y + 14;
 
-          // Pulse decay + scale (with gentle breath jiggle)
-          if (s.pulse > 0) s.pulse = Math.max(0, s.pulse - dt / 600);
+          // Gentle breath scale — no event-driven pulse here; the
+          // user-action interaction model is being designed separately.
           const phase = s.entity.breath_phase;
           const breath = 1 + 0.06 * Math.sin(2 * Math.PI * phase);
-          const pulseScale = 1 + s.pulse * 0.4;
-          s.node.scale.set(s.baseScale * (reduce ? 1 : breath) * pulseScale);
+          s.node.scale.set(s.baseScale * (reduce ? 1 : breath));
         }
       };
       app.ticker.add(ticker);
@@ -456,7 +566,7 @@ export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
         vertexLayer.destroy({ children: true });
         vertexLayer = new Container();
         for (const el of ELEMENTS) {
-          drawVertex(vertexLayer, el, geometry.vertex(el));
+          vertexByElement[el] = drawVertex(vertexLayer, el, geometry.vertex(el));
         }
         app.stage.addChild(vertexLayer);
 
@@ -486,6 +596,7 @@ export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
 
       rafCleanup = () => {
         app.ticker.remove(ticker);
+        unsubWeather();
         unsubActivity();
         ro.disconnect();
       };

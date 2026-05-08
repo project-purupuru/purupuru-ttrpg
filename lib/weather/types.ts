@@ -14,6 +14,10 @@ export interface WeatherState {
   amplifiedElement: Element;
   amplificationFactor: number;
   observed_at: string;
+  /** Geographic frame the reading represents (e.g. "Tokyo", "Global avg"). */
+  location: string;
+  /** Adapter / data origin label (e.g. "@puruhpuruweather", "synthetic · demo"). */
+  source: string;
 }
 
 export interface WeatherFeed {

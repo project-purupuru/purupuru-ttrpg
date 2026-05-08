@@ -581,6 +581,48 @@ button, a, [role="button"], [tabindex] { touch-action: manipulation; }
   box-shadow: var(--surface-glaze);
 }
 
+/* Fresh-row signal — runs once when a new event row mounts. A thin warm
+   accent runs along the left edge then fades, plus a brief alpha
+   settle on the row itself. Reads as "this just arrived" without a
+   notification badge. The accent uses currentColor so callers tint it
+   per element via the row's color context. */
+@keyframes puru-row-fresh-edge {
+  0%   { transform: scaleY(0); opacity: 0; }
+  18%  { transform: scaleY(1); opacity: 1; }
+  100% { transform: scaleY(1); opacity: 0; }
+}
+@keyframes puru-row-fresh-settle {
+  0%   { background-color: color-mix(in oklch, currentColor 8%, transparent); }
+  100% { background-color: transparent; }
+}
+.puru-row-fresh::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: currentColor;
+  border-radius: 0 1px 1px 0;
+  transform-origin: top;
+  pointer-events: none;
+  animation: puru-row-fresh-edge 1600ms var(--ease-puru-settle) 1 forwards;
+}
+.puru-row-fresh {
+  animation: puru-row-fresh-settle 1600ms var(--ease-puru-settle) 1 forwards;
+}
+
+/* Live-tracking dot — soft ambient pulse for the "live" indicators in
+   ActivityRail / WeatherTile headers. Two-channel: scale + opacity so
+   it reads as a heartbeat, not a flash. */
+@keyframes puru-live-pulse {
+  0%, 100% { transform: scale(1);   opacity: 0.55; }
+  50%      { transform: scale(1.4); opacity: 1; }
+}
+.puru-live-dot {
+  animation: puru-live-pulse 1.6s var(--ease-puru-breathe) infinite;
+}
+
 /* Wordmark drift — subtle zubora-inspired float for static SVG wordmarks.
    Per-letter zubora (PuruWordmark.svelte:124–137) requires inline SVG paths;
    this is the lightweight whole-glyph version for img-based wordmarks. */

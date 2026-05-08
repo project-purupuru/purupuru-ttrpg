@@ -61,12 +61,34 @@ export function ActivityRail() {
   const resolve = (wallet: string): PuruhaniIdentity | null =>
     registry.get(wallet) ?? null;
 
+  // Empty-state value is a single em-dash so the right-hand indicator
+  // keeps a stable width — the verbose "awaiting first event" copy
+  // lives in the body where width can flex.
+  const lastSeen = events.length > 0 ? timeAgo(events[0].at, now) : "—";
+
   return (
     <aside className="flex h-full min-h-0 flex-col overflow-hidden border-l border-puru-surface-border bg-puru-cloud-bright shadow-puru-tile">
-      <header className="relative shrink-0 bg-puru-cloud-bright px-6 py-5 shadow-[0_1px_0_0_var(--puru-surface-border),0_2px_4px_var(--puru-surface-shadow-sm)]">
-        <h3 className="font-puru-display text-xl text-puru-ink-rich">
-          Recent activity
-        </h3>
+      <header className="relative shrink-0 bg-puru-cloud-bright px-6 py-4 shadow-[0_1px_0_0_var(--puru-surface-border),0_2px_4px_var(--puru-surface-shadow-sm)]">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex min-w-0 flex-col">
+            <span className="font-puru-mono text-2xs uppercase tracking-[0.22em] text-puru-ink-dim">
+              on-chain
+            </span>
+            <h3 className="mt-1 font-puru-display text-xl text-puru-ink-rich">
+              Activity
+            </h3>
+          </div>
+          <span className="inline-flex shrink-0 items-center gap-1.5 font-puru-mono text-2xs uppercase tracking-[0.22em] text-puru-ink-dim">
+            <span
+              className="puru-live-dot inline-block h-1.5 w-1.5 rounded-full"
+              style={{ backgroundColor: "var(--puru-wood-vivid)" }}
+              aria-hidden
+            />
+            <span className="inline-block min-w-[5.25em] text-right tabular-nums">
+              {lastSeen}
+            </span>
+          </span>
+        </div>
       </header>
       {events.length === 0 ? (
         <div className="flex flex-1 items-center justify-center px-5 py-12">
@@ -82,9 +104,10 @@ export function ActivityRail() {
             return (
               <li
                 key={e.id}
-                className="puru-row relative flex items-center gap-3 px-5 py-3"
+                className="puru-row puru-row-fresh relative flex items-center gap-3 px-5 py-3"
                 style={{
                   backgroundImage: `linear-gradient(to left, color-mix(in oklch, var(--puru-${e.element}-vivid) 12%, transparent) 0%, transparent 55%)`,
+                  color: `var(--puru-${e.element}-vivid)`,
                 }}
               >
                 {actor ? (
@@ -103,7 +126,7 @@ export function ActivityRail() {
                   </span>
                 )}
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-puru-body text-sm leading-tight">
+                  <p className="truncate font-puru-body text-sm leading-tight text-puru-ink-base">
                     <span className="font-puru-card text-puru-ink-rich">
                       {actor?.displayName ?? e.actor.slice(0, 6)}
                     </span>
@@ -119,7 +142,7 @@ export function ActivityRail() {
                     ) : null}
                   </p>
                 </div>
-                <span className="shrink-0 self-start font-puru-mono text-2xs uppercase tracking-[0.18em] text-puru-ink-dim">
+                <span className="shrink-0 self-start font-puru-mono text-2xs uppercase tracking-[0.18em] tabular-nums text-puru-ink-dim">
                   {timeAgo(e.at, now)}
                 </span>
               </li>
