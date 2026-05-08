@@ -47,8 +47,8 @@ export function ActivityRail() {
 
   return (
     <aside className="flex h-full min-h-0 flex-col overflow-hidden border-l border-puru-surface-border bg-puru-cloud-bright shadow-puru-tile">
-      <header className="shrink-0 border-b border-puru-surface-border bg-puru-cloud-bright px-6 py-5">
-        <h3 className="font-puru-display text-xl text-puru-ink-rich">
+      <header className="shrink-0 border-b border-puru-surface-border bg-puru-cloud-bright px-6 py-4">
+        <h3 className="font-puru-body text-sm font-medium text-puru-ink-base">
           Recent activity
         </h3>
       </header>

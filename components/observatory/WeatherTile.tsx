@@ -21,8 +21,8 @@ const PRECIP_GLYPH = {
 export function WeatherTile({ state }: { state: WeatherState }) {
   return (
     <section className="border-t border-puru-surface-border bg-puru-cloud-bright">
-      <header className="border-b border-puru-surface-border bg-puru-cloud-bright px-6 py-5">
-        <h3 className="font-puru-display text-xl text-puru-ink-rich">
+      <header className="border-b border-puru-surface-border bg-puru-cloud-bright px-6 py-4">
+        <h3 className="font-puru-body text-sm font-medium text-puru-ink-base">
           Weather
         </h3>
       </header>
