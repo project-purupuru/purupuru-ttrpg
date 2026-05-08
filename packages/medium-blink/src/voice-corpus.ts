@@ -1,85 +1,123 @@
-// Placeholder voice corpus · zksoju-authored · gumi swaps later (S2-T6).
-// Per SDD r2 §7 · cosmic-weather observer voice · sora-tower register.
-// 5 questions × 4 answers each = 20 strings · plus 5 archetype reveals.
+// Operator-authored quiz corpus · 8 questions × 5 answers each (one per element).
+// Per SDD r2 §3.2 + §4.1 · GET-chained quiz · HMAC-validated state per step.
 //
-// Voice register per gumi's pitch §"What It's Not": NO progress bars · NO
-// monetization language · NO mechanical instruction · feel-first · visual-first.
-// Answers should evoke an element WITHOUT naming it directly (let the discovery
-// happen through tone · cosmic weather speaks · doesn't explain).
+// 8 × 5 = 40 element-leaning answers · cumulative vote count over 8 Qs produces
+// a stable archetype (max 8 votes per element · canonical wuxing tie-break:
+// WOOD > FIRE > EARTH > METAL > WATER per bazi-resolver.ts).
+//
+// Voice register: situational vignettes · feel-first · the questions read your
+// instinct, not your knowledge. NO mechanical "pick your favorite element" ·
+// the element emerges from the choice you'd actually make.
 
 import type { Element } from "@purupuru/peripheral-events"
 
 export interface QuizQuestion {
-  step: number // 1..5
+  step: number // 1..8
   prompt: string // ≤ 280 chars
   answers: ReadonlyArray<{
-    label: string // ≤ 30 chars (button label · concise)
+    label: string // ≤ 80 chars (button label · concise but operator authored full phrasings)
     element: Element // which element this answer leans toward
   }>
 }
 
-// Five questions · each answer leans toward one element · cumulative scoring
-// determines archetype at result step.
+// Eight questions · each answer leans toward one element · cumulative scoring
+// determines archetype at the result step.
 export const QUIZ_CORPUS: ReadonlyArray<QuizQuestion> = [
   {
     step: 1,
     prompt:
-      "the wind shifts. somewhere a door opens. you turn toward —",
+      "Your friend cancels plans last minute. What's your first reaction?",
     answers: [
-      { label: "the rising green", element: "WOOD" },
-      { label: "the burning gold", element: "FIRE" },
-      { label: "the still earth", element: "EARTH" },
-      { label: "the deep current", element: "WATER" },
+      { label: "Meh. Already had a backup plan anyway", element: "METAL" },
+      { label: "Ooh. At last, a free evening", element: "WATER" },
+      { label: "Annoyed. You don't say anything though", element: "WOOD" },
+      { label: "You text back immediately: \"why\"", element: "FIRE" },
+      { label: "You check if someone else wants to hang out instead", element: "EARTH" },
     ],
   },
   {
     step: 2,
-    prompt:
-      "you hold a small thing in your hand. it is —",
+    prompt: "I finish what I start.",
     answers: [
-      { label: "a seed, waiting", element: "WOOD" },
-      { label: "an ember, breathing", element: "FIRE" },
-      { label: "a stone, listening", element: "EARTH" },
-      { label: "a bell, soft-tongued", element: "METAL" },
+      { label: "Agree", element: "EARTH" },
+      { label: "Depends on whether it's still actually worth finishing", element: "METAL" },
+      { label: "I kind of start a lot of things", element: "FIRE" },
+      { label: "I finish the things that matter to me", element: "WOOD" },
+      { label: "I lose interest. I don't feel bad about it", element: "WATER" },
     ],
   },
   {
     step: 3,
     prompt:
-      "the year turns. you keep one ritual. it is —",
+      "You're in a group chat and someone says something incredibly confidently wrong.",
     answers: [
-      { label: "tending the garden", element: "WOOD" },
-      { label: "lighting the lamp", element: "FIRE" },
-      { label: "walking the same path", element: "EARTH" },
-      { label: "swimming at dawn", element: "WATER" },
+      { label: "You correct them", element: "METAL" },
+      { label: "You let someone else handle it", element: "WATER" },
+      { label: "You wait to see if they figure it out on their own", element: "WOOD" },
+      { label: "You correct them immediately perhaps a little too harshly", element: "FIRE" },
+      { label: "You privately message them", element: "EARTH" },
     ],
   },
   {
     step: 4,
-    prompt:
-      "a friend asks · what is your weather today?",
+    prompt: "Pick the one that sounds most like a weekend:",
     answers: [
-      { label: "morning rain", element: "WATER" },
-      { label: "midday sun", element: "FIRE" },
-      { label: "low fog", element: "METAL" },
-      { label: "warm soil", element: "EARTH" },
+      { label: "Sleep in, wing it. See what happens", element: "WATER" },
+      { label: "Work on something you've been building", element: "WOOD" },
+      { label: "Cook, clean, catch up with someone", element: "EARTH" },
+      { label: "Go out. Doesn't matter where", element: "FIRE" },
+      { label: "Finally organize that thing that's been bothering you", element: "METAL" },
     ],
   },
   {
     step: 5,
     prompt:
-      "and the world is —",
+      "Someone you just met is telling you their whole life story. You:",
     answers: [
-      { label: "growing", element: "WOOD" },
-      { label: "burning", element: "FIRE" },
-      { label: "holding", element: "EARTH" },
-      { label: "moving", element: "WATER" },
+      { label: "Listen. People don't do this unless they need to", element: "WOOD" },
+      { label: "Match their energy and share yours back", element: "FIRE" },
+      { label: "Enjoy it. You love when people open up", element: "EARTH" },
+      { label: "Notice what they're not saying", element: "METAL" },
+      { label: "Feel everything they're feeling", element: "WATER" },
+    ],
+  },
+  {
+    step: 6,
+    prompt: "Your phone is at 3%. You have no charger. What stresses you most?",
+    answers: [
+      { label: "Not being reachable", element: "EARTH" },
+      { label: "Not being able to look something up", element: "METAL" },
+      { label: "Nothing. It'll charge eventually", element: "WATER" },
+      { label: "Missing something happening right now", element: "FIRE" },
+      { label: "Not being able to check on someone", element: "WOOD" },
+    ],
+  },
+  {
+    step: 7,
+    prompt: "Be honest. How messy is your room right now?",
+    answers: [
+      { label: "Clean where it matters, messy where it doesn't", element: "METAL" },
+      { label: "Messy but I know where everything is", element: "WATER" },
+      { label: "Clean. It bugs me when it's not", element: "EARTH" },
+      { label: "I'll deal with it later", element: "FIRE" },
+      { label: "Messy in waves. I clean when I feel like nesting", element: "WOOD" },
+    ],
+  },
+  {
+    step: 8,
+    prompt: "Someone asks you for advice. You usually:",
+    answers: [
+      { label: "Ask them questions until they answer it themselves", element: "WOOD" },
+      { label: "Tell them what you'd do", element: "FIRE" },
+      { label: "Listen first, respond carefully", element: "EARTH" },
+      { label: "Bluntly give them the honest answer even if it's uncomfortable", element: "METAL" },
+      { label: "Tell them what they clearly already know but can't admit", element: "WATER" },
     ],
   },
 ] as const
 
 // Archetype reveals · one per element · ≤ 280 chars.
-// gumi authors v1 · this is zksoju placeholder for spine demo.
+// Placeholder voice · operator/gumi can rewrite for v1 voice register.
 export const ARCHETYPE_REVEALS: Record<Element, string> = {
   WOOD: "the tide reads · WOOD · you hold the green that is becoming. your weather rises. claim the stone of beginnings.",
   FIRE: "the tide reads · FIRE · you carry the burning that does not consume. your weather is light. claim the stone of warmth.",
@@ -90,11 +128,14 @@ export const ARCHETYPE_REVEALS: Record<Element, string> = {
 
 // Quiz titles per step · used as Blink title (≤ 80 chars).
 export const QUIZ_STEP_TITLES: Record<number, string> = {
-  1: "today's tide reads you · 1 of 5",
-  2: "the tide continues · 2 of 5",
-  3: "the tide turns · 3 of 5",
-  4: "the tide deepens · 4 of 5",
-  5: "the tide settles · 5 of 5",
+  1: "today's tide reads you · 1 of 8",
+  2: "the tide continues · 2 of 8",
+  3: "the tide listens · 3 of 8",
+  4: "the tide turns · 4 of 8",
+  5: "the tide deepens · 5 of 8",
+  6: "the tide presses · 6 of 8",
+  7: "the tide settles · 7 of 8",
+  8: "the tide reads · 8 of 8",
 }
 
 // Default ambient prompt for `/api/actions/today` (S1-T8 ambient endpoint).

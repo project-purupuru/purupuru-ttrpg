@@ -1,6 +1,6 @@
 // Quiz renderer · GET-chain Action responses
-// SDD r2 §4.1 · per BLINK_DESCRIPTOR (button-multichoice · 4 buttons per step)
-// AC: renders valid ActionGetResponse shape · 4 buttons per step
+// SDD r2 §4.1 · per BLINK_DESCRIPTOR (button-multichoice · 5 buttons per step)
+// AC: renders valid ActionGetResponse shape · 5 buttons per step (one per element)
 //
 // Composition flow (Codex §5):
 //   peripheral-events BaziQuizState shape
@@ -44,14 +44,14 @@ const iconUrlForArchetype = (
   return `${base}?archetype=${archetype}`
 }
 
-// Render the start of the quiz · Q1 with 4 element-leaning answers.
+// Render the start of the quiz · Q1 with 5 element-leaning answers (one per element).
 //
 // Pure function · no I/O · returns a valid ActionGetResponse per Solana Actions spec.
 export const renderQuizStart = (
   config: RendererConfig = defaultConfig,
 ): ActionGetResponse => {
   const q = QUIZ_CORPUS[0]
-  if (!q) throw new Error("Quiz corpus empty · expected 5 questions")
+  if (!q) throw new Error("Quiz corpus empty · expected 8 questions")
 
   const buttons = buildAnswerButtons(q.step, [], q.answers, config)
 
@@ -64,19 +64,19 @@ export const renderQuizStart = (
   }
 }
 
-// Render a mid-quiz step · steps 2..5 · prior answers in URL state.
+// Render a mid-quiz step · steps 2..8 · prior answers in URL state.
 //
 // Server-side caller validates HMAC over (step, priorAnswers) before rendering.
-// S1-T4 ships placeholder MAC · S2-T2 implements proper HMAC-SHA256.
+// S2-T2 implements proper HMAC-SHA256 · this renderer just passes through the mac.
 export const renderQuizStep = (params: {
-  step: number // 1..5 · the step we're rendering
-  priorAnswers: ReadonlyArray<0 | 1 | 2 | 3>
+  step: number // 1..8 · the step we're rendering
+  priorAnswers: ReadonlyArray<0 | 1 | 2 | 3 | 4>
   mac: string
   config?: RendererConfig
 }): ActionGetResponse => {
   const config = params.config ?? defaultConfig
 
-  if (params.step < 1 || params.step > 5) {
+  if (params.step < 1 || params.step > 8) {
     return {
       icon: iconUrlForStep(1, config),
       title: "tide unread",
@@ -183,32 +183,32 @@ export const renderAmbient = (params: {
   }
 }
 
-// Build 4 answer buttons for a quiz step · each links to next step's GET endpoint.
+// Build up to 5 answer buttons for a quiz step · each links to next step's GET endpoint.
 //
 // State encoded as URL query params: ?step=N&a1=...&aN-1=...&mac=...
-// (Server validates HMAC at every transition.)
+// (Server validates HMAC at every transition · S2-T2 mac, real now.)
 const buildAnswerButtons = (
   step: number,
-  priorAnswers: ReadonlyArray<0 | 1 | 2 | 3>,
+  priorAnswers: ReadonlyArray<0 | 1 | 2 | 3 | 4>,
   answers: ReadonlyArray<{ label: string; element: Element }>,
   config: RendererConfig,
 ): LinkedAction[] => {
   return answers.map((a, idx) => {
-    const newAnswers = [...priorAnswers, idx as 0 | 1 | 2 | 3]
+    const newAnswers = [...priorAnswers, idx as 0 | 1 | 2 | 3 | 4]
     const nextStep = step + 1
 
     // Final step → links go to /result · earlier steps → /step
     const path =
-      nextStep > 5
+      nextStep > 8
         ? "/api/actions/quiz/result"
         : "/api/actions/quiz/step"
 
     const params = new URLSearchParams()
-    if (nextStep <= 5) {
+    if (nextStep <= 8) {
       params.set("step", String(nextStep))
     }
     newAnswers.forEach((ans, i) => params.set(`a${i + 1}`, String(ans)))
-    params.set("mac", "placeholder-mac-s1-t4") // S2-T2 implements real HMAC
+    params.set("mac", "placeholder-mac-s1-t4") // sprint-3 wires real HMAC via signQuizState
 
     const queryString = params.toString()
     const href = `${config.baseUrl}${path}${queryString ? "?" + queryString : ""}`

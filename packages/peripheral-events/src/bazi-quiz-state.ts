@@ -11,12 +11,13 @@
 import { createHmac, timingSafeEqual } from "node:crypto"
 import { Schema as S } from "effect"
 
-// 4-button multichoice answer · per SDD r2 §4.1.
-export const Answer = S.Literal(0, 1, 2, 3)
+// 5-button multichoice answer · one per element (Wood/Fire/Earth/Metal/Water).
+// Each answer's element mapping lives in medium-blink/voice-corpus.ts.
+export const Answer = S.Literal(0, 1, 2, 3, 4)
 export type Answer = S.Schema.Type<typeof Answer>
 
-// Quiz step (1-5 · five questions).
-export const QuizStep = S.Number.pipe(S.between(1, 5))
+// Quiz step (1-8 · eight questions · operator-authored corpus).
+export const QuizStep = S.Number.pipe(S.between(1, 8))
 export type QuizStep = S.Schema.Type<typeof QuizStep>
 
 // Quiz state · URL-encoded between Q1-Q5 GET requests.
@@ -30,9 +31,9 @@ export const BaziQuizState = S.Struct({
 })
 export type BaziQuizState = S.Schema.Type<typeof BaziQuizState>
 
-// Final quiz state at result endpoint · all 5 answers present.
+// Final quiz state at result endpoint · all 8 answers present.
 export const CompletedQuizState = S.Struct({
-  answers: S.Tuple(Answer, Answer, Answer, Answer, Answer),
+  answers: S.Tuple(Answer, Answer, Answer, Answer, Answer, Answer, Answer, Answer),
   mac: S.String,
 })
 export type CompletedQuizState = S.Schema.Type<typeof CompletedQuizState>
@@ -107,8 +108,8 @@ export function signQuizState(
 }
 
 // Verify a quiz state's mac · returns true ONLY if both invariants and HMAC pass.
-// Defense-in-depth: invariant checks (step ∈ [1,5] · answers.length === step-1 ·
-// each answer ∈ [0,3]) run BEFORE the HMAC compare so a malformed-but-correctly-
+// Defense-in-depth: invariant checks (step ∈ [1,8] · answers.length === step-1 ·
+// each answer ∈ [0,4]) run BEFORE the HMAC compare so a malformed-but-correctly-
 // macced state from a buggy producer does not slip through. Constant-time HMAC
 // compare via timingSafeEqual.
 export function verifyQuizState(
@@ -120,13 +121,13 @@ export function verifyQuizState(
   if (
     !Number.isInteger(state.step) ||
     state.step < 1 ||
-    state.step > 5
+    state.step > 8
   ) {
     return false
   }
   if (state.answers.length !== state.step - 1) return false
   for (const a of state.answers) {
-    if (!Number.isInteger(a) || a < 0 || a > 3) return false
+    if (!Number.isInteger(a) || a < 0 || a > 4) return false
   }
 
   const key = resolveHmacKey(opts)

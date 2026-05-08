@@ -25,37 +25,47 @@ describe("BaziQuizState · GET-chain URL state shape", () => {
     expect(decoded.answers).toEqual([0, 2])
   })
 
-  it("rejects step out of range (1-5)", () => {
+  it("rejects step out of range (1-8)", () => {
     expect(() =>
       S.decodeUnknownSync(BaziQuizState)({ step: 0, answers: [], mac: "x" }),
     ).toThrow()
     expect(() =>
-      S.decodeUnknownSync(BaziQuizState)({ step: 6, answers: [], mac: "x" }),
+      S.decodeUnknownSync(BaziQuizState)({ step: 9, answers: [], mac: "x" }),
     ).toThrow()
   })
 
-  it("rejects invalid answer values (must be 0-3)", () => {
+  it("rejects invalid answer values (must be 0-4)", () => {
     expect(() =>
-      S.decodeUnknownSync(BaziQuizState)({ step: 2, answers: [4], mac: "x" }),
+      S.decodeUnknownSync(BaziQuizState)({ step: 2, answers: [5], mac: "x" }),
     ).toThrow()
     expect(() =>
       S.decodeUnknownSync(BaziQuizState)({ step: 2, answers: [-1], mac: "x" }),
     ).toThrow()
   })
 
-  it("CompletedQuizState requires exactly 5 answers", () => {
+  it("accepts answer=4 (the new 5th option per Q · maps to 5th element)", () => {
+    const decoded = S.decodeUnknownSync(BaziQuizState)({
+      step: 3,
+      answers: [4, 4],
+      mac: "x",
+    })
+    expect(decoded.answers).toEqual([4, 4])
+  })
+
+  it("CompletedQuizState requires exactly 8 answers", () => {
+    type A = 0 | 1 | 2 | 3 | 4
     const completed = {
-      answers: [0, 1, 2, 3, 0] as [0 | 1 | 2 | 3, 0 | 1 | 2 | 3, 0 | 1 | 2 | 3, 0 | 1 | 2 | 3, 0 | 1 | 2 | 3],
+      answers: [0, 1, 2, 3, 4, 0, 1, 2] as [A, A, A, A, A, A, A, A],
       mac: "placeholder",
     }
     const decoded = S.decodeUnknownSync(CompletedQuizState)(completed)
-    expect(decoded.answers.length).toBe(5)
+    expect(decoded.answers.length).toBe(8)
   })
 
-  it("CompletedQuizState rejects 4 answers (incomplete)", () => {
+  it("CompletedQuizState rejects 5 answers (was the v0 length · now incomplete)", () => {
     expect(() =>
       S.decodeUnknownSync(CompletedQuizState)({
-        answers: [0, 1, 2, 3],
+        answers: [0, 1, 2, 3, 4],
         mac: "x",
       }),
     ).toThrow()
@@ -71,12 +81,20 @@ describe("BaziQuizState · HMAC sign/verify (S2-T2)", () => {
     expect(verifyQuizState(signed, { key: TEST_KEY })).toBe(true)
   })
 
-  it("verifies the boundary states (step=1 empty answers and step=5 four answers)", () => {
+  it("verifies the boundary states (step=1 empty answers and step=8 seven answers)", () => {
     const start = signQuizState({ step: 1, answers: [] }, { key: TEST_KEY })
     expect(verifyQuizState(start, { key: TEST_KEY })).toBe(true)
 
-    const last = signQuizState({ step: 5, answers: [0, 1, 2, 3] }, { key: TEST_KEY })
+    const last = signQuizState(
+      { step: 8, answers: [0, 1, 2, 3, 4, 0, 1] },
+      { key: TEST_KEY },
+    )
     expect(verifyQuizState(last, { key: TEST_KEY })).toBe(true)
+  })
+
+  it("verifies a step using answer=4 (the new 5th option)", () => {
+    const signed = signQuizState({ step: 3, answers: [4, 4] }, { key: TEST_KEY })
+    expect(verifyQuizState(signed, { key: TEST_KEY })).toBe(true)
   })
 
   it("deterministic: same input produces identical mac across calls", () => {
@@ -140,7 +158,7 @@ describe("BaziQuizState · HMAC sign/verify (S2-T2)", () => {
     ).toBe(false)
   })
 
-  it("rejects out-of-range step (defense-in-depth · 0, 6, fractional, NaN)", () => {
+  it("rejects out-of-range step (defense-in-depth · 0, 9, fractional, NaN)", () => {
     const goodMac = signQuizState(
       { step: 3, answers: [0, 2] },
       { key: TEST_KEY },
@@ -154,7 +172,7 @@ describe("BaziQuizState · HMAC sign/verify (S2-T2)", () => {
     ).toBe(false)
     expect(
       verifyQuizState(
-        { step: 6 as unknown as 1, answers: [0, 1, 2, 3, 0], mac: goodMac },
+        { step: 9 as unknown as 1, answers: [0, 1, 2, 3, 0, 1, 2, 3], mac: goodMac },
         { key: TEST_KEY },
       ),
     ).toBe(false)
@@ -166,11 +184,11 @@ describe("BaziQuizState · HMAC sign/verify (S2-T2)", () => {
     ).toBe(false)
   })
 
-  it("rejects out-of-range answer values (must be 0..3)", () => {
+  it("rejects out-of-range answer values (must be 0..4)", () => {
     const signed = signQuizState({ step: 3, answers: [0, 2] }, { key: TEST_KEY })
     expect(
       verifyQuizState(
-        { ...signed, answers: [0, 4 as unknown as 3] },
+        { ...signed, answers: [0, 5 as unknown as 4] },
         { key: TEST_KEY },
       ),
     ).toBe(false)

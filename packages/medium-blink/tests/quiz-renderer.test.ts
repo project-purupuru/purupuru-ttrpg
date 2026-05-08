@@ -1,4 +1,5 @@
-// AC for S1-T4: renders valid ActionGetResponse · 4 buttons per step
+// AC: renders valid ActionGetResponse · 5 buttons per step (one per element)
+// 8-question corpus per operator-authored content (was 5×4 in original PRD draft)
 
 import { describe, expect, it } from "vitest"
 
@@ -24,8 +25,8 @@ describe("renderQuizStart · Q1 entry point", () => {
     expect(response.links?.actions).toBeDefined()
   })
 
-  it("AC · 4 buttons per step", () => {
-    expect(response.links?.actions.length).toBe(4)
+  it("AC · 5 buttons per step (one per element)", () => {
+    expect(response.links?.actions.length).toBe(5)
   })
 
   it("respects BLINK_DESCRIPTOR title limit (≤80 chars)", () => {
@@ -45,12 +46,12 @@ describe("renderQuizStart · Q1 entry point", () => {
     })
   })
 
-  it("buttons encode answer index in URL state (a1=0..3)", () => {
+  it("buttons encode answer index in URL state (a1=0..4)", () => {
     const answerIndices = response.links!.actions.map((btn) => {
       const url = new URL(btn.href)
       return url.searchParams.get("a1")
     })
-    expect(answerIndices).toEqual(["0", "1", "2", "3"])
+    expect(answerIndices).toEqual(["0", "1", "2", "3", "4"])
   })
 
   it("validateActionResponse passes", () => {
@@ -60,22 +61,22 @@ describe("renderQuizStart · Q1 entry point", () => {
   })
 })
 
-describe("renderQuizStep · steps 2-5", () => {
-  it("step 2 with 1 prior answer renders 4 buttons", () => {
+describe("renderQuizStep · steps 2-8", () => {
+  it("step 2 with 1 prior answer renders 5 buttons", () => {
     const response = renderQuizStep({
       step: 2,
       priorAnswers: [1],
       mac: "placeholder",
       config: testConfig,
     })
-    expect(response.links?.actions.length).toBe(4)
+    expect(response.links?.actions.length).toBe(5)
     expect(response.error).toBeUndefined()
   })
 
-  it("step 5 (final) buttons link to /result not /step", () => {
+  it("step 8 (final) buttons link to /result not /step", () => {
     const response = renderQuizStep({
-      step: 5,
-      priorAnswers: [0, 1, 2, 3],
+      step: 8,
+      priorAnswers: [0, 1, 2, 3, 4, 0, 1],
       mac: "placeholder",
       config: testConfig,
     })
@@ -84,10 +85,10 @@ describe("renderQuizStep · steps 2-5", () => {
     })
   })
 
-  it("step 5 carries all 5 answers in URL params (a1..a5)", () => {
+  it("step 8 carries all 8 answers in URL params (a1..a8)", () => {
     const response = renderQuizStep({
-      step: 5,
-      priorAnswers: [0, 1, 2, 3],
+      step: 8,
+      priorAnswers: [0, 1, 2, 3, 4, 0, 1],
       mac: "placeholder",
       config: testConfig,
     })
@@ -97,14 +98,17 @@ describe("renderQuizStep · steps 2-5", () => {
     expect(url.searchParams.get("a2")).toBe("1")
     expect(url.searchParams.get("a3")).toBe("2")
     expect(url.searchParams.get("a4")).toBe("3")
-    expect(url.searchParams.get("a5")).toBe("0") // first answer index of step 5
+    expect(url.searchParams.get("a5")).toBe("4")
+    expect(url.searchParams.get("a6")).toBe("0")
+    expect(url.searchParams.get("a7")).toBe("1")
+    expect(url.searchParams.get("a8")).toBe("0") // first answer index of step 8
   })
 
-  it("invalid step (0 or 6) returns error response", () => {
+  it("invalid step (0 or 9) returns error response", () => {
     const r0 = renderQuizStep({ step: 0, priorAnswers: [], mac: "p", config: testConfig })
     expect(r0.error).toBeDefined()
-    const r6 = renderQuizStep({ step: 6, priorAnswers: [], mac: "p", config: testConfig })
-    expect(r6.error).toBeDefined()
+    const r9 = renderQuizStep({ step: 9, priorAnswers: [], mac: "p", config: testConfig })
+    expect(r9.error).toBeDefined()
   })
 
   it("answer count mismatch (step 3 with 1 answer) returns error", () => {
@@ -118,9 +122,12 @@ describe("renderQuizStep · steps 2-5", () => {
     expect(response.error?.message).toContain("mismatch")
   })
 
-  it("all 5 step renders fit within BLINK_DESCRIPTOR limits", () => {
-    for (let step = 2; step <= 5; step++) {
-      const priors = Array.from({ length: step - 1 }, (_, i) => (i % 4) as 0 | 1 | 2 | 3)
+  it("all 8 step renders fit within BLINK_DESCRIPTOR limits", () => {
+    for (let step = 2; step <= 8; step++) {
+      const priors = Array.from(
+        { length: step - 1 },
+        (_, i) => (i % 5) as 0 | 1 | 2 | 3 | 4,
+      )
       const response = renderQuizStep({
         step,
         priorAnswers: priors,

@@ -10,8 +10,11 @@ import { createHash } from "node:crypto"
 
 import type { Element } from "./world-event"
 
-// 5 questions × 4 answers = each answer leans toward one element.
+// 8 questions × 5 answers = each answer leans toward one of the 5 elements.
 // Caller passes the ELEMENT each answer maps to (looked up from medium-blink corpus).
+// 5-answer-per-Q gives every element a direct option in every question · cumulative
+// vote count over 8 Qs produces a stable archetype (max 8 votes per element ·
+// archetype is the element with the most votes after canonical tie-break).
 export const archetypeFromAnswers = (
   elementVotes: ReadonlyArray<Element>,
 ): Element => {
