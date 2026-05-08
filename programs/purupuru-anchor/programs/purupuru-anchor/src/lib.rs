@@ -1,43 +1,40 @@
-//! Sp2 · ed25519 verification via Solana instructions sysvar
+//! purupuru_anchor · awareness-layer-spine v0
 //!
-//! Spike pattern for SDD r2 §5.1 (claim_genesis_stone signature verification).
+//! Sprint-2 program · two purposes wired through one instruction:
 //!
-//! ## What this proves
+//!   `claim_genesis_stone` · server-signed mint of an element-weather-imprint NFT.
 //!
-//! Solana programs CANNOT directly call ed25519 verification (no syscall · no compute
-//! budget for it). The idiomatic pattern is:
+//! Pattern stack (proven incrementally · spike → sprint):
 //!
-//!   1. Caller builds a transaction with TWO instructions:
-//!      a) Ed25519Program instruction (Solana's built-in sig verifier)
-//!      b) Our program instruction (reads instructions sysvar · validates prior ix)
+//!   * Sp2 (Phase A)  · ed25519 verification via instructions sysvar · ✅ proved
+//!   * S2-T1 Phase A  · extends to ClaimMessage args · 98B reconstitution · expiry guard
+//!   * S2-T1 Phase B  · Metaplex CPI to mint the NFT into Genesis Stones collection
 //!
-//!   2. Solana's runtime executes Ed25519Program FIRST · which would FAIL the entire
-//!      tx if the signature is invalid. So if our instruction runs at all · we know
-//!      the signature was valid for some (signer, message, signature) tuple.
+//! ## End-to-end flow that lands here
 //!
-//!   3. Our program reads the instructions sysvar to extract WHICH signer + WHICH
-//!      message the Ed25519Program verified · then validates THOSE match what we
-//!      expect (e.g., signer == hardcoded claim-signer · message == passed args).
+//!   1. User completes 5-question bazi quiz (off-chain · packages/peripheral-events)
+//!   2. API at /api/actions/mint/genesis-stone (sprint-3) builds a tx with TWO ix:
+//!        a) Ed25519Program  · verifies claim-signer's sig over the 98-byte canonical
+//!        b) claim_genesis_stone · this instruction · validates + mints
+//!   3. Sponsored-payer partial-signs (covers fees) · returns tx via Action POST
+//!   4. Wallet adds its sig as authority · submits
+//!   5. Solana runtime verifies BOTH sigs · then runs claim_genesis_stone
+//!   6. We read instructions sysvar · confirm ed25519 sig was over OUR canonical bytes
+//!      with OUR claim-signer · then mint via Metaplex CPI (Phase B)
 //!
-//! ## Why this matters for the demo
+//! ## Three-keypair model (per SDD r2 §6.1)
 //!
-//! `claim_genesis_stone` (S2-T1) requires server-signed authorization. The server
-//! holds an ed25519 private key (claim-signer · separate from sponsored-payer). It
-//! signs a `ClaimMessage` payload (wallet · element · weather · nonce · expiry).
+//!   sponsored-payer  · pays tx fees · separate Solana keypair · NO authority over mint
+//!   claim-signer     · ed25519 keypair signing ClaimMessage · pubkey hardcoded BELOW
+//!   user wallet      · the actual mint authority · receives the NFT
 //!
-//! The mint flow:
-//!   1. Client POSTs to /mint · server signs ClaimMessage · returns partially-signed tx
-//!      (containing Ed25519Program ix + claim_genesis_stone ix)
-//!   2. Wallet signs as authority · submits
-//!   3. Solana runtime verifies ed25519 sig · then runs claim_genesis_stone
-//!   4. claim_genesis_stone reads instructions sysvar · confirms the sig was over the
-//!      EXPECTED claim-signer pubkey + EXPECTED ClaimMessage bytes
-//!   5. Mint proceeds (or rejects on mismatch)
-//!
-//! Without instructions sysvar reads · an attacker could submit ANY ed25519 sig from
-//! ANY signer over ANY message · and our program wouldn't know.
+//! Drift between off-chain `encodeClaimMessage` (packages/peripheral-events) and
+//! the on-chain reconstitution below = silent forgery vulnerability. The 98-byte
+//! layout in `reconstitute_claim_message` MUST exactly mirror the layout doc in
+//! packages/peripheral-events/src/claim-message.ts.
 
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::clock::Clock;
 use anchor_lang::solana_program::ed25519_program::ID as ED25519_PROGRAM_ID;
 use anchor_lang::solana_program::sysvar::instructions::{
     load_current_index_checked, load_instruction_at_checked, ID as INSTRUCTIONS_SYSVAR_ID,
@@ -45,106 +42,305 @@ use anchor_lang::solana_program::sysvar::instructions::{
 
 declare_id!("7u27WmTz2hZHvvhL89XcSCY3eFhxEfHjUN5MjzMY6v38");
 
+// ─────────────────────────────────────────────────────────────────────────
+// Hardcoded constants · domain separation enforcement
+// ─────────────────────────────────────────────────────────────────────────
+
+/// Ed25519 public key of the claim-signer · hardcoded so attackers cannot
+/// substitute their own signer in the prior Ed25519Program ix.
+///
+/// Generated S2-T10 of sprint-2 · 2026-05-08 · NEVER reused for anything
+/// other than this program. If leaked, mint endpoint goes down for rotation.
+const CLAIM_SIGNER_PUBKEY: Pubkey = pubkey!("E6E69osQmgzpQk9h19ebtMm8YEkAHJfnHwXThr6o2Gsd");
+
+/// Genesis Stones Collection NFT mint pubkey · references this in CreateV1
+/// CPI's collection field so child stones group under the parent in Phantom's
+/// collectibles tab.
+///
+/// **TBD until S2-T1.5 bootstrap-collection.ts runs · UPDATE BEFORE DEPLOY.**
+/// Compiles with the System Program sentinel for now · Phase B replaces this
+/// constant + adds the Metaplex CPI that uses it.
+const COLLECTION_MINT_PUBKEY: Pubkey = pubkey!("11111111111111111111111111111111");
+
+// ─────────────────────────────────────────────────────────────────────────
+// Program
+// ─────────────────────────────────────────────────────────────────────────
+
 #[program]
 pub mod purupuru_anchor {
     use super::*;
 
-    /// Verify that the prior instruction in this transaction was an Ed25519Program
-    /// instruction signing `expected_message` with `expected_signer`'s key.
+    /// Server-signed mint of a Genesis Stone · the awareness-layer demo's
+    /// only mutating instruction.
     ///
-    /// Errors:
-    ///   - NoPriorInstruction · this is the first ix in the tx
-    ///   - PriorIxNotEd25519  · prior ix is not the Ed25519Program
-    ///   - InvalidEd25519Data · prior ix data is malformed
-    ///   - SignerMismatch     · ed25519 signer != expected_signer
-    ///   - MessageMismatch    · ed25519 message != expected_message
-    pub fn verify_signed_message(
-        ctx: Context<VerifySignedMessage>,
-        expected_signer: Pubkey,
-        expected_message: Vec<u8>,
+    /// The 7 args projected from off-chain `ClaimMessage`:
+    ///   - `wallet`: the user's pubkey · also the mint recipient
+    ///   - `element`: bazi-derived element byte (1=Wood..5=Water · per byteOf rules)
+    ///   - `weather`: cosmic weather byte at mint time
+    ///   - `quiz_state_hash`: sha256 of the validated 5-answer quiz state
+    ///   - `issued_at`: unix seconds · when claim-signer signed
+    ///   - `expires_at`: unix seconds · 5min after issued (server-side TTL)
+    ///   - `nonce`: 16-byte nonce · server-side replay protection (Vercel KV)
+    ///
+    /// The full 11-field off-chain ClaimMessage struct also contains
+    /// {domain, version, cluster, programId} · those are NOT in the signed
+    /// bytes. Domain separation is enforced via:
+    ///   - `declare_id!()` pins the program (cluster + programId implicit)
+    ///   - hardcoded `CLAIM_SIGNER_PUBKEY` pins the signer
+    ///   - dedicated single-purpose claim-signer key (domain implicit)
+    ///
+    /// If the claim-signer key is ever shared across programs/clusters,
+    /// upgrade the canonical bytes to include those fields BEFORE doing so.
+    pub fn claim_genesis_stone(
+        ctx: Context<ClaimGenesisStone>,
+        wallet: Pubkey,
+        element: u8,
+        weather: u8,
+        quiz_state_hash: [u8; 32],
+        issued_at: i64,
+        expires_at: i64,
+        nonce: [u8; 16],
     ) -> Result<()> {
-        let instructions_sysvar = &ctx.accounts.instructions_sysvar;
+        // ─── Phase A · validation ───────────────────────────────────────
 
-        // Step 1: figure out our position in the tx · need a prior ix to inspect.
-        let current_index = load_current_index_checked(instructions_sysvar)?;
-        require!(current_index > 0, ErrorCode::NoPriorInstruction);
-
-        // Step 2: load the prior instruction (the Ed25519Program verify call).
-        let prior_index = current_index - 1;
-        let prior_ix = load_instruction_at_checked(prior_index as usize, instructions_sysvar)?;
-
-        // Step 3: confirm it's the Ed25519Program (program ID match).
-        require_keys_eq!(
-            prior_ix.program_id,
-            ED25519_PROGRAM_ID,
-            ErrorCode::PriorIxNotEd25519
-        );
-
-        // Step 4: parse the Ed25519Program instruction binary layout to extract
-        //         (signer_pubkey, message_bytes). Format documented at:
-        //         https://docs.solana.com/developing/runtime-facilities/programs#ed25519-program
-        let parsed = parse_ed25519_instruction(&prior_ix.data)?;
-
-        // Step 5: signer pubkey must match expected.
+        // Args sanity (domain checks happen in the off-chain Effect Schema
+        // too · belt-and-suspenders here).
+        require!((1..=5).contains(&element), ErrorCode::ElementOutOfRange);
+        require!((1..=5).contains(&weather), ErrorCode::WeatherOutOfRange);
         require!(
-            parsed.signer_pubkey == expected_signer.to_bytes(),
-            ErrorCode::SignerMismatch
+            issued_at <= expires_at,
+            ErrorCode::IssuedAfterExpiry
         );
 
-        // Step 6: message bytes must match expected.
-        require!(
-            parsed.message == expected_message.as_slice(),
-            ErrorCode::MessageMismatch
-        );
+        // Expiry guard · server-side TTL window must not have lapsed.
+        // SDD §3.3: expires_at = issued_at + 300. We check on-chain too because
+        // the off-chain KV nonce ttl alone is insufficient if server clock drifts
+        // or if the tx sits in mempool past the window (rare but possible).
+        let now = Clock::get()?.unix_timestamp;
+        require!(now <= expires_at, ErrorCode::Expired);
 
+        // Verify ed25519 signature from prior instruction (Sp2 pattern reused).
+        let canonical = reconstitute_claim_message(
+            &wallet,
+            element,
+            weather,
+            &quiz_state_hash,
+            issued_at,
+            expires_at,
+            &nonce,
+        );
+        verify_prior_ed25519(
+            &ctx.accounts.instructions_sysvar,
+            CLAIM_SIGNER_PUBKEY,
+            &canonical,
+        )?;
+
+        // Logging · helpful for devnet smoke + demo · stripped before mainnet.
         msg!(
-            "✅ ed25519 verified · signer matches · message matches · {} bytes",
-            parsed.message.len()
+            "✅ claim_genesis_stone validated · wallet={} element={} weather={} expires_in={}s",
+            wallet,
+            element,
+            weather,
+            expires_at - now,
         );
+
+        // ─── Phase B · Metaplex CPI mint ────────────────────────────────
+        //
+        // TODO(S2-T1 Phase B · pair-tight): CreateV1CpiBuilder mints NFT with
+        //   - mint = ctx.accounts.mint (fresh keypair from API)
+        //   - metadata + master_edition = derived PDAs
+        //   - update_authority = sponsored-payer (or the program · TBD)
+        //   - token_owner = wallet (the user)
+        //   - collection = Some({ key: COLLECTION_MINT_PUBKEY, verified: false })
+        //   - token_standard = NonFungible
+        //   - print_supply = Zero
+        //
+        //   Sub-decisions to pair on:
+        //     1. NonFungible vs ProgrammableNonFungible (royalty enforcement)
+        //     2. Anchor-spl 0.31.1 vs direct mpl-token-metadata 5.x
+        //     3. Should sponsored-payer or claim-signer hold update authority?
+        //     4. Idempotent re-claim (PDA seed [b"stone", wallet]) — currently
+        //        nonce + KV blocks replay; do we ALSO want PDA-level uniqueness?
+
+        // ─── Phase C · indexer event ────────────────────────────────────
+        //
+        // TODO(S2-T1 Phase C): emit!(StoneClaimed {
+        //     wallet, element, weather, mint: ctx.accounts.mint.key()
+        // });
 
         Ok(())
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+// Accounts struct
+// ─────────────────────────────────────────────────────────────────────────
+
 #[derive(Accounts)]
-pub struct VerifySignedMessage<'info> {
-    /// Authority calling this instruction (typically the user wallet · not the signer).
+pub struct ClaimGenesisStone<'info> {
+    /// Authority calling this instruction · the user wallet · also the mint
+    /// recipient. NOT the sponsored-payer (sponsored-payer pays tx fees but
+    /// has no mint authority).
     pub authority: Signer<'info>,
 
-    /// Solana instructions sysvar · gives us read access to all instructions in this tx.
+    /// Solana instructions sysvar · gives us read access to the prior
+    /// Ed25519Program ix data via load_instruction_at_checked.
     /// CHECK: address-validated against canonical sysvar pubkey.
     #[account(address = INSTRUCTIONS_SYSVAR_ID)]
     pub instructions_sysvar: AccountInfo<'info>,
+
+    // TODO(Phase B): expand with Metaplex accounts:
+    //   - mint: Account<Mint> · fresh keypair · init via SPL
+    //   - metadata: PDA at [b"metadata", token_metadata_program, mint]
+    //   - master_edition: PDA at [b"metadata", token_metadata_program, mint, b"edition"]
+    //   - mint_authority + update_authority + payer
+    //   - collection_metadata: PDA for Genesis Stones collection
+    //   - token_metadata_program · spl_token_program · system_program · rent
+    //
+    // Anchor's `#[account(init, payer = ..., mint::decimals = 0, mint::authority = ...)]`
+    // can scaffold the mint init · the Metaplex CPI then layers metadata on top.
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// Events · for indexer (S3-T9 zerker handoff)
+// ─────────────────────────────────────────────────────────────────────────
+
+/// Emitted on successful Genesis Stone claim · indexer subscribes via
+/// program logs to update the awareness-layer feed.
+///
+/// NOT emitted in Phase A (no mint yet · `mint` field not available).
+/// Phase B + C add the emit! call.
+#[event]
+pub struct StoneClaimed {
+    pub wallet: Pubkey,
+    pub element: u8,
+    pub weather: u8,
+    pub mint: Pubkey,
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Error codes · specific reject messages for debug-grepping
+// ─────────────────────────────────────────────────────────────────────────
 
 #[error_code]
 pub enum ErrorCode {
+    // Sp2 · ed25519 verification (preserved verbatim)
     #[msg("No prior instruction in transaction (this must run AFTER an Ed25519Program ix)")]
     NoPriorInstruction,
     #[msg("Prior instruction is not the Ed25519Program")]
     PriorIxNotEd25519,
     #[msg("Ed25519 instruction data is malformed")]
     InvalidEd25519Data,
-    #[msg("Signer pubkey does not match expected claim-signer")]
+    #[msg("Signer pubkey does not match the hardcoded claim-signer")]
     SignerMismatch,
-    #[msg("Message bytes do not match expected payload")]
+    #[msg("Message bytes do not match the reconstituted canonical layout")]
     MessageMismatch,
+
+    // S2-T1 Phase A · ClaimMessage validation
+    #[msg("Element byte must be in 1..5 (1=Wood, 2=Fire, 3=Earth, 4=Metal, 5=Water)")]
+    ElementOutOfRange,
+    #[msg("Weather byte must be in 1..5 (same element scale)")]
+    WeatherOutOfRange,
+    #[msg("issued_at is after expires_at (clock or producer bug)")]
+    IssuedAfterExpiry,
+    #[msg("Claim has expired (now > expires_at · 5min server-side TTL window)")]
+    Expired,
 }
 
-/// Parsed Ed25519Program instruction data.
+// ─────────────────────────────────────────────────────────────────────────
+// Internals · ed25519 verification (reused from Sp2 verbatim where possible)
+// ─────────────────────────────────────────────────────────────────────────
+
+/// Reconstitute the 98-byte canonical signed bytes from claim_genesis_stone args.
+///
+/// MUST EXACTLY MATCH the off-chain encoder in:
+///   packages/peripheral-events/src/claim-message.ts · `encodeClaimMessage`
+///
+/// Layout (98 bytes total):
+///
+///   offset  size  field
+///   ------  ----  -------------------------------------------------
+///   [ 0..32] 32B  wallet pubkey (raw 32B from Solana Pubkey::to_bytes)
+///   [32..33]  1B  element byte (1=Wood..5=Water)
+///   [33..34]  1B  weather byte (1..5)
+///   [34..66] 32B  quiz_state_hash (raw 32B sha256 digest)
+///   [66..74]  8B  issued_at (i64 little-endian)
+///   [74..82]  8B  expires_at (i64 little-endian)
+///   [82..98] 16B  nonce (raw 16B)
+///
+/// Drift here = silent forgery vulnerability. If you change this layout,
+/// update encodeClaimMessage in lockstep AND bump CANONICAL_VERSION on
+/// both sides (forces clean upgrade · old sigs become unverifiable).
+fn reconstitute_claim_message(
+    wallet: &Pubkey,
+    element: u8,
+    weather: u8,
+    quiz_state_hash: &[u8; 32],
+    issued_at: i64,
+    expires_at: i64,
+    nonce: &[u8; 16],
+) -> [u8; 98] {
+    let mut buf = [0u8; 98];
+    buf[0..32].copy_from_slice(&wallet.to_bytes());
+    buf[32] = element;
+    buf[33] = weather;
+    buf[34..66].copy_from_slice(quiz_state_hash);
+    buf[66..74].copy_from_slice(&issued_at.to_le_bytes());
+    buf[74..82].copy_from_slice(&expires_at.to_le_bytes());
+    buf[82..98].copy_from_slice(nonce);
+    buf
+}
+
+/// Verify the prior instruction in this tx was an Ed25519Program ix
+/// signing `expected_message` with `expected_signer`'s key. Reuses Sp2's
+/// proven pattern · the only change vs Sp2 is the helper now operates on
+/// a concrete `[u8; 98]` instead of a `Vec<u8>`.
+fn verify_prior_ed25519(
+    instructions_sysvar: &AccountInfo,
+    expected_signer: Pubkey,
+    expected_message: &[u8],
+) -> Result<()> {
+    let current_index = load_current_index_checked(instructions_sysvar)?;
+    require!(current_index > 0, ErrorCode::NoPriorInstruction);
+
+    let prior_index = current_index - 1;
+    let prior_ix = load_instruction_at_checked(prior_index as usize, instructions_sysvar)?;
+
+    require_keys_eq!(
+        prior_ix.program_id,
+        ED25519_PROGRAM_ID,
+        ErrorCode::PriorIxNotEd25519
+    );
+
+    let parsed = parse_ed25519_instruction(&prior_ix.data)?;
+
+    require!(
+        parsed.signer_pubkey == expected_signer.to_bytes(),
+        ErrorCode::SignerMismatch
+    );
+
+    require!(
+        parsed.message == expected_message,
+        ErrorCode::MessageMismatch
+    );
+
+    Ok(())
+}
+
+/// Parsed Ed25519Program instruction data (verbatim from Sp2).
 struct Ed25519IxData {
     signer_pubkey: [u8; 32],
     message: Vec<u8>,
 }
 
-/// Parse the Ed25519Program instruction binary layout.
+/// Parse the Ed25519Program instruction binary layout (verbatim from Sp2).
 ///
 /// Layout (16-byte header + variable data):
 ///   [0]      : num_signatures (u8) · we require == 1
 ///   [1]      : padding (u8) · ignored
-///   [2..4]   : signature_offset (u16 LE) · byte index where 64-byte sig starts
+///   [2..4]   : signature_offset (u16 LE)
 ///   [4..6]   : signature_instruction_index (u16 LE) · 0xFFFF = current ix
-///   [6..8]   : public_key_offset (u16 LE) · byte index where 32-byte pubkey starts
+///   [6..8]   : public_key_offset (u16 LE)
 ///   [8..10]  : public_key_instruction_index (u16 LE)
 ///   [10..12] : message_data_offset (u16 LE)
 ///   [12..14] : message_data_size (u16 LE)

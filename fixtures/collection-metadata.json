@@ -1,0 +1,22 @@
+{
+  "name": "Genesis Stones",
+  "symbol": "PGS",
+  "description": "The five-element awareness layer · each Genesis Stone is one wallet's first imprint of cosmic weather × bazi archetype · purupuru world · Solana Frontier 2026.",
+  "image": "https://raw.githubusercontent.com/project-purupuru/purupuru-ttrpg/feat/awareness-layer-spine/public/art/tsuheji-map.png",
+  "external_url": "https://purupuru.world",
+  "attributes": [
+    { "trait_type": "Type", "value": "Collection" },
+    { "trait_type": "World", "value": "Tsuheji" },
+    { "trait_type": "Elements", "value": "Wood · Fire · Earth · Metal · Water" }
+  ],
+  "properties": {
+    "category": "image",
+    "creators": [],
+    "files": [
+      {
+        "uri": "https://raw.githubusercontent.com/project-purupuru/purupuru-ttrpg/feat/awareness-layer-spine/public/art/tsuheji-map.png",
+        "type": "image/png"
+      }
+    ]
+  }
+}
