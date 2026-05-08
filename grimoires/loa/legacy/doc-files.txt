@@ -1,5 +1,4 @@
-./README.md
-./AGENTS.md
-./CLAUDE.md
-./grimoires/loa/context/00-hackathon-brief.md
-./public/art/skills/purupuru/SKILL.md
+README.md
+CLAUDE.md
+grimoires/loa/prd.md
+grimoires/loa/NOTES.md

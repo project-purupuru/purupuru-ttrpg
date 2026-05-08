@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "findings": [
+    {
+      "id": "reframe-1",
+      "title": "Design has drifted from awareness-layer thesis to quiz-and-mint demo",
+      "severity": "REFRAME",
+      "category": "framing",
+      "file": "grimoires/loa/sdd.md:Section 0 + Section 1 + Section 4",
+      "description": "PRD r6 elevator pitch claims 'awareness layer' but every apps/web route is about the quiz interaction. There is no ambient `/api/actions/today` surface that shows aggregate world activity. Judges will conclude this is a fortune-telling app, not awareness infrastructure.",
+      "suggestion": "Either (a) embrace demo-first frame and update PRD/deck to lead with 'interactive on-chain bazi reading' or (b) add an ambient feed Blink to v0 spine that shows aggregate world activity with no user interaction, demonstrating the substrate-vs-presentation moat directly.",
+      "reframe": true,
+      "teachable_moment": "The platform demo and the platform itself are different products. Decide which you're shipping; don't straddle.",
+      "faang_parallel": "Stripe's homepage doesn't show a payment form — it shows charge-per-second metrics. The product is the infrastructure, demonstrated by ambient evidence.",
+      "weight": 0
+    },
+    {
+      "id": "reframe-2",
+      "title": "apps/web is universal consumer; substrate consumability outside Next.js unproven",
+      "severity": "REFRAME",
+      "category": "extensibility",
+      "file": "grimoires/loa/sdd.md:Section 1 + Section 2",
+      "description": "Codex's awareness model declares packages should not depend on Next.js, and the SDD honors that. But every consumer surface lives in apps/web. A future Discord bot or CLI consumer would either need to live inside apps/web (wrong) or duplicate adapter wiring (drift risk).",
+      "suggestion": "Add a fixture-only test runner or thin CLI in tools/ that proves the substrate works without Next.js. This is the falsifiability test for the modularity claim.",
+      "reframe": true,
+      "teachable_moment": "If your packages claim independence, prove it with a non-Next.js consumer.",
+      "weight": 0
+    },
+    {
+      "id": "speculation-1",
+      "title": "medium-registry abstraction over medium-blink",
+      "severity": "SPECULATION",
+      "category": "architecture",
+      "file": "grimoires/loa/sdd.md:Section 1",
+      "description": "freeside-mediums already exists upstream as a sealed Effect Schema registry for MediumCapability variants. Shipping packages/medium-registry as the abstraction (importing freeside-mediums/protocol) and packages/medium-blink as one concrete adapter would mirror the existing freeside pattern.",
+      "suggestion": "Consider splitting into medium-registry (abstraction) + medium-blink (adapter) before sprint-1 scaffolds the single-medium package.",
+      "speculation": true,
+      "weight": 0
+    },
+    {
+      "id": "speculation-2",
+      "title": "Cross-chain identity unification via Metaplex companion_token_uri",
+      "severity": "SPECULATION",
+      "category": "long-term-architecture",
+      "file": "grimoires/loa/sdd.md:Section 11 (D-11)",
+      "description": "Solana Genesis Stone is currently a TWIN of Base PurupuruGenesis — separate stones, no relationship. Long-term this fragments identity. A `companion_token_uri` field in Solana Metaplex metadata referencing the Base token via chain:// URI scheme would make Solana stone a referenced extension, not a parallel mint.",
+      "suggestion": "Lock the Metaplex metadata schema in v0 to include companion_token_uri as a reserved field, even if unused. Avoids migration cost when D-11 is addressed.",
+      "speculation": true,
+      "weight": 0
+    },
+    {
+      "id": "speculation-3",
+      "title": "Resume-from-step-N for partial quiz completions",
+      "severity": "SPECULATION",
+      "category": "ux",
+      "file": "grimoires/loa/sdd.md:Section 4.1",
+      "description": "Quiz state is already HMAC-signed and URL-encoded. The architecture trivially supports resuming from step 3 if the user closes the Blink mid-quiz. Currently they restart. For demo scenarios where judges get distracted and return, this is a real UX win for ~0 architectural cost.",
+      "suggestion": "Document this as a v0+ enhancement; no code change needed in spine.",
+      "speculation": true,
+      "weight": 0
+    },
+    {
+      "id": "high-1",
+      "title": "Substrate-vs-presentation separation enforced by convention, not type/lint",
+      "severity": "HIGH",
+      "category": "architecture",
+      "file": "grimoires/loa/sdd.md:Section 0 + Section 6",
+      "description": "The architectural punchline (separation-as-moat) is the deck's headline. But the SDD does not specify HOW packages/peripheral-events is prevented from being mutated by medium renderers. There is no eslint rule, no dependency-cruiser config, no type-level constraint. Convention breaks under 4-day pressure with three engineers.",
+      "suggestion": "Add a CI guard (eslint-plugin-import or dependency-cruiser) that fails the build if packages/peripheral-events imports next, react, or any concrete adapter. This is what makes the moat real.",
+      "faang_parallel": "Google's monorepo enforces hexagonal boundaries via BUILD file deps, not convention.",
+      "metaphor": "A castle wall you've drawn on a map is not a castle wall.",
+      "weight": 5
+    },
+    {
+      "id": "high-2",
+      "title": "Nonce store durability across vercel cold starts unspecified",
+      "severity": "HIGH",
+      "category": "correctness",
+      "file": "grimoires/loa/sdd.md:Section 3.3 + Section 4.2",
+      "description": "ClaimMessage nonce 'stored server-side with 5min TTL' is a security-critical replay-protection mechanism. If implemented as in-memory Set in a Vercel function, cold-start across functions invalidates the TTL — nonce issued in one instance won't be recognized when validated by another.",
+      "suggestion": "Specify Redis, Vercel KV, or Supabase as the nonce store. Test cold-start nonce invalidation on day-1 spike.",
+      "metaphor": "An in-memory mutex across stateless workers is a coin flip dressed as a lock.",
+      "weight": 5
+    },
+    {
+      "id": "high-3",
+      "title": "Score adapter v0 path conflicts between PRD r6 (real API) and SDD r2 (mock)",
+      "severity": "HIGH",
+      "category": "ambiguity",
+      "file": "grimoires/loa/sdd.md:Section 7.1",
+      "description": "PRD r6 FR-5: 'consume score's existing surfaces (read-only): score-puru API + Sonar/Hasura GraphQL.' SDD r2 §7.1: 'v0: uses lib/score deterministic mock (operator-confirmed).' These specify different production realities. The deck's 'we read on-chain state' claim depends on which is true.",
+      "suggestion": "Pick one for the spine. Document the choice. If mock for v0, deck must reflect 'simulated activity feed.' If real API, the runtime dependency on Railway is a non-negotiable risk.",
+      "teachable_moment": "Hidden ambiguities resolve themselves the wrong way under deadline pressure.",
+      "weight": 5
+    },
+    {
+      "id": "high-4",
+      "title": "Sponsored-payer halt-disabled window has no overdraft guard",
+      "severity": "HIGH",
+      "category": "operational-risk",
+      "file": "grimoires/loa/sdd.md:Section 6.2",
+      "description": "Day-of-demo runbook: 'top up to >10 SOL' and 'DISABLE_PAYER_HALT=true'. With halt disabled, every mint that hits a depleted balance reverts. The conservation invariant `committed_mints + reserved_mints ≤ payer_balance / per_mint_cost` has no monitoring during the disabled-halt window.",
+      "suggestion": "Even with halt disabled, log balance snapshots every 30s during the demo window. Alert on rate-of-drain anomalies. Pre-stage refill keypair as fallback.",
+      "metaphor": "Disabling the smoke alarm during the cooking demo because false alarms are bad — but now you don't know if there's a fire.",
+      "weight": 5
+    },
+    {
+      "id": "medium-1",
+      "title": "Recent blockhash + wallet sign delay = transaction expiry risk",
+      "severity": "MEDIUM",
+      "category": "correctness",
+      "file": "grimoires/loa/sdd.md:Section 4.2",
+      "description": "Server-side recent_blockhash fetched before wallet signing. Solana transactions expire after ~150 slots (60-90s). Phantom signing typically takes 5-15s, but Dialect inspector or other surfaces may be slower. Slow signing path returns BlockhashNotFound error.",
+      "suggestion": "Document max stale-blockhash window. Either retry-fetch on wallet side (Phantom does this automatically for some flows) or use Solana durable nonces for high-latency surfaces.",
+      "weight": 2
+    },
+    {
+      "id": "medium-2",
+      "title": "Metaplex Phantom spike fallback technically clean but deck dependency unstated",
+      "severity": "MEDIUM",
+      "category": "scope-coupling",
+      "file": "grimoires/loa/sdd.md:Section 5.3 + Section 9",
+      "description": "If Spike 1 fails, fallback is PDA-only with 'mint' renamed to 'claim record.' This is a clean technical fallback, but the deck story (elevator: 'mint your archetype') depends on the term 'mint.' Day 4 has 0.5 day budget for deck. No buffer for deck rebuild on Spike 1 fail.",
+      "suggestion": "Pre-stage two deck templates (mint-language and claim-record-language) so the deck swap on Spike 1 fail is a 30-minute task, not a half-day rebuild.",
+      "weight": 2
+    },
+    {
+      "id": "praise-1",
+      "title": "Day-1 spine + 3 spikes pattern is a textbook de-risking decision",
+      "severity": "PRAISE",
+      "category": "process",
+      "file": "grimoires/loa/sdd.md:Section 5.3 + Section 9",
+      "description": "Forcing three high-risk technical questions to be answered Day 1 before feature work commits prevents the 'wrong foundation' disaster. Spike 1 (Metaplex Phantom visibility), Spike 2 (ed25519-via-instructions-sysvar), Spike 3 (partial-sign tx assembly) are exactly the right questions to settle early.",
+      "suggestion": "No changes — this is exemplary.",
+      "praise": true,
+      "teachable_moment": "When the cost of being wrong scales with how late you find out, front-load the discovery.",
+      "faang_parallel": "Spotify's 'release roulette' and Riot's 'demo every Friday' both ritualize this pattern.",
+      "weight": 0
+    },
+    {
+      "id": "praise-2",
+      "title": "Brownfield bridge for lib/score honors wrap-first-move-later doctrine",
+      "severity": "PRAISE",
+      "category": "architecture",
+      "file": "grimoires/loa/sdd.md:Section 7.1",
+      "description": "zerker's existing deterministic mock becomes v0 implementation of world-sources adapter contract. Real-API switch is one line at adapter level. No consumer changes. This is hexagonal architecture working as intended — the abstraction earns its keep at swap time.",
+      "suggestion": "No changes — this is exemplary.",
+      "praise": true,
+      "teachable_moment": "The boring technology club: existing things that work earn the right to be displaced, not the duty to be replaced.",
+      "weight": 0
+    },
+    {
+      "id": "praise-3",
+      "title": "ed25519 via Solana instructions sysvar pattern correctly specified",
+      "severity": "PRAISE",
+      "category": "correctness",
+      "file": "grimoires/loa/sdd.md:Section 5.1",
+      "description": "Many teams get this wrong by attempting in-program signature verification (not supported on Solana). SDD r2 spells out the correct pattern: Ed25519Program instruction prior, claim_genesis_stone reads instructions sysvar at index N-1 to verify signer + message bytes. Detail level is sufficient for engineer unfamiliar with Solana sysvars to implement correctly.",
+      "suggestion": "No changes — this is exemplary documentation.",
+      "praise": true,
+      "teachable_moment": "Spec the non-obvious patterns explicitly. Future-you and your teammates will thank you.",
+      "weight": 0
+    }
+  ],
+  "total": 14,
+  "by_severity": {
+    "critical": 0,
+    "high": 4,
+    "medium": 2,
+    "low": 0,
+    "vision": 0,
+    "praise": 3,
+    "speculation": 3,
+    "reframe": 2
+  },
+  "severity_weighted_score": 24
+}

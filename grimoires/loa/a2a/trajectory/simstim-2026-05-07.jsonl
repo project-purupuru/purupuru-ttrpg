@@ -1,0 +1,660 @@
+{
+  "type": "simstim",
+  "event": "flatline_readiness",
+  "timestamp": "2026-05-07T23:56:21Z",
+  "data": {
+    "status": "DEGRADED",
+    "exit_code": 3
+  }
+}
+{
+  "type": "simstim",
+  "event": "workflow_started",
+  "timestamp": "2026-05-07T23:56:21Z",
+  "data": {
+    "simstim_id": "simstim-20260507-ac37df65",
+    "from_phase": null
+  }
+}
+{
+  "type": "simstim",
+  "event": "flatline_readiness",
+  "timestamp": "2026-05-08T00:39:51Z",
+  "data": {
+    "status": "DEGRADED",
+    "exit_code": 3
+  }
+}
+{
+  "type": "simstim",
+  "event": "flatline_readiness",
+  "timestamp": "2026-05-08T00:40:44Z",
+  "data": {
+    "status": "DEGRADED",
+    "exit_code": 3
+  }
+}
+{
+  "type": "simstim",
+  "event": "flatline_readiness",
+  "timestamp": "2026-05-08T00:40:57Z",
+  "data": {
+    "status": "DEGRADED",
+    "exit_code": 3
+  }
+}
+{
+  "type": "simstim",
+  "event": "flatline_readiness",
+  "timestamp": "2026-05-08T00:41:14Z",
+  "data": {
+    "status": "DEGRADED",
+    "exit_code": 3
+  }
+}
+{
+  "type": "simstim",
+  "event": "workflow_started",
+  "timestamp": "2026-05-08T00:41:14Z",
+  "data": {
+    "simstim_id": "simstim-20260507-658e3680",
+    "from_phase": null
+  }
+}
+{
+  "type": "simstim",
+  "event": "phase_completed",
+  "timestamp": "2026-05-08T00:41:43Z",
+  "data": {
+    "phase": "discovery"
+  }
+}
+{
+  "type": "simstim",
+  "event": "flatline_completed",
+  "timestamp": "2026-05-08T00:42:31Z",
+  "data": {
+    "phase": "prd",
+    "metrics": {
+      "integrated": 7,
+      "disputed": 1,
+      "blockers": 10
+    }
+  }
+}
+{
+  "type": "simstim",
+  "event": "phase_completed",
+  "timestamp": "2026-05-08T00:42:31Z",
+  "data": {
+    "phase": "flatline_prd"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T00:42:31Z",
+  "data": {
+    "blocker_id": "prd-blocker-0",
+    "decision": "defer",
+    "rationale": "Defer to Phase 3 SDD authoring · Codex's awareness operating model (grimoires/loa/context/02-awareness-operating-model.md) restructures architecture into ports + adapters + composition flow · most PRD-level technical findings (HMAC · nonce · ed25519 spec · sponsored-payer ops · Metaplex visibility) live in SDD per the awareness-model framing · re-flatline after SDD authoring.",
+    "timestamp": "2026-05-08T00:42:31Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T00:42:32Z",
+  "data": {
+    "blocker_id": "prd-blocker-1",
+    "decision": "defer",
+    "rationale": "Defer to Phase 3 SDD authoring · Codex's awareness operating model (grimoires/loa/context/02-awareness-operating-model.md) restructures architecture into ports + adapters + composition flow · most PRD-level technical findings (HMAC · nonce · ed25519 spec · sponsored-payer ops · Metaplex visibility) live in SDD per the awareness-model framing · re-flatline after SDD authoring.",
+    "timestamp": "2026-05-08T00:42:31Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T00:42:32Z",
+  "data": {
+    "blocker_id": "prd-blocker-2",
+    "decision": "defer",
+    "rationale": "Defer to Phase 3 SDD authoring · Codex's awareness operating model (grimoires/loa/context/02-awareness-operating-model.md) restructures architecture into ports + adapters + composition flow · most PRD-level technical findings (HMAC · nonce · ed25519 spec · sponsored-payer ops · Metaplex visibility) live in SDD per the awareness-model framing · re-flatline after SDD authoring.",
+    "timestamp": "2026-05-08T00:42:32Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T00:42:32Z",
+  "data": {
+    "blocker_id": "prd-blocker-3",
+    "decision": "defer",
+    "rationale": "Defer to Phase 3 SDD authoring · Codex's awareness operating model (grimoires/loa/context/02-awareness-operating-model.md) restructures architecture into ports + adapters + composition flow · most PRD-level technical findings (HMAC · nonce · ed25519 spec · sponsored-payer ops · Metaplex visibility) live in SDD per the awareness-model framing · re-flatline after SDD authoring.",
+    "timestamp": "2026-05-08T00:42:32Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T00:42:32Z",
+  "data": {
+    "blocker_id": "prd-blocker-4",
+    "decision": "defer",
+    "rationale": "Defer to Phase 3 SDD authoring · Codex's awareness operating model (grimoires/loa/context/02-awareness-operating-model.md) restructures architecture into ports + adapters + composition flow · most PRD-level technical findings (HMAC · nonce · ed25519 spec · sponsored-payer ops · Metaplex visibility) live in SDD per the awareness-model framing · re-flatline after SDD authoring.",
+    "timestamp": "2026-05-08T00:42:32Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T00:42:32Z",
+  "data": {
+    "blocker_id": "prd-blocker-5",
+    "decision": "defer",
+    "rationale": "Defer to Phase 3 SDD authoring · Codex's awareness operating model (grimoires/loa/context/02-awareness-operating-model.md) restructures architecture into ports + adapters + composition flow · most PRD-level technical findings (HMAC · nonce · ed25519 spec · sponsored-payer ops · Metaplex visibility) live in SDD per the awareness-model framing · re-flatline after SDD authoring.",
+    "timestamp": "2026-05-08T00:42:32Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T00:42:33Z",
+  "data": {
+    "blocker_id": "prd-blocker-6",
+    "decision": "defer",
+    "rationale": "Defer to Phase 3 SDD authoring · Codex's awareness operating model (grimoires/loa/context/02-awareness-operating-model.md) restructures architecture into ports + adapters + composition flow · most PRD-level technical findings (HMAC · nonce · ed25519 spec · sponsored-payer ops · Metaplex visibility) live in SDD per the awareness-model framing · re-flatline after SDD authoring.",
+    "timestamp": "2026-05-08T00:42:33Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T00:42:33Z",
+  "data": {
+    "blocker_id": "prd-blocker-7",
+    "decision": "defer",
+    "rationale": "Defer to Phase 3 SDD authoring · Codex's awareness operating model (grimoires/loa/context/02-awareness-operating-model.md) restructures architecture into ports + adapters + composition flow · most PRD-level technical findings (HMAC · nonce · ed25519 spec · sponsored-payer ops · Metaplex visibility) live in SDD per the awareness-model framing · re-flatline after SDD authoring.",
+    "timestamp": "2026-05-08T00:42:33Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T00:42:33Z",
+  "data": {
+    "blocker_id": "prd-blocker-8",
+    "decision": "defer",
+    "rationale": "Defer to Phase 3 SDD authoring · Codex's awareness operating model (grimoires/loa/context/02-awareness-operating-model.md) restructures architecture into ports + adapters + composition flow · most PRD-level technical findings (HMAC · nonce · ed25519 spec · sponsored-payer ops · Metaplex visibility) live in SDD per the awareness-model framing · re-flatline after SDD authoring.",
+    "timestamp": "2026-05-08T00:42:33Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T00:42:33Z",
+  "data": {
+    "blocker_id": "prd-blocker-9",
+    "decision": "defer",
+    "rationale": "Defer to Phase 3 SDD authoring · Codex's awareness operating model (grimoires/loa/context/02-awareness-operating-model.md) restructures architecture into ports + adapters + composition flow · most PRD-level technical findings (HMAC · nonce · ed25519 spec · sponsored-payer ops · Metaplex visibility) live in SDD per the awareness-model framing · re-flatline after SDD authoring.",
+    "timestamp": "2026-05-08T00:42:33Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "phase_started",
+  "timestamp": "2026-05-08T00:43:13Z",
+  "data": {
+    "phase": "architecture"
+  }
+}
+{
+  "type": "simstim",
+  "event": "phase_completed",
+  "timestamp": "2026-05-08T00:46:52Z",
+  "data": {
+    "phase": "architecture"
+  }
+}
+{
+  "type": "simstim",
+  "event": "phase_started",
+  "timestamp": "2026-05-08T00:48:12Z",
+  "data": {
+    "phase": "bridgebuilder_sdd"
+  }
+}
+{
+  "type": "simstim",
+  "event": "phase_completed",
+  "timestamp": "2026-05-08T01:00:09Z",
+  "data": {
+    "phase": "bridgebuilder_sdd"
+  }
+}
+{
+  "type": "simstim",
+  "event": "phase_started",
+  "timestamp": "2026-05-08T01:00:09Z",
+  "data": {
+    "phase": "flatline_sdd"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T01:04:07Z",
+  "data": {
+    "blocker_id": "sdd-blocker-0",
+    "decision": "defer",
+    "rationale": "Defer to Phase 5 (Sprint Planning) · 14 blockers become concrete sprint tasks with explicit AC · Phase 6 flatline-sprint re-validates after sprint plan written · same pattern as PRD blockers deferred to Phase 3",
+    "timestamp": "2026-05-08T01:04:07Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T01:04:07Z",
+  "data": {
+    "blocker_id": "sdd-blocker-1",
+    "decision": "defer",
+    "rationale": "Defer to Phase 5 (Sprint Planning) · 14 blockers become concrete sprint tasks with explicit AC · Phase 6 flatline-sprint re-validates after sprint plan written · same pattern as PRD blockers deferred to Phase 3",
+    "timestamp": "2026-05-08T01:04:07Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T01:04:07Z",
+  "data": {
+    "blocker_id": "sdd-blocker-2",
+    "decision": "defer",
+    "rationale": "Defer to Phase 5 (Sprint Planning) · 14 blockers become concrete sprint tasks with explicit AC · Phase 6 flatline-sprint re-validates after sprint plan written · same pattern as PRD blockers deferred to Phase 3",
+    "timestamp": "2026-05-08T01:04:07Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T01:04:08Z",
+  "data": {
+    "blocker_id": "sdd-blocker-3",
+    "decision": "defer",
+    "rationale": "Defer to Phase 5 (Sprint Planning) · 14 blockers become concrete sprint tasks with explicit AC · Phase 6 flatline-sprint re-validates after sprint plan written · same pattern as PRD blockers deferred to Phase 3",
+    "timestamp": "2026-05-08T01:04:08Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T01:04:08Z",
+  "data": {
+    "blocker_id": "sdd-blocker-4",
+    "decision": "defer",
+    "rationale": "Defer to Phase 5 (Sprint Planning) · 14 blockers become concrete sprint tasks with explicit AC · Phase 6 flatline-sprint re-validates after sprint plan written · same pattern as PRD blockers deferred to Phase 3",
+    "timestamp": "2026-05-08T01:04:08Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T01:04:08Z",
+  "data": {
+    "blocker_id": "sdd-blocker-5",
+    "decision": "defer",
+    "rationale": "Defer to Phase 5 (Sprint Planning) · 14 blockers become concrete sprint tasks with explicit AC · Phase 6 flatline-sprint re-validates after sprint plan written · same pattern as PRD blockers deferred to Phase 3",
+    "timestamp": "2026-05-08T01:04:08Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T01:04:08Z",
+  "data": {
+    "blocker_id": "sdd-blocker-6",
+    "decision": "defer",
+    "rationale": "Defer to Phase 5 (Sprint Planning) · 14 blockers become concrete sprint tasks with explicit AC · Phase 6 flatline-sprint re-validates after sprint plan written · same pattern as PRD blockers deferred to Phase 3",
+    "timestamp": "2026-05-08T01:04:08Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T01:04:09Z",
+  "data": {
+    "blocker_id": "sdd-blocker-7",
+    "decision": "defer",
+    "rationale": "Defer to Phase 5 (Sprint Planning) · 14 blockers become concrete sprint tasks with explicit AC · Phase 6 flatline-sprint re-validates after sprint plan written · same pattern as PRD blockers deferred to Phase 3",
+    "timestamp": "2026-05-08T01:04:08Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T01:04:09Z",
+  "data": {
+    "blocker_id": "sdd-blocker-8",
+    "decision": "defer",
+    "rationale": "Defer to Phase 5 (Sprint Planning) · 14 blockers become concrete sprint tasks with explicit AC · Phase 6 flatline-sprint re-validates after sprint plan written · same pattern as PRD blockers deferred to Phase 3",
+    "timestamp": "2026-05-08T01:04:09Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T01:04:09Z",
+  "data": {
+    "blocker_id": "sdd-blocker-9",
+    "decision": "defer",
+    "rationale": "Defer to Phase 5 (Sprint Planning) · 14 blockers become concrete sprint tasks with explicit AC · Phase 6 flatline-sprint re-validates after sprint plan written · same pattern as PRD blockers deferred to Phase 3",
+    "timestamp": "2026-05-08T01:04:09Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T01:04:09Z",
+  "data": {
+    "blocker_id": "sdd-blocker-10",
+    "decision": "defer",
+    "rationale": "Defer to Phase 5 (Sprint Planning) · 14 blockers become concrete sprint tasks with explicit AC · Phase 6 flatline-sprint re-validates after sprint plan written · same pattern as PRD blockers deferred to Phase 3",
+    "timestamp": "2026-05-08T01:04:09Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T01:04:09Z",
+  "data": {
+    "blocker_id": "sdd-blocker-11",
+    "decision": "defer",
+    "rationale": "Defer to Phase 5 (Sprint Planning) · 14 blockers become concrete sprint tasks with explicit AC · Phase 6 flatline-sprint re-validates after sprint plan written · same pattern as PRD blockers deferred to Phase 3",
+    "timestamp": "2026-05-08T01:04:09Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T01:04:10Z",
+  "data": {
+    "blocker_id": "sdd-blocker-12",
+    "decision": "defer",
+    "rationale": "Defer to Phase 5 (Sprint Planning) · 14 blockers become concrete sprint tasks with explicit AC · Phase 6 flatline-sprint re-validates after sprint plan written · same pattern as PRD blockers deferred to Phase 3",
+    "timestamp": "2026-05-08T01:04:10Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T01:04:10Z",
+  "data": {
+    "blocker_id": "sdd-blocker-13",
+    "decision": "defer",
+    "rationale": "Defer to Phase 5 (Sprint Planning) · 14 blockers become concrete sprint tasks with explicit AC · Phase 6 flatline-sprint re-validates after sprint plan written · same pattern as PRD blockers deferred to Phase 3",
+    "timestamp": "2026-05-08T01:04:10Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "flatline_completed",
+  "timestamp": "2026-05-08T01:04:10Z",
+  "data": {
+    "phase": "sdd",
+    "metrics": {
+      "integrated": 7,
+      "disputed": 3,
+      "blockers": 14
+    }
+  }
+}
+{
+  "type": "simstim",
+  "event": "phase_completed",
+  "timestamp": "2026-05-08T01:04:10Z",
+  "data": {
+    "phase": "flatline_sdd"
+  }
+}
+{
+  "type": "simstim",
+  "event": "phase_started",
+  "timestamp": "2026-05-08T01:04:36Z",
+  "data": {
+    "phase": "planning"
+  }
+}
+{
+  "type": "simstim",
+  "event": "phase_completed",
+  "timestamp": "2026-05-08T01:07:26Z",
+  "data": {
+    "phase": "planning"
+  }
+}
+{
+  "type": "simstim",
+  "event": "phase_started",
+  "timestamp": "2026-05-08T01:07:26Z",
+  "data": {
+    "phase": "flatline_sprint"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T01:10:16Z",
+  "data": {
+    "blocker_id": "sprint-blocker-0",
+    "decision": "defer",
+    "rationale": "Defer to Phase 7 IMPLEMENTATION · sprint-flatline blockers become concrete bug tasks during /run sprint-plan execution · review-sprint + audit-sprint gates catch them per-task · Phase 7.5 post-PR validation absorbs remainder.",
+    "timestamp": "2026-05-08T01:10:16Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T01:10:16Z",
+  "data": {
+    "blocker_id": "sprint-blocker-1",
+    "decision": "defer",
+    "rationale": "Defer to Phase 7 IMPLEMENTATION · sprint-flatline blockers become concrete bug tasks during /run sprint-plan execution · review-sprint + audit-sprint gates catch them per-task · Phase 7.5 post-PR validation absorbs remainder.",
+    "timestamp": "2026-05-08T01:10:16Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T01:10:16Z",
+  "data": {
+    "blocker_id": "sprint-blocker-2",
+    "decision": "defer",
+    "rationale": "Defer to Phase 7 IMPLEMENTATION · sprint-flatline blockers become concrete bug tasks during /run sprint-plan execution · review-sprint + audit-sprint gates catch them per-task · Phase 7.5 post-PR validation absorbs remainder.",
+    "timestamp": "2026-05-08T01:10:16Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T01:10:17Z",
+  "data": {
+    "blocker_id": "sprint-blocker-3",
+    "decision": "defer",
+    "rationale": "Defer to Phase 7 IMPLEMENTATION · sprint-flatline blockers become concrete bug tasks during /run sprint-plan execution · review-sprint + audit-sprint gates catch them per-task · Phase 7.5 post-PR validation absorbs remainder.",
+    "timestamp": "2026-05-08T01:10:16Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T01:10:17Z",
+  "data": {
+    "blocker_id": "sprint-blocker-4",
+    "decision": "defer",
+    "rationale": "Defer to Phase 7 IMPLEMENTATION · sprint-flatline blockers become concrete bug tasks during /run sprint-plan execution · review-sprint + audit-sprint gates catch them per-task · Phase 7.5 post-PR validation absorbs remainder.",
+    "timestamp": "2026-05-08T01:10:17Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T01:10:17Z",
+  "data": {
+    "blocker_id": "sprint-blocker-5",
+    "decision": "defer",
+    "rationale": "Defer to Phase 7 IMPLEMENTATION · sprint-flatline blockers become concrete bug tasks during /run sprint-plan execution · review-sprint + audit-sprint gates catch them per-task · Phase 7.5 post-PR validation absorbs remainder.",
+    "timestamp": "2026-05-08T01:10:17Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T01:10:17Z",
+  "data": {
+    "blocker_id": "sprint-blocker-6",
+    "decision": "defer",
+    "rationale": "Defer to Phase 7 IMPLEMENTATION · sprint-flatline blockers become concrete bug tasks during /run sprint-plan execution · review-sprint + audit-sprint gates catch them per-task · Phase 7.5 post-PR validation absorbs remainder.",
+    "timestamp": "2026-05-08T01:10:17Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T01:10:17Z",
+  "data": {
+    "blocker_id": "sprint-blocker-7",
+    "decision": "defer",
+    "rationale": "Defer to Phase 7 IMPLEMENTATION · sprint-flatline blockers become concrete bug tasks during /run sprint-plan execution · review-sprint + audit-sprint gates catch them per-task · Phase 7.5 post-PR validation absorbs remainder.",
+    "timestamp": "2026-05-08T01:10:17Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T01:10:18Z",
+  "data": {
+    "blocker_id": "sprint-blocker-8",
+    "decision": "defer",
+    "rationale": "Defer to Phase 7 IMPLEMENTATION · sprint-flatline blockers become concrete bug tasks during /run sprint-plan execution · review-sprint + audit-sprint gates catch them per-task · Phase 7.5 post-PR validation absorbs remainder.",
+    "timestamp": "2026-05-08T01:10:18Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T01:10:18Z",
+  "data": {
+    "blocker_id": "sprint-blocker-9",
+    "decision": "defer",
+    "rationale": "Defer to Phase 7 IMPLEMENTATION · sprint-flatline blockers become concrete bug tasks during /run sprint-plan execution · review-sprint + audit-sprint gates catch them per-task · Phase 7.5 post-PR validation absorbs remainder.",
+    "timestamp": "2026-05-08T01:10:18Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T01:10:18Z",
+  "data": {
+    "blocker_id": "sprint-blocker-10",
+    "decision": "defer",
+    "rationale": "Defer to Phase 7 IMPLEMENTATION · sprint-flatline blockers become concrete bug tasks during /run sprint-plan execution · review-sprint + audit-sprint gates catch them per-task · Phase 7.5 post-PR validation absorbs remainder.",
+    "timestamp": "2026-05-08T01:10:18Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T01:10:18Z",
+  "data": {
+    "blocker_id": "sprint-blocker-11",
+    "decision": "defer",
+    "rationale": "Defer to Phase 7 IMPLEMENTATION · sprint-flatline blockers become concrete bug tasks during /run sprint-plan execution · review-sprint + audit-sprint gates catch them per-task · Phase 7.5 post-PR validation absorbs remainder.",
+    "timestamp": "2026-05-08T01:10:18Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T01:10:19Z",
+  "data": {
+    "blocker_id": "sprint-blocker-12",
+    "decision": "defer",
+    "rationale": "Defer to Phase 7 IMPLEMENTATION · sprint-flatline blockers become concrete bug tasks during /run sprint-plan execution · review-sprint + audit-sprint gates catch them per-task · Phase 7.5 post-PR validation absorbs remainder.",
+    "timestamp": "2026-05-08T01:10:19Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T01:10:19Z",
+  "data": {
+    "blocker_id": "sprint-blocker-13",
+    "decision": "defer",
+    "rationale": "Defer to Phase 7 IMPLEMENTATION · sprint-flatline blockers become concrete bug tasks during /run sprint-plan execution · review-sprint + audit-sprint gates catch them per-task · Phase 7.5 post-PR validation absorbs remainder.",
+    "timestamp": "2026-05-08T01:10:19Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T01:10:19Z",
+  "data": {
+    "blocker_id": "sprint-blocker-14",
+    "decision": "defer",
+    "rationale": "Defer to Phase 7 IMPLEMENTATION · sprint-flatline blockers become concrete bug tasks during /run sprint-plan execution · review-sprint + audit-sprint gates catch them per-task · Phase 7.5 post-PR validation absorbs remainder.",
+    "timestamp": "2026-05-08T01:10:19Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T01:10:19Z",
+  "data": {
+    "blocker_id": "sprint-blocker-15",
+    "decision": "defer",
+    "rationale": "Defer to Phase 7 IMPLEMENTATION · sprint-flatline blockers become concrete bug tasks during /run sprint-plan execution · review-sprint + audit-sprint gates catch them per-task · Phase 7.5 post-PR validation absorbs remainder.",
+    "timestamp": "2026-05-08T01:10:19Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T01:10:19Z",
+  "data": {
+    "blocker_id": "sprint-blocker-16",
+    "decision": "defer",
+    "rationale": "Defer to Phase 7 IMPLEMENTATION · sprint-flatline blockers become concrete bug tasks during /run sprint-plan execution · review-sprint + audit-sprint gates catch them per-task · Phase 7.5 post-PR validation absorbs remainder.",
+    "timestamp": "2026-05-08T01:10:19Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "blocker_override",
+  "timestamp": "2026-05-08T01:10:20Z",
+  "data": {
+    "blocker_id": "sprint-blocker-17",
+    "decision": "defer",
+    "rationale": "Defer to Phase 7 IMPLEMENTATION · sprint-flatline blockers become concrete bug tasks during /run sprint-plan execution · review-sprint + audit-sprint gates catch them per-task · Phase 7.5 post-PR validation absorbs remainder.",
+    "timestamp": "2026-05-08T01:10:20Z"
+  }
+}
+{
+  "type": "simstim",
+  "event": "flatline_completed",
+  "timestamp": "2026-05-08T01:10:20Z",
+  "data": {
+    "phase": "sprint",
+    "metrics": {
+      "integrated": 6,
+      "disputed": 2,
+      "blockers": 18
+    }
+  }
+}
+{
+  "type": "simstim",
+  "event": "phase_completed",
+  "timestamp": "2026-05-08T01:10:20Z",
+  "data": {
+    "phase": "flatline_sprint"
+  }
+}

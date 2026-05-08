@@ -1,27 +1,24 @@
 {
-  "schema_version": 1,
-  "generated_at": "2026-05-07T22:59:59Z",
-  "generator": "ride-v0.6.0",
+  "generated_at": "2026-05-07T19:36:00Z",
+  "generator": "riding-codebase v0.6.0",
+  "loa_framework_version_caller": "1.116.1",
+  "loa_framework_version_target": "1.130.0",
+  "target_repo": "/Users/zksoju/Documents/GitHub/purupuru-ttrpg",
+  "is_genesis_state": true,
+  "git_commits_at_ride": 0,
+  "non_vendored_files_count": 5,
   "staleness_threshold_days": 7,
   "files": {
-    "index.md":                   { "tokens_estimate": 350, "budget": 500 },
-    "api-surface.md":             { "tokens_estimate": 700, "budget": 2000 },
-    "types.md":                   { "tokens_estimate": 1200, "budget": 2000 },
-    "interfaces.md":              { "tokens_estimate": 700, "budget": 1000 },
-    "structure.md":               { "tokens_estimate": 900, "budget": 1000 },
-    "entry-points.md":            { "tokens_estimate": 350, "budget": 500 },
-    "architecture-overview.md":   { "tokens_estimate": 1300, "budget": 1500 }
+    "index.md": {"approx_tokens": 350},
+    "architecture-overview.md": {"approx_tokens": 1100},
+    "api-surface.md": {"approx_tokens": 500},
+    "types.md": {"approx_tokens": 700},
+    "interfaces.md": {"approx_tokens": 600},
+    "entry-points.md": {"approx_tokens": 500},
+    "structure.md": {"approx_tokens": 800}
   },
-  "totals": {
-    "tokens_estimate": 5500,
-    "budget": 8500,
-    "within_budget": true
-  },
-  "source_repo": {
-    "name": "purupuru-ttrpg",
-    "stack": ["next@16.2.6","react@19.2.4","typescript@5","tailwindcss@4","pixi.js@8.18.1","motion@12","lucide-react@1"],
-    "size": "small",
-    "source_lines": 1087,
-    "source_files": 13
-  }
+  "approx_total_tokens": 4550,
+  "budget_target_tokens": 8500,
+  "within_budget": true,
+  "notes": "Token counts are approximate. Genesis-stage repo: every file documents 'nothing built yet' as the truth. Re-run /ride after sprint-1 to populate with grounded file:line citations."
 }

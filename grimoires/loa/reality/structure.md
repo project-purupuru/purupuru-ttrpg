@@ -1,72 +1,60 @@
-# Repository Structure
+# Code Structure (Reality Snapshot · 2026-05-07)
 
-> Generated 2026-05-07 by `/ride`. Truth lives in code; this is a snapshot.
+> Source: `find` on `~/Documents/GitHub/purupuru-ttrpg`, excluding vendored dirs (`.git`, `.loa`, `.beads`, `.claude`, `node_modules`, `grimoires`).
+>
+> **Verdict**: scaffold-only. Five non-vendored files. No `src/`, no `apps/`, no `packages/`, no `programs/`.
 
-## Tree (depth 4, source code only)
+## Directory Tree (max depth 4, vendored dirs collapsed)
 
 ```
 purupuru-ttrpg/
-├── app/                          [Next.js App Router]
-│   ├── globals.css               (555 lines — design tokens + motion vocabulary)
-│   ├── layout.tsx                (35 lines — root layout, next/font wiring)
-│   └── page.tsx                  (158 lines — observatory landing kit showcase)
-├── lib/
-│   ├── utils.ts                  (cn() helper — clsx + tailwind-merge)
-│   └── score/                    [Score read-adapter contract + mock]
-│       ├── index.ts              (re-exports + scoreAdapter binding)
-│       ├── mock.ts               (deterministic stub keyed off wallet hash)
-│       └── types.ts              (Element, Wallet, ScoreReadAdapter, etc.)
-├── public/
-│   ├── art/
-│   │   ├── puruhani/             (5 PNGs — element guardian sprites)
-│   │   ├── jani/                 (5 PNGs — sister-character sprites)
-│   │   ├── cards/
-│   │   │   ├── backgrounds/      (6 SVG — element + harmony)
-│   │   │   ├── behavioral/       (14 SVG — awakening, dormant, harmonized × N, resonant × N)
-│   │   │   ├── frames/           (4 SVG — common, mid, rare, rarest)
-│   │   │   ├── frames_pot/       (6 SVG — element + harmony framed pots)
-│   │   │   └── rarity-treatments/ (4 SVG)
-│   │   ├── element-effects/      (6 SVG — element glows + harmony glow)
-│   │   ├── patterns/             (1 webp — grain-warm)
-│   │   ├── skills/purupuru/      (SKILL.md — Tsuheji world voice/lore guide)
-│   │   └── tsuheji-map.png
-│   ├── brand/                    (2 SVG — wordmark color + white)
-│   ├── data/materials/           (18 JSON — caretaker/jani/transcendence configs)
-│   └── fonts/                    (FOT-Yuruka Std woff2+ttf, ZCOOL KuaiLe woff2)
-├── grimoires/loa/                [Loa state zone]
-├── .beads/, .claude/, .run/      [Loa system & state]
-├── AGENTS.md                     (5 lines — "this is NOT the Next.js you know")
-├── CLAUDE.md                     (54 lines — project instructions)
-├── README.md                     (36 lines — generic Next.js boilerplate)
-├── eslint.config.mjs
-├── next-env.d.ts
-├── next.config.ts                (empty config — defaults)
-├── package.json
-├── pnpm-lock.yaml
-├── pnpm-workspace.yaml
-├── postcss.config.mjs
-└── tsconfig.json
+├── .beads/                    [collapsed · Loa task graph state]
+├── .claude/                   [collapsed · Loa system zone, vendored]
+├── .git/                      [collapsed · zero commits yet]
+├── .loa/                      [collapsed · framework submodule v1.130.0]
+├── grimoires/                 [State Zone]
+│   └── loa/
+│       ├── NOTES.md
+│       ├── a2a/
+│       │   ├── flatline/      [PRD adversarial-review artifact]
+│       │   └── trajectory/    [agent telemetry]
+│       ├── context/           [empty pre-ride · populated by /ride]
+│       ├── discovery/         [empty]
+│       ├── legacy/            [empty]
+│       ├── prd.md             [911 LOC · post-flatline-applied genesis PRD]
+│       └── reality/           [populated by this ride]
+├── .gitignore
+├── .loa-version.json
+├── .loa.config.yaml
+├── CLAUDE.md
+└── README.md
 ```
 
-## Source-code totals
+## Non-Vendored File Inventory
 
-| Category | Files | Lines |
-|----------|-------|-------|
-| TypeScript / TSX | 7 | 350 |
-| CSS | 1 | 555 |
-| Config (json/mjs/ts) | 5 | 79 |
-| Markdown | 4 | 95 |
-| **Total source** | **17** | **1,079** |
-| Public assets | 70+ | — |
+| File | Bytes | Purpose |
+|------|-------|---------|
+| `.gitignore` | 584 | next.js / node / loa-state ignores · `grimoires/loa/a2a/trajectory/*.jsonl` excluded |
+| `.loa-version.json` | 406 | Loa framework version pin (v1.130.0, schema 2, strict integrity) |
+| `.loa.config.yaml` | 578 | Operator-owned config · `persistence_mode: standard`, `integrity_enforcement: strict`, `drift_resolution: code` |
+| `CLAUDE.md` | 1813 | Repo-level agent guidance · references `@.claude/loa/CLAUDE.loa.md` framework instructions |
+| `README.md` | 3774 | Public-facing repo description · ghibli-warm voice · status banner |
 
-## Module responsibilities
+## Planned vs. Actual
 
-| Path | Role |
-|------|------|
-| `app/layout.tsx` | Root HTML shell. Wires Inter + Geist Mono via `next/font/google`. Body uses `font-puru-body` and `text-puru-ink-base`. |
-| `app/page.tsx` | Single route at `/` — design-system showcase: wordmark, wuxing roster (5 puruhani), typography scale, jani sister roster, kit contents. **Not yet** the observatory simulation. |
-| `app/globals.css` | OKLCH design tokens, light + Old Horai dark themes, motion keyframes, `@theme` Tailwind 4 utility wiring. Single source of truth for visual identity. |
-| `lib/utils.ts` | `cn()` — clsx + tailwind-merge for conditional class composition. |
-| `lib/score/types.ts` | Read-side contract: `Element`, `Wallet`, `WalletProfile`, `WalletBadge`, `WalletSignals`, `ElementDistribution`, `EcosystemEnergy`, `ScoreReadAdapter`. |
-| `lib/score/mock.ts` | Deterministic mock — every method seeds from `hash(address)` so the same wallet returns identical readings across calls. |
-| `lib/score/index.ts` | Barrel export. Binds `scoreAdapter: ScoreReadAdapter = mockScoreAdapter` so callers swap implementations by editing one line. |
+| Path (planned) | Source of plan | Actual | Drift type |
+|----------------|----------------|--------|------------|
+| `apps/web/` | README L33, CLAUDE.md, prd.md tl;dr (`apps/blink-emitter`) | absent | GHOST |
+| `packages/peripheral-state/` | README L34 | absent | GHOST |
+| `packages/peripheral-events/` | CLAUDE.md, prd.md (`@purupuru/peripheral-events`) | absent | GHOST |
+| `packages/omen-templates/` | README L35 | absent | GHOST · also OBSOLETE — superseded by post-flatline frame |
+| `programs/event-witness/` | CLAUDE.md, prd.md §3.3 | absent | GHOST |
+
+## Git State
+
+- Branch: `main`
+- Commits: **0** — `git log` returns "your current branch 'main' does not have any commits yet"
+- Remotes: `loa-upstream/main` only
+- Staged but uncommitted: ~1000+ files (entire `.beads/`, `.claude/`, `.loa/`, `grimoires/` scaffold from `/mount`)
+
+This is a genesis-stage repo. The next git commit will likely be the initial scaffold + PRD commit.

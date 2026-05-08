@@ -1,37 +1,39 @@
 # Entry Points
 
-> Generated 2026-05-07.
+> Generated 2026-05-07. **Currently: none.** No application code = no entry points.
 
-## Main files
+## Application Entry Points (planned)
 
-| File | Role |
-|------|------|
-| `app/layout.tsx:20` | `RootLayout` — root HTML shell, font wiring |
-| `app/page.tsx:12` | `Home` — `/` route, design-system showcase |
-| `app/globals.css` | Design tokens loaded into `RootLayout` via `import "./globals.css"` |
+After sprint-1 ships:
 
-## CLI commands (`package.json:5–10`)
+| Entry | Path (planned) | Purpose |
+|-------|----------------|---------|
+| Next.js app | `apps/blink-emitter/` | Solana Action GET/POST + OG image |
+| TS workspace package | `packages/peripheral-events/` | substrate library, no entry binary |
+| Anchor program | `programs/event-witness/` | devnet-deployed, called via the emitter |
+| CLI / scripts | TBD | likely dev-only at first |
 
-| Command | Action |
-|---------|--------|
-| `pnpm dev` | `next dev` — Turbopack dev server |
-| `pnpm build` | `next build` |
-| `pnpm start` | `next start` |
-| `pnpm lint` | `eslint` |
+## Repository Entry Points (current)
 
-## Environment requirements
+| Entry | Path | Purpose |
+|-------|------|---------|
+| Repo root README | `README.md` | public-facing description, ghibli-warm voice |
+| Agent guidance | `CLAUDE.md` | repo-level Claude/agent prompt + status banner |
+| Loa framework | `.loa/` (submodule v1.116.1 elsewhere; this repo has v1.130.0 mounted) | Loa system zone |
+| Canonical PRD | `grimoires/loa/prd.md` | post-flatline-applied genesis spec (911 LOC) |
+| Companion SDD | `grimoires/loa/sdd.md` | this ride's architecture documentation |
 
-**None.** No env vars referenced anywhere in app code. No `.env*` files in repo.
+## Required Env Vars (planned)
 
-## Runtime
+None today. Sprint-1 will introduce (anticipated, not yet committed):
 
-- Node: implied by `@types/node: ^20`
-- Browser: modern (Tailwind 4 + OKLCH require recent engines)
-- Reduced-motion + dark-mode respected via media queries (`app/globals.css:301, 548`)
+- `SOLANA_RPC_URL` — devnet
+- `WITNESS_PROGRAM_ID` — anchor program deployment address
+- `BACKEND_FEE_PAYER_KEYPAIR` — sponsored-payer signing keypair
+- `SCORE_API_URL` — score-puru integration
+- `SONAR_GRAPHQL_URL` — Hasura subscription endpoint
+- `WEATHER_BOT_FEED` — puruhpuruweather upstream
 
-## First page-load asset path
+## Build / Run
 
-1. `RootLayout` loads `inter` + `geistMono` via `next/font/google` (`app/layout.tsx:5–13`)
-2. `RootLayout` imports `./globals.css` which pulls FOT-Yuruka Std + ZCOOL KuaiLe from `/public/fonts/`
-3. `Home` renders, importing puruhani + jani PNGs from `/public/art/`
-4. Brand wordmark loads from `/public/brand/purupuru-wordmark.svg`
+Not yet defined. Sprint-1 will add `package.json`, `bun.lockb` or `pnpm-lock.yaml`, and likely a `turbo.json` or `nx.json` for the monorepo.

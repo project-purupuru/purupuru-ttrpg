@@ -1,19 +1,13 @@
-# Test Files
+# Test Files (Reality Snapshot · 2026-05-07)
 
-> Extracted 2026-05-07.
+NONE FOUND.
 
-## Application tests
+No `*.test.ts`, `*.spec.ts`, `*_test.go`, `test_*.py`, or `*.test.tsx` files exist outside vendored dirs.
 
-**None.** No `*.test.ts(x)`, `*.spec.ts(x)`, `__tests__/`, vitest config, jest config, or playwright config under `app/` or `lib/`.
+PRD §test plan (FR-10) commits to:
+  - cmp-boundary lint
+  - golden tests for medium fanout
+  - canonical eventId hash stability tests
+  - Effect Schema round-trip parse tests
 
-## Test framework dependencies
-
-`package.json` lists none. No `vitest`, `jest`, `@testing-library/*`, `playwright`, or `cypress`.
-
-## Framework-internal tests (excluded from app scope)
-
-`.claude/lib/__tests__/` and `.claude/skills/bridgebuilder-review/resources/__tests__/` contain Loa framework tests. These are System Zone — out of scope for application reality.
-
-## Implication for the hackathon
-
-Test-first is non-negotiable for the Loa `/bug` and `/implement` skills, but the **scaffold itself ships testless**. When the first sprint introduces simulation engine code, tests will need to be added to satisfy the `/audit-sprint` quality gate. Fixture for a deterministic Pixi mount + the seeded `mockScoreAdapter` is the obvious starting point.
+These are sprint-1 deliverables, not yet present.

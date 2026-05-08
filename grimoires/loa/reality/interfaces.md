@@ -1,85 +1,37 @@
-# External Interfaces
+# External Integrations
 
-> Generated 2026-05-07. Lists every shape that crosses a "system boundary" (real or future).
+> Generated 2026-05-07. **Currently: none integrated.** All integrations are planned for sprint-1+.
 
-## Active interfaces
+## Upstream Sources (read-side)
 
-### Score read-adapter — MOCKED today
+| Source | Repo / Surface | What this repo will read | Integration shape |
+|--------|----------------|--------------------------|-------------------|
+| `score-puru` API | `project-purupuru/score` (live) | Element affinity, wallet signals | HTTP REST · planned `ScoreAdapter` |
+| `sonar` GraphQL | `project-purupuru/sonar` (live) | Raw on-chain mint / transfer events | Hasura subscription · planned `SonarAdapter` |
+| `puruhpuruweather` | live X bot | Daily cosmic weather oracle | feed/parse · adapter TBD |
+| `project-purupuru/game` | codex+gumi parallel pair | Game-state events (battle, burn, transcendence) | future · post-hackathon |
 
-Status: bound to `mockScoreAdapter` at `lib/score/index.ts:17`.
+## Downstream Mediums (write-side / fan-out)
 
-The contract (`lib/score/types.ts:40–46`) is the boundary. Today the only implementation is the deterministic mock in `lib/score/mock.ts`. When a real Score endpoint becomes available, swap by editing one line.
+| Medium | Registry | Status |
+|--------|----------|--------|
+| `BLINK_DESCRIPTOR` (Solana Actions) | `0xHoneyJar/freeside-mediums/protocol` | **PR planned** — 5th MediumCapability variant alongside DISCORD_WEBHOOK / DISCORD_INTERACTION / CLI / TELEGRAM_STUB. `medium-registry@0.2.0` already shipped (cycle-R, 2026-05-04). |
+| Twitter card composer | future | post-hackathon |
+| Discord webhook | future | post-hackathon |
+| Telegram inline | future | post-hackathon |
 
-Methods (all read-only, all return Promises):
-- `getWalletProfile(address)` → `WalletProfile | null`
-- `getWalletBadges(address)` → `WalletBadge[]`
-- `getWalletSignals(address)` → `WalletSignals | null`
-- `getElementDistribution()` → `ElementDistribution`
-- `getEcosystemEnergy()` → `EcosystemEnergy`
+## On-Chain Surface
 
-### `next/font/google` — Inter + Geist Mono
+- Solana **devnet** v0. The on-chain witness program (`programs/event-witness/`) will be deployed to devnet only.
+- Sponsored-payer model: backend keypair pays gas; user wallet signs as authority for the witness record.
+- Mainnet path deferred per PRD D-3.
 
-`app/layout.tsx:5–13` requests Inter and Geist Mono at build time. Next.js fetches font files and self-hosts them. No env config required.
+## Webhooks
 
-### Local `@font-face` — FOT-Yuruka Std + ZCOOL KuaiLe
+None yet. Sponsorship for ingest webhooks (e.g. mint listeners) likely emerges in sprint-1.
 
-`app/globals.css:8–23` declares two local font families served from `/public/fonts/`:
-- `FOT-Yuruka Std` (woff2 + ttf fallback) — display brand
-- `ZCOOL KuaiLe` (woff2) — CN display
+## Auth
 
-## Future interfaces (not yet implemented)
-
-### Synthetic on-chain action stream
-
-[ASSUMPTION] Per `CLAUDE.md:42`, on-chain actions surface via a synthetic event stream. The likely shape:
-
-```ts
-interface ActionEvent {
-  kind: "mint" | "attack" | "gift";   // the "tight 3"
-  actor: Wallet;
-  target?: Wallet;
-  element?: Element;
-  at: string;                          // ISO 8601
-}
-
-interface ActionStream {
-  subscribe(cb: (e: ActionEvent) => void): () => void;
-}
-```
-
-Source for action vocabulary: `NOTES.md` decision log 2026-05-07.
-
-### Weather feed
-
-[ASSUMPTION] Per `NOTES.md` decision log Q4, a mocked feed shaped like a real `WeatherFeed` adapter:
-
-```ts
-interface WeatherFeed {
-  subscribe(cb: (s: WeatherState) => void): () => void;
-}
-
-interface WeatherState {
-  temperature_c: number;
-  precipitation: "clear" | "rain" | "snow" | "storm";
-  cosmic_intensity: number;             // 0..1
-  observed_at: string;
-}
-```
-
-Mapping `WeatherState` → element-modulation (e.g., rain slows fire) is unresolved. See PRD F4.7 (movement model open question).
-
-### Pixi mount surface
-
-[ASSUMPTION] The first client island in the App Router. The boundary is the `<canvas>` mount inside a `"use client"` component, with cleanup in `useEffect`'s teardown. AGENTS.md cautions: verify against `node_modules/next/dist/docs/` before locking the pattern under Next 16.
-
-## Network / outbound
-
-| Outbound | When | Where |
-|----------|------|-------|
-| Google Fonts CDN | Build time | `app/layout.tsx:5–13` (next/font self-hosts after fetch) |
-
-No runtime outbound calls today. The mock adapter resolves locally.
-
-## Inbound
-
-None. No API routes, no webhooks, no upload endpoints.
+- No app-side auth today.
+- The Solana Action endpoints are wallet-gated *implicitly* — the user must sign the returned tx with their wallet. There is no separate session.
+- `[[mibera-as-npc]] §6.1` prohibits session-key delegation.

@@ -1,134 +1,19 @@
-# Data Models / Type Definitions
+# Data Models (Reality Snapshot · 2026-05-07)
 
-> Extracted 2026-05-07 from lib/score/types.ts and inline types in app/page.tsx.
+NONE FOUND.
 
-## Score Domain (lib/score/types.ts)
+No `.ts`, `.tsx`, `.rs`, `.sol`, `.py`, `.go`, `.proto`, schema, or migration files exist outside of the vendored `.claude/`, `.loa/`, `.beads/` directories.
 
-### `Element`
-```ts
-type Element = "wood" | "fire" | "earth" | "water" | "metal";
-const ELEMENTS: readonly Element[] = ["wood", "fire", "earth", "water", "metal"] as const;
-```
-Source: `lib/score/types.ts:7–8`. Wuxing roster — five-element string union. The `as const` array enables iteration in UI (e.g., `app/page.tsx:42` and `app/page.tsx:112`).
+PRD describes a planned (not-yet-implemented) Effect Schema discriminated union:
 
-### `Wallet`
-```ts
-type Wallet = string;
-```
-Source: `lib/score/types.ts:10`. Newtype-style alias. No format validation in the mock; addresses are hashed for seed only.
+  WorldEvent = mint | weather_shift | element_surge   [PLANNED · prd.md tl;dr · 3 v0 variants]
+  eventId    = sha256(canonical_encoded + version + source)   [PLANNED · prd.md FR-1, FR-3]
 
-### `WalletProfile`
-```ts
-interface WalletProfile {
-  trader: Wallet;
-  primaryElement: Element;
-  elementAffinity: Record<Element, number>;  // sums to ~100 in the mock
-  trustScore: number;                        // mock: 50–99
-  joinedAt: string;                          // ISO 8601
-  lastActiveAt: string;                      // ISO 8601
-}
-```
-Source: `lib/score/types.ts:12–19`. Returned by `getWalletProfile`.
+PRD also describes an off-chain ECS conceptual model and an on-chain PDA projection:
 
-### `WalletBadge`
-```ts
-interface WalletBadge {
-  trader: Wallet;
-  badgeId: string;
-  earnedAt: string;
-  tier?: "bronze" | "silver" | "gold";
-}
-```
-Source: `lib/score/types.ts:21–26`. Bronze/Silver/Gold tier hierarchy referenced in `lib/score/types.ts:1–4` doc comment ("Bronze → Silver → Gold pipeline").
+  WitnessRecord PDA · seeds = b'witness' · event_id · witness_wallet
+                    · data  = (witness, event_id, event_kind, ts, slot)
+                    · fee_payer = backend keypair (sponsored)
+  [PLANNED · prd.md §3.3]
 
-### `WalletSignals`
-```ts
-interface WalletSignals {
-  trader: Wallet;
-  velocity: number;    // 0–1 in mock
-  diversity: number;   // 0–1
-  resonance: number;   // 0–1
-  sampledAt: string;
-}
-```
-Source: `lib/score/types.ts:28–34`.
-
-### `ElementDistribution`
-```ts
-type ElementDistribution = Record<Element, number>;
-```
-Source: `lib/score/types.ts:36`. Aggregate population by element (mock returns 50–100 per element).
-
-### `EcosystemEnergy`
-```ts
-type EcosystemEnergy = Record<string, number>;
-```
-Source: `lib/score/types.ts:38`. Open-shape energy scalars. Mock returns:
-```ts
-{ total_active: 1234, cosmic_intensity: 0.62, cycle_balance: 0.81 }
-```
-Source: `lib/score/mock.ts:75–80`.
-
-### `ScoreReadAdapter` (the contract)
-```ts
-interface ScoreReadAdapter {
-  getWalletProfile(address: Wallet): Promise<WalletProfile | null>;
-  getWalletBadges(address: Wallet): Promise<WalletBadge[]>;
-  getWalletSignals(address: Wallet): Promise<WalletSignals | null>;
-  getElementDistribution(): Promise<ElementDistribution>;
-  getEcosystemEnergy(): Promise<EcosystemEnergy>;
-}
-```
-Source: `lib/score/types.ts:40–46`. Read-only — no writes, no mutations. Bound to `mockScoreAdapter` in `lib/score/index.ts:17`.
-
-## UI-Local Types (app/page.tsx)
-
-### `ELEMENT_LABEL`
-```ts
-const ELEMENT_LABEL: Record<Element, { jp: string; en: string }> = {
-  wood:  { jp: "木", en: "Wood" },
-  fire:  { jp: "火", en: "Fire" },
-  earth: { jp: "土", en: "Earth" },
-  water: { jp: "水", en: "Water" },
-  metal: { jp: "金", en: "Metal" },
-};
-```
-Source: `app/page.tsx:4–10`. Bilingual label table for the wuxing roster card.
-
-## Public Material Schema (public/data/materials/*.json — 18 files)
-
-All 18 files follow the same shape (sample: `public/data/materials/jani-fire.json`):
-```jsonc
-{
-  "cardId": "<string>",                   // "jani-fire", "transcendence-void", etc.
-  "thicknessMap": "materials/textures/<element>-thickness-<rarity>.webp",
-  "normalMap":   "materials/textures/<element>-normal-<rarity>.webp",
-  "lod_levels": [],                       // empty placeholder
-  "foundry_approved": true,
-  "cssBridgeTokens": [],                  // empty placeholder
-  "ecsPipeline": {
-    "mode": "reserved",
-    "note": "cycle-089 cards-as-particles SoA migration target; current Godot-composition at ~30 entities insufficient to justify DOTS cost"
-  },
-  "nodeGraph": {
-    "version": "0.4",
-    "labelDictionary": {},
-    "subgraphs": [],
-    "nodes": [],
-    "edges": []
-  },
-  "adaptive_disclosure_hooks": {
-    "placeholder": true,
-    "cycle_activates": "087"
-  }
-}
-```
-Source: `public/data/materials/jani-fire.json` (representative). [INFERRED] These configs are inert in the current build — no code reads `/public/data/materials/`. They appear to be hand-offs from an upstream pipeline (Godot/Unity DOTS, references `cycle-089`, `cycle-087`) preserved for future re-use. **Flagged in hygiene-report.md.**
-
-## Database Schemas / ORM Models
-
-None. No Prisma, Drizzle, TypeORM, or SQL artifacts. The hackathon scope intentionally mocks persistence FE-side (per `CLAUDE.md` mocked-vs-real table).
-
-## Zod / Runtime Validation
-
-None. Types are TypeScript-only; no runtime schemas.
+These are forward-looking; no schema, type, or contract code exists yet.

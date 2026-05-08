@@ -1,0 +1,38 @@
+[flatline] Execution mode: interactive (reason: Default (no explicit mode specified))
+[flatline] Tertiary model: none (disabled)
+[flatline] Document: grimoires/loa/prd.md
+[flatline] Phase: prd
+[flatline] Mode: interactive
+[flatline] Timeout: 300s
+[flatline] Budget: 300 cents
+[flatline] Extracted domain:  prd purupuru awareness layer
+[flatline] State: INIT -> KNOWLEDGE
+[flatline] Retrieving knowledge context (two-tier)
+[flatline] Tier 1: Local knowledge retrieval
+[flatline] Tier 1: Local knowledge retrieval complete
+[flatline] Tier 2: NotebookLM knowledge retrieval
+[flatline] NotebookLM: disabled (skipping)
+[flatline] Knowledge retrieval complete (two-tier)
+[flatline] State: KNOWLEDGE -> PHASE1
+[flatline] Starting Phase 1: Independent reviews (4 parallel calls)
+ERROR: All Phase 1 model calls failed
+[flatline]   gpt-review stderr: [model-adapter] Model: gpt-5.3-codex (gpt-5.3-codex)
+[model-adapter] Provider: openai
+[model-adapter] Mode: review
+[model-adapter] Phase: prd
+[model-adapter] Input: grimoires/loa/prd.md
+[flatline]   opus-review stderr: [model-adapter] Model: opus (claude-opus-4-7)
+[model-adapter] Provider: anthropic
+[model-adapter] Mode: review
+[model-adapter] Phase: prd
+[model-adapter] Input: grimoires/loa/prd.md
+[flatline]   gpt-skeptic stderr: [model-adapter] Model: gpt-5.3-codex (gpt-5.3-codex)
+[model-adapter] Provider: openai
+[model-adapter] Mode: skeptic
+[model-adapter] Phase: prd
+[model-adapter] Input: grimoires/loa/prd.md
+[flatline]   opus-skeptic stderr: [model-adapter] Model: opus (claude-opus-4-7)
+[model-adapter] Provider: anthropic
+[model-adapter] Mode: skeptic
+[model-adapter] Phase: prd
+[model-adapter] Input: grimoires/loa/prd.md

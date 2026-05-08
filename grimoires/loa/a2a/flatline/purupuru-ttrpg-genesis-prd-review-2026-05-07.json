@@ -1,0 +1,284 @@
+[flatline] Execution mode: autonomous (reason: Config autonomous_mode.enabled=true)
+[flatline] Tertiary model: gemini-3.0-pro (active)
+[flatline] Document: grimoires/bonfire/specs/purupuru-ttrpg-genesis-prd-2026-05-07.md
+[flatline] Phase: prd
+[flatline] Mode: autonomous
+[flatline] Timeout: 300s
+[flatline] Budget: 300 cents
+[flatline] Extracted domain:  prd purupuru awareness layer
+[flatline] State: INIT -> KNOWLEDGE
+[flatline] Retrieving knowledge context (two-tier)
+[flatline] Tier 1: Local knowledge retrieval
+[flatline] Tier 1: Local knowledge retrieval complete
+[flatline] Tier 2: NotebookLM knowledge retrieval
+[flatline] NotebookLM: disabled (skipping)
+[flatline] Knowledge retrieval complete (two-tier)
+[flatline] State: KNOWLEDGE -> PHASE1
+[flatline] Starting Phase 1: Independent reviews (4 parallel calls)
+[flatline] Flatline model 'claude-opus-4-8' (config_key=primary) accepted via forward-compat pattern
+[flatline] Flatline model 'gpt-5.4-codex' (config_key=secondary) accepted via forward-compat pattern
+[flatline] Flatline model 'gemini-3.0-pro' (config_key=tertiary) accepted via forward-compat pattern
+[flatline] Tertiary model confirmed: gemini-3.0-pro (3-model Flatline active)
+[flatline] Phase 1 complete (6 calls). Total cost so far: 0 cents
+[flatline] State: KNOWLEDGE -> PHASE2
+[flatline] Starting Phase 2: Cross-scoring (6 parallel calls)
+[flatline] Phase 2 complete (6 calls). Total cost: 0 cents
+[flatline] State: KNOWLEDGE -> CONSENSUS
+[flatline] Calculating consensus
+[flatline] Including tertiary model scores in consensus (3-model mode)
+[flatline] Including tertiary model skeptic concerns in consensus
+[scoring-engine] Input items: GPT=15, Opus=12 (mode=standard)
+[scoring-engine] Thresholds: high=700, delta=300, low=400, blocker=700
+[scoring-engine] 3-model consensus mode: including tertiary items and cross-scores
+[scoring-engine] Consensus: HIGH=7 DISPUTED=3 LOW=0 BLOCKERS=9 (80% agreement)
+[flatline] State: KNOWLEDGE -> DONE
+{
+  "consensus_summary": {
+    "high_consensus_count": 7,
+    "disputed_count": 3,
+    "low_value_count": 0,
+    "blocker_count": 9,
+    "model_agreement_percent": 80,
+    "models": 3,
+    "tertiary_items": 0,
+    "confidence": "full"
+  },
+  "high_consensus": [
+    {
+      "id": "IMP-001",
+      "description": "High ROI and low implementation cost. Explicit acceptance criteria directly improve sprint planning, auditability, and scope control, especially for a short implementation window.",
+      "gpt_score": 910,
+      "opus_score": 880,
+      "tertiary_score": 920,
+      "delta": 30,
+      "average_score": 895,
+      "source": "gpt_scored",
+      "would_integrate": true,
+      "agreement": "HIGH"
+    },
+    {
+      "id": "IMP-002",
+      "description": "Strong risk reducer for a known unresolved technical dependency. A pre-committed ERC-4906 fallback matrix prevents mid-sprint blocking decisions at modest documentation cost.",
+      "gpt_score": 870,
+      "opus_score": 890,
+      "tertiary_score": 850,
+      "delta": 20,
+      "average_score": 880,
+      "source": "gpt_scored",
+      "would_integrate": true,
+      "agreement": "HIGH"
+    },
+    {
+      "id": "IMP-003",
+      "description": "Critical correctness issue. Stable event ID derivation underpins PDA idempotency and historical compatibility; without it, later schema changes can break core invariants.",
+      "gpt_score": 930,
+      "opus_score": 820,
+      "tertiary_score": 900,
+      "delta": 110,
+      "average_score": 875,
+      "source": "gpt_scored",
+      "would_integrate": true,
+      "agreement": "HIGH"
+    },
+    {
+      "id": "IMP-004",
+      "description": "Important security and protocol clarity gap. The signature flow, replay protection, and mismatch handling need exact specification before implementation to avoid an endpoint that appears secure but is not.",
+      "gpt_score": 890,
+      "opus_score": 850,
+      "tertiary_score": 850,
+      "delta": 40,
+      "average_score": 870,
+      "source": "gpt_scored",
+      "would_integrate": true,
+      "agreement": "HIGH"
+    },
+    {
+      "id": "IMP-005",
+      "description": "Valuable operational requirement. Metrics and structured logs would materially help diagnose latency, spam, and event emission behavior, though it is secondary to core protocol correctness for a hackathon MVP.",
+      "gpt_score": 720,
+      "opus_score": 830,
+      "tertiary_score": 750,
+      "delta": 110,
+      "average_score": 775,
+      "source": "gpt_scored",
+      "would_integrate": true,
+      "agreement": "HIGH"
+    },
+    {
+      "id": "IMP-006",
+      "description": "Valuable because FR-8 is a stated proof point and needs objective validation. Formalizing the lint rule and golden tests is somewhat implementation-heavy but worth integrating at least at a minimal level.",
+      "gpt_score": 760,
+      "opus_score": 810,
+      "tertiary_score": 720,
+      "delta": 50,
+      "average_score": 785,
+      "source": "gpt_scored",
+      "would_integrate": true,
+      "agreement": "HIGH"
+    },
+    {
+      "id": "IMP-012",
+      "description": "Strong decision-risk reducer. Setting a devnet/mainnet default prevents deadline stalls and clarifies the safety posture if ratification slips.",
+      "gpt_score": 780,
+      "opus_score": 750,
+      "tertiary_score": 890,
+      "delta": 30,
+      "average_score": 765,
+      "source": "gpt_scored",
+      "would_integrate": true,
+      "agreement": "HIGH"
+    }
+  ],
+  "disputed": [
+    {
+      "id": "IMP-013",
+      "description": "Useful coordination guardrail with almost no implementation cost. Lower score because it is process-level rather than product-critical, but it helps avoid predictable async deadlocks.",
+      "gpt_score": 610,
+      "opus_score": 0,
+      "tertiary_score": 650,
+      "delta": 610,
+      "average_score": 610,
+      "source": "gpt_scored",
+      "would_integrate": true,
+      "agreement": "DISPUTED"
+    },
+    {
+      "id": "IMP-014",
+      "description": "Good scope-control clarification, but mostly editorial because the PRD already states the limit elsewhere. Still worth adding due to low cost and likely scope creep pressure.",
+      "gpt_score": 560,
+      "opus_score": 0,
+      "tertiary_score": 700,
+      "delta": 560,
+      "average_score": 560,
+      "source": "gpt_scored",
+      "would_integrate": true,
+      "agreement": "DISPUTED"
+    },
+    {
+      "id": "IMP-015",
+      "description": "Valuable model-clarity fix. Reconciling ECS terminology with the on-chain PDA model prevents incorrect query and indexing assumptions, though the issue is less urgent than event ID or signature semantics.",
+      "gpt_score": 700,
+      "opus_score": 0,
+      "tertiary_score": 750,
+      "delta": 700,
+      "average_score": 700,
+      "source": "gpt_scored",
+      "would_integrate": true,
+      "agreement": "DISPUTED"
+    }
+  ],
+  "low_value": [],
+  "blockers": [
+    {
+      "id": "SKP-001",
+      "concern": "4-day timeline includes shipping a new Anchor program, a new substrate package, an upstream protocol contribution (BLINK_DESCRIPTOR), a Vercel app with Solana Action endpoints, dialect registry submission, demo video, AND submission deck — with zksoju as the sole owner on the critical path for nearly all of it.",
+      "severity": "CRITICAL",
+      "severity_score": 880,
+      "why_matters": "Single-developer critical path on a 4-day clock with this scope has high probability of partial-ship. Any one delay (eileen ratification, gumi voice handoff, ERC-4906 gap, dialect registry approval) cascades. There is no slack and no documented fallback ship-shape if days 3-4 slip.",
+      "location": "§12 timeline · §6 internal stakeholders & lanes",
+      "recommendation": "Define an explicit 'minimum viable demo' that ships even if anchor program stays devnet-only, BLINK_DESCRIPTOR PR stays unmerged, and score adapter is the only working source. Pre-commit to which FRs are dropped if day-3 slips, before sprint-1 starts.",
+      "source": "tertiary_skeptic"
+    },
+    {
+      "id": "SKP-003",
+      "concern": "Anchor program (FR-3) is targeting mainnet-beta with 'eileen ratification' as the sole gate, deploys on day 3, and has zero security audit, no replay-protection design beyond PDA seeds, no upgrade authority decision, and no formal verification of the no-payment / no-state-mutation invariant.",
+      "severity": "CRITICAL",
+      "severity_score": 820,
+      "why_matters": "Mainnet-beta deployment of an unaudited program — even minimal scope — exposes the org to permanent on-chain footprint, potential griefing (witness spam paying user rent), and reputational risk if a flaw surfaces post-hackathon. eileen §6.1 invariant is enforced by code review only, with no automated check. PDA seeds prevent duplicate witness records but not transaction replay against different events.",
+      "location": "§4 FR-3 · §5 security · §9 D-3",
+      "recommendation": "Default to devnet for v0 hackathon demo. Make mainnet-beta deployment an explicit post-hackathon decision with proper audit. Add an automated invariant test (Rust unit test) that rejects any instruction containing lamport transfers or token state mutations. Document upgrade authority disposition (frozen? multisig?) before any deploy.",
+      "source": "tertiary_skeptic"
+    },
+    {
+      "id": "SKP-003",
+      "concern": "Event authenticity is underspecified: there is no canonical event ID derivation, event registry, source signature, or prevention against witnessing fabricated event IDs.",
+      "severity": "CRITICAL",
+      "severity_score": 870,
+      "why_matters": "If POST can build a transaction for arbitrary eventId values, attackers can create witness records for events that never happened, corrupting the awareness layer's core data model.",
+      "location": "FR-1 WorldEvent; FR-3 attest_witness; FR-4 POST /witness",
+      "recommendation": "Define eventId as a hash of canonical encoded WorldEvent plus schema version and source, require the server to resolve eventId to a valid stored/signed event before returning a transaction, and include source attestation in tests.",
+      "source": "tertiary_skeptic"
+    },
+    {
+      "id": "SKP-002",
+      "concern": "FR-6 (ERC-4906 cache invalidation) is gap-dependent on a contract capability that has not been verified, with sprint-1 T-0 verification scheduled AFTER the day is committed. Three fallback options are listed but none are pre-decided.",
+      "severity": "HIGH",
+      "severity_score": 720,
+      "why_matters": "If puruhani contract lacks IERC4906 and option (a) contract upgrade is chosen, that is a multi-day forge+test+deploy effort that does not exist in the timeline. If (b) TTL fallback is chosen, the 'cross-medium consumers refetch within minutes' value prop is silently weakened. The PRD makes a load-bearing claim (chathead instance-4) on infrastructure that may not exist.",
+      "location": "§4 FR-6 · §11 technical risks",
+      "recommendation": "Verify ERC-4906 support BEFORE PRD ratification (5min Etherscan check). Pre-commit to fallback (b) or (c) for v0 regardless of result. Defer the contract upgrade path entirely — it does not fit the 4d clock.",
+      "source": "tertiary_skeptic"
+    },
+    {
+      "id": "SKP-001",
+      "concern": "Solana Action GET requests do not include the user's wallet address, making conditional wallet-based rendering impossible.",
+      "severity": "CRITICAL",
+      "severity_score": 900,
+      "why_matters": "The PRD mandates 'presentation layer translates... only if puruhani belongs to wallet' during the Blink unfurl. This is technically impossible under the Solana Actions specification, as the initial GET request is stateless and unauthenticated. This will break the intended UX and violate FR-8.",
+      "location": "FR-8 · cmp-boundary enforcement & FR-4",
+      "recommendation": "Remove viewer-wallet-dependent conditional rendering from the GET response (title/description/icon). Shift any wallet-specific context to the POST response message or defer it to the game client deep link.",
+      "source": "tertiary_skeptic"
+    },
+    {
+      "id": "SKP-001",
+      "concern": "The MVP scope is too large for a 4-day hackathon: substrate package, score and Sonar adapters, upstream medium-registry PR, Anchor program, Next.js app, Vercel deploy, Dialect registry, cmp-boundary lint, golden tests, demo, and deck are all must-ship.",
+      "severity": "CRITICAL",
+      "severity_score": 910,
+      "why_matters": "The schedule has no meaningful contingency. One blocker in Anchor, Solana Actions compliance, upstream packaging, or score data shape can prevent a coherent demo from shipping.",
+      "location": "Section 7 MVP; Section 12 timeline",
+      "recommendation": "Define a hard demo-critical path: static seeded WorldEvents + Blink GET endpoint + devnet witness transaction. Move upstream PR, Sonar adapter, ERC-4906, lint, and production hardening to stretch goals.",
+      "source": "tertiary_skeptic"
+    },
+    {
+      "id": "SKP-002",
+      "concern": "The PRD claims zero payment and low pressure, but witness attestations require users to pay transaction fees and possibly PDA rent.",
+      "severity": "HIGH",
+      "severity_score": 780,
+      "why_matters": "This contradicts the user promise and may create failed or abandoned witness actions when wallets show unexpected cost. It also weakens the stated compliance constraint around no payment surfaces.",
+      "location": "FR-3; Section 5 security; Section 6 witness persona",
+      "recommendation": "Rename the promise to zero protocol fee, explicitly disclose network/rent costs, or redesign v0 witnesses as memo-only/log-only without rent-bearing PDAs.",
+      "source": "tertiary_skeptic"
+    },
+    {
+      "id": "SKP-004",
+      "concern": "The Solana Actions POST flow is described incorrectly or ambiguously: the server cannot validate a wallet signature against an unsigned transaction before the wallet signs it.",
+      "severity": "HIGH",
+      "severity_score": 720,
+      "why_matters": "Misunderstanding the Actions lifecycle can produce an endpoint that fails in wallet clients or provides a false sense of request authentication.",
+      "location": "Section 5 security; FR-4 ActionPostResponse",
+      "recommendation": "Align the flow with the Solana Actions spec: validate the account field, build a transaction with that account as signer/payer, return it unsigned, then verify effects through on-chain/indexer confirmation after submission.",
+      "source": "tertiary_skeptic"
+    },
+    {
+      "id": "SKP-002",
+      "concern": "User friction and cost contradiction for 'zero-payment' witness PDA.",
+      "severity": "HIGH",
+      "severity_score": 750,
+      "why_matters": "The PRD claims 'zero payment — the only cost is rent for the witness PDA'. PDA rent is ~0.002 SOL (~$0.30 USD). Expecting casual 'lurkers' to pay this for a 'low-stakes presence' click will cause near-total drop-off, destroying the 10% conversion goal of the engagement loop.",
+      "location": "FR-3 & Section 11 (Witness PDA economics)",
+      "recommendation": "Implement a sponsored payer keypair on the backend to cover the 0.002 SOL rent for witness PDAs (making it truly gasless for the user), or redesign attestation to use off-chain cryptographic signatures.",
+      "source": "tertiary_skeptic"
+    }
+  ],
+  "degraded": false,
+  "degraded_model": null,
+  "confidence": "full",
+  "phase": "prd",
+  "document": "grimoires/bonfire/specs/purupuru-ttrpg-genesis-prd-2026-05-07.md",
+  "domain": " prd purupuru awareness layer",
+  "tertiary_model_used": "gemini-3.0-pro",
+  "tertiary_status": "active",
+  "execution": {
+    "mode": "autonomous",
+    "mode_reason": "Config autonomous_mode.enabled=true",
+    "run_id": null
+  },
+  "timestamp": "2026-05-07T19:09:10Z",
+  "metrics": {
+    "total_latency_ms": 190000,
+    "cost_cents": 0,
+    "cost_usd": 0
+  }
+}
+[flatline] Flatline: 3-model (claude-opus-4-8 + gpt-5.4-codex + gemini-3.0-pro)
+[flatline] Flatline Protocol complete. Cost: 0 cents, Latency: 190000ms

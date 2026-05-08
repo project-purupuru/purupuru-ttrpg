@@ -1,0 +1,270 @@
+[flatline] Execution mode: hitl (reason: Simstim workflow active (.run/simstim-state.json state=RUNNING))
+[flatline] Tertiary model: gemini-3.0-pro (active)
+[flatline] Document: grimoires/loa/prd.md
+[flatline] Phase: prd
+[flatline] Mode: hitl
+[flatline] Timeout: 300s
+[flatline] Budget: 300 cents
+[flatline] Extracted domain:  prd purupuru awareness layer
+[flatline] State: INIT -> KNOWLEDGE
+[flatline] Retrieving knowledge context (two-tier)
+[flatline] Tier 1: Local knowledge retrieval
+[flatline] Tier 1: Local knowledge retrieval complete
+[flatline] Tier 2: NotebookLM knowledge retrieval
+[flatline] NotebookLM: disabled (skipping)
+[flatline] Knowledge retrieval complete (two-tier)
+[flatline] State: KNOWLEDGE -> PHASE1
+[flatline] Starting Phase 1: Independent reviews (4 parallel calls)
+[flatline] Flatline model 'claude-opus-4-8' (config_key=primary) accepted via forward-compat pattern
+[flatline] Flatline model 'gpt-5.4-codex' (config_key=secondary) accepted via forward-compat pattern
+[flatline] Flatline model 'gemini-3.0-pro' (config_key=tertiary) accepted via forward-compat pattern
+[flatline] Tertiary model confirmed: gemini-3.0-pro (3-model Flatline active)
+[flatline] Phase 1 complete (6 calls). Total cost so far: 0 cents
+[flatline] State: KNOWLEDGE -> PHASE2
+[flatline] Starting Phase 2: Cross-scoring (6 parallel calls)
+[flatline] Phase 2 complete (6 calls). Total cost: 0 cents
+[flatline] State: KNOWLEDGE -> CONSENSUS
+[flatline] Calculating consensus
+[flatline] Including tertiary model scores in consensus (3-model mode)
+[flatline] Including tertiary model skeptic concerns in consensus
+[scoring-engine] Input items: GPT=12, Opus=12 (mode=standard)
+[scoring-engine] Thresholds: high=700, delta=300, low=400, blocker=700
+[scoring-engine] 3-model consensus mode: including tertiary items and cross-scores
+[scoring-engine] Consensus: HIGH=7 DISPUTED=1 LOW=0 BLOCKERS=10 (91% agreement)
+[flatline] State: KNOWLEDGE -> DONE
+{
+  "consensus_summary": {
+    "high_consensus_count": 7,
+    "disputed_count": 1,
+    "low_value_count": 0,
+    "blocker_count": 10,
+    "model_agreement_percent": 91,
+    "models": 3,
+    "tertiary_items": 0,
+    "confidence": "full"
+  },
+  "high_consensus": [
+    {
+      "id": "IMP-001",
+      "description": "Replay prevention is security-critical and the proposed fix is concrete, low-cost, and prevents a likely edge-runtime implementation flaw. Atomic nonce storage and TTL semantics should be specified before implementation.",
+      "gpt_score": 930,
+      "opus_score": 880,
+      "tertiary_score": 850,
+      "delta": 50,
+      "average_score": 905,
+      "source": "gpt_scored",
+      "would_integrate": true,
+      "agreement": "HIGH"
+    },
+    {
+      "id": "IMP-002",
+      "description": "The result_token is a core trust boundary between quiz completion and mint authorization. Explicit signing, claims, rotation, and binding rules are necessary to avoid ambiguous or insecure implementations.",
+      "gpt_score": 910,
+      "opus_score": 900,
+      "tertiary_score": 900,
+      "delta": 10,
+      "average_score": 905,
+      "source": "gpt_scored",
+      "would_integrate": true,
+      "agreement": "HIGH"
+    },
+    {
+      "id": "IMP-003",
+      "description": "This addresses a known Solana instruction-sysvar footgun with direct security impact. The bounds check and immediate-predecessor invariant are cheap to specify and test.",
+      "gpt_score": 880,
+      "opus_score": 870,
+      "tertiary_score": 950,
+      "delta": 10,
+      "average_score": 875,
+      "source": "gpt_scored",
+      "would_integrate": true,
+      "agreement": "HIGH"
+    },
+    {
+      "id": "IMP-004",
+      "description": "Valuable because orphaned PDA states would be severe for users, but the underlying atomicity is normally guaranteed by Solana transaction semantics. The test is still worthwhile as a regression guard around CPI ordering assumptions.",
+      "gpt_score": 760,
+      "opus_score": 830,
+      "tertiary_score": 950,
+      "delta": 70,
+      "average_score": 795,
+      "source": "gpt_scored",
+      "would_integrate": true,
+      "agreement": "HIGH"
+    },
+    {
+      "id": "IMP-005",
+      "description": "Two-sided timestamp validation is a strong security hardening measure with minimal implementation cost. The future-dating scenario is plausible enough to warrant explicit bounds.",
+      "gpt_score": 790,
+      "opus_score": 840,
+      "tertiary_score": 820,
+      "delta": 50,
+      "average_score": 815,
+      "source": "gpt_scored",
+      "would_integrate": true,
+      "agreement": "HIGH"
+    },
+    {
+      "id": "IMP-006",
+      "description": "This resolves a real ambiguity in effective validity windows. It is less critical than signature or nonce mechanics, but cheap to clarify and useful for aligning security and UX expectations.",
+      "gpt_score": 740,
+      "opus_score": 810,
+      "tertiary_score": 850,
+      "delta": 70,
+      "average_score": 775,
+      "source": "gpt_scored",
+      "would_integrate": true,
+      "agreement": "HIGH"
+    },
+    {
+      "id": "IMP-009",
+      "description": "Adding a fallback for HMAC quiz state is valuable because canonical encoding and hashing can become schedule risks. KV-backed state preserves demo function and likely security properties, though it changes the architecture trade-off.",
+      "gpt_score": 770,
+      "opus_score": 720,
+      "tertiary_score": 780,
+      "delta": 50,
+      "average_score": 745,
+      "source": "gpt_scored",
+      "would_integrate": true,
+      "agreement": "HIGH"
+    }
+  ],
+  "disputed": [
+    {
+      "id": "IMP-012",
+      "description": "The quiz_state_hash input domain is a trust-anchor detail and must be deterministic across systems. Pinning canonical hash inputs prevents drift and strengthens the result_token-to-ClaimMessage binding.",
+      "gpt_score": 890,
+      "opus_score": 480,
+      "tertiary_score": 850,
+      "delta": 410,
+      "average_score": 685,
+      "source": "gpt_scored",
+      "would_integrate": true,
+      "agreement": "DISPUTED"
+    }
+  ],
+  "low_value": [],
+  "blockers": [
+    {
+      "id": "SKP-001",
+      "concern": "Day-1 spine requires three high-risk Solana spikes (Metaplex Phantom devnet visibility, ed25519-via-instructions-sysvar pattern, partial-sign tx assembly) AND a working spine end-to-end in a single afternoon (2026-05-08 PM), with operator new to Solana smart contracts",
+      "severity": "CRITICAL",
+      "severity_score": 880,
+      "why_matters": "If any spike fails late on day-1, the cascading triggers (drop Metaplex, revert to PDA-only, rename 'mint' to 'claim record') require deck rewrites and demo reframing under a 3-day remaining clock. Day-1 is overloaded with: scaffold + GET endpoint + result render + vercel deploy + deck draft + 3 unfamiliar Solana spikes + attest_witness instruction. Compressing all of this into one PM session with a Solana learner is unrealistic and the spine itself becomes the failure mode.",
+      "location": "§7.5 Day-1 spine + §12 Day 1 PM row + §11 risk row 'zksoju Solana learning curve'",
+      "recommendation": "Move the 3 Solana spikes to a dedicated Day 0.5 (2026-05-07 evening) or extend Day-1 spine deadline to EOD Day 2 morning. Alternatively, designate one spike (the simplest — partial-sign tx assembly with memo program) as the day-1 hard requirement and explicitly time-box the other two to Day 2 AM with pre-decided fallbacks invoked automatically at the time-box boundary, not based on judgment under pressure.",
+      "source": "tertiary_skeptic"
+    },
+    {
+      "id": "SKP-003",
+      "concern": "Freezing upgrade authority immediately after a 4-day unaudited devnet deploy conflicts with the high implementation risk acknowledged elsewhere.",
+      "severity": "HIGH",
+      "severity_score": 735,
+      "why_matters": "If the program contains a security or demo-breaking bug, freezing forces a redeploy and client reconfiguration under deadline pressure. That may be worse than the governance risk for a devnet hackathon artifact.",
+      "location": "FR-3 upgrade authority; deploy section; risks",
+      "recommendation": "Clarify whether freeze is required before recording or only before submission. Consider a time-boxed upgrade window on devnet plus explicit freeze proof after smoke tests pass.",
+      "source": "tertiary_skeptic"
+    },
+    {
+      "id": "SKP-002",
+      "concern": "Global override flag for sponsored-payer safety halt risks fund depletion",
+      "severity": "HIGH",
+      "severity_score": 750,
+      "why_matters": "Using a boolean DISABLE_PAYER_HALT=true flag for demos creates a vulnerable window. If the demo endpoint is scraped or the flag is accidentally left on, the sponsored-payer wallet could be completely drained by bots.",
+      "location": "FR-4 (tiered sponsored-payer alerts)",
+      "recommendation": "Replace the global boolean override with an IP allowlist, a specific wallet allowlist, or a strict time-bound automatic expiry (e.g., OVERRIDE_UNTIL_TS) to ensure safety limits automatically re-engage.",
+      "source": "tertiary_skeptic"
+    },
+    {
+      "id": "SKP-004",
+      "concern": "Metaplex Phantom devnet visibility is the linchpin of the 'visible NFT in collectibles tab' demo claim, but smoke test is gated to day-1 with no pre-decided fallback art/UX if it fails late",
+      "severity": "HIGH",
+      "severity_score": 740,
+      "why_matters": "The deck framing leans on 'visible NFT in Phantom collectibles' as the on-chain artifact users SEE. If Phantom doesn't render Metaplex token metadata correctly on devnet (known to vary by wallet version, metadata URI hosting, indexer staleness), the demo loses its visual punchline. Trigger fires 'revert to PDA-only · update deck framing to honest' but PDA-only has no rendering surface in any wallet — the user sees nothing after signing. The fallback is described but not pre-staged: there is no in-app stone card design, no explorer-deep-link UX, no shareable card render path that does not depend on Metaplex success.",
+      "location": "§7.5 trigger 4 + FR-3 Metaplex bullet + §11 risk 'Metaplex Phantom devnet visibility unverified'",
+      "recommendation": "Pre-build the in-app stone reveal card as the PRIMARY visual artifact (canonical, always works) and treat Phantom collectibles rendering as ENHANCEMENT only. Demo recording shows the in-app card with a 'view on Solana Explorer' link as the proof; Phantom rendering is bonus. This decouples the deck framing from the riskiest dependency. Update FR-4 to require the in-app stone card render regardless of Metaplex outcome.",
+      "source": "tertiary_skeptic"
+    },
+    {
+      "id": "SKP-004",
+      "concern": "The MVP list marks nearly every advanced feature as must-ship while the Day-1 spine model treats most of them as stretch, creating contradictory scope authority.",
+      "severity": "HIGH",
+      "severity_score": 720,
+      "why_matters": "When schedule pressure hits, engineers will not know whether to optimize for the spine, Metaplex mint, dashboard, observability, or descriptor PR. This increases the chance of shipping a half-integrated path.",
+      "location": "Section 7 MVP; Section 7.5 Day-1 spine and stretch goals",
+      "recommendation": "Split requirements into explicit P0 demo spine, P1 stretch, and P2 post-hackathon. Only label P0 as must-ship by deadline.",
+      "source": "tertiary_skeptic"
+    },
+    {
+      "id": "SKP-001",
+      "concern": "The PRD depends on server-tracked nonces and rate limits but does not specify any durable datastore, schema, consistency model, or atomic write path for replay prevention.",
+      "severity": "CRITICAL",
+      "severity_score": 860,
+      "why_matters": "Vercel/serverless handlers are stateless; without durable atomic nonce storage, replay protection may be ineffective or inconsistently enforced under concurrent mint attempts.",
+      "location": "FR-3 ClaimMessage nonce; FR-4 mint endpoint; security section",
+      "recommendation": "Define the backing store for nonce consumption and rate limits, require atomic check-and-set semantics, and add concurrent replay tests for same wallet, same nonce, and parallel POSTs.",
+      "source": "tertiary_skeptic"
+    },
+    {
+      "id": "SKP-002",
+      "concern": "The Solana ed25519 verification design is security-critical but still underspecified at the byte-layout and instruction-position level.",
+      "severity": "HIGH",
+      "severity_score": 790,
+      "why_matters": "A malformed Ed25519 instruction, wrong offset parsing, or unexpected preceding instruction could allow claim bypasses or false rejects. This is the core authorization boundary for free sponsored mints.",
+      "location": "FR-3 claim_genesis_stone CryptoLOCK; FR-4 transaction assembly",
+      "recommendation": "Include exact Ed25519 instruction byte parsing rules, offset bounds checks, instruction-index assumptions, negative test vectors, and tests with extra compute-budget or unrelated instructions before the claim.",
+      "source": "tertiary_skeptic"
+    },
+    {
+      "id": "SKP-003",
+      "concern": "Upgrade authority frozen post-deploy on devnet means any bug discovered between sprint-3 deploy and sprint-4 demo recording is unfixable except by full redeploy under a new program ID, breaking BLINK_DESCRIPTOR references and the indexer integration with zerker",
+      "severity": "HIGH",
+      "severity_score": 750,
+      "why_matters": "Frozen authority is the right doctrinal stance but combined with (a) operator new to Solana, (b) ed25519-via-sysvar being unfamiliar, (c) Metaplex CPI being new, (d) one devnet deploy on day 3, the probability of needing a hotfix is non-trivial. A new program ID requires updating: backend signing-key constants, indexer subscription (zerker), BLINK_DESCRIPTOR txShape references, frontend client, and may invalidate already-minted stones. The PRD does not document this redeploy protocol or its blast radius.",
+      "location": "FR-3 'upgrade authority FROZEN post-deploy' + D-12 closure",
+      "recommendation": "Either (a) keep upgrade authority retained until post-demo, then transfer to None as a documented sprint-4 close action (acceptable for devnet-only), OR (b) freeze on deploy but document and pre-rehearse the redeploy runbook explicitly: program-ID rotation steps, indexer reconnect, frontend env-var swap, time budget for the rotation. Add to risks table with explicit fallback timeline.",
+      "source": "tertiary_skeptic"
+    },
+    {
+      "id": "SKP-002",
+      "concern": "ed25519-via-instructions-sysvar verification logic in claim_genesis_stone is described conceptually but lacks specification of byte-offset parsing for the Ed25519Program instruction format",
+      "severity": "HIGH",
+      "severity_score": 780,
+      "why_matters": "The Solana Ed25519 native program packs signature/pubkey/message at specific byte offsets within the instruction data, with multiple offset fields (signature_offset, signature_instruction_index, public_key_offset, etc.). Anchor programs reading the instructions sysvar must parse these offsets correctly or signature verification is bypassed entirely (an attacker submits a valid Ed25519 instruction signing arbitrary content while the on-chain program reads ClaimMessage from instruction args without binding). Multiple known exploits in production Solana programs have stemmed from incomplete instructions-sysvar verification. PRD says 'offsets match the Ed25519 instruction format (per Solana docs)' but does not specify (a) that program MUST verify the signed message bytes equal canonical-serialized ClaimMessage from the claim instruction args, (b) the exact offset fields checked, (c) anti-malleability checks.",
+      "location": "FR-3 Instruction B, ed25519 verification bullet",
+      "recommendation": "Add explicit subsection specifying: (1) program reads Ed25519Program ix from sysvar at index `current_index - 1`, (2) extracts message_offset/message_size/pubkey_offset/sig_offset, (3) verifies pubkey bytes at offset == hardcoded claim_signer pubkey, (4) verifies message_size == sizeof(ClaimMessage canonical bytes), (5) verifies message bytes byte-for-byte match `canonical_serialize(claim_message_arg)`, (6) golden test exercises an attack where Ed25519Program verifies a different message than claim_message_arg — must REJECT. Reference one Anchor reference implementation (e.g., light-protocol or wormhole-anchor patterns) explicitly.",
+      "source": "tertiary_skeptic"
+    },
+    {
+      "id": "SKP-001",
+      "concern": "walletAwareGet constraint breaks GET chain HMAC and result token binding",
+      "severity": "CRITICAL",
+      "severity_score": 900,
+      "why_matters": "With walletAwareGet set to false, Solana Action clients will not send the user's wallet address on GET requests. The specified GET chain requires 'account' for HMAC validation and the result_token, which will be undefined, breaking the entire quiz and mint flow.",
+      "location": "FR-2 (walletAwareGet: false) and FR-4 (Quiz chain GET endpoints)",
+      "recommendation": "Remove 'account' from the GET chain state, HMAC generation, and result_token. Delay binding the user's account until the final POST request, where the Action client provides the pubkey natively.",
+      "source": "tertiary_skeptic"
+    }
+  ],
+  "degraded": false,
+  "degraded_model": null,
+  "confidence": "full",
+  "phase": "prd",
+  "document": "grimoires/loa/prd.md",
+  "domain": " prd purupuru awareness layer",
+  "tertiary_model_used": "gemini-3.0-pro",
+  "tertiary_status": "active",
+  "execution": {
+    "mode": "hitl",
+    "mode_reason": "Simstim workflow active (.run/simstim-state.json state=RUNNING)",
+    "run_id": null
+  },
+  "timestamp": "2026-05-08T00:39:07Z",
+  "metrics": {
+    "total_latency_ms": 160000,
+    "cost_cents": 0,
+    "cost_usd": 0
+  }
+}
+[flatline] Flatline: 3-model (claude-opus-4-8 + gpt-5.4-codex + gemini-3.0-pro)
+[flatline] Flatline Protocol complete. Cost: 0 cents, Latency: 160000ms

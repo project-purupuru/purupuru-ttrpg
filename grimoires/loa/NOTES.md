@@ -6,13 +6,13 @@
 
 - Build live-observatory visualization layer for Solana Frontier hackathon (ship 2026-05-11)
 - Mock the Score data layer through FE — no real backend wiring for hackathon
+- **Per PRD r6 §3.1 three-view architecture**: this branch's observatory IS the **operator surface · community-manager view** (zerker's lane). Member surface (Blink quiz → mint) is zksoju + gumi's parallel lane.
 
 ## Discovered Technical Debt
 
 ## Blockers & Dependencies
 
 - Going Next.js + React + Tailwind 4 + Pixi.js v8 (vanilla, not @pixi/react). 3D path (react-three-fiber) is optional polish if time permits.
-- ~~[BLOCKER] PRD created without codebase grounding~~ — user reversed decision and is running `/ride` (2026-05-07).
 
 ## Session Continuity
 | Timestamp | Agent | Summary |
@@ -22,6 +22,13 @@
 | 2026-05-07 | riding-codebase | First `/ride` against the scaffold. 17/17 artifacts persisted. Drift score 7/10 (healthy with intentional gaps): 12 aligned, 3 ghosts (observatory sim, action vocab, pentagram — all expected forward-looking), 1 stale (README is generic boilerplate), 1 shadow (18 inert material JSONs from upstream pipeline), 0 hallucinated. Consistency score 9/10. Governance: 4 gaps; only LICENSE worth fixing pre-ship. PRD: 24 GROUNDED / 5 INFERRED / 4 ASSUMPTION (73%/15%/12%). SDD: 38 GROUNDED / 6 INFERRED / 4 ASSUMPTION (79%/13%/8%). Four ASSUMPTIONs are the planning gates: (1) sprite-budget pre-bench; (2) Pixi mount under Next 16; (3) movement model; (4) action vocab finality. Reality files (~5500 tokens, within 8500 budget) ready for `/reality` queries. |
 | 2026-05-07 | designing-architecture | SDD v2.0 written — supersedes v1.0 reality snapshot. Forward-looking architecture for observatory simulation aligned to PRD §9 4-pass ladder (v0.1 idle frame → v0.2 mocked liveness → v0.3 weather coupling → v0.4 polish). New modules defined: `lib/activity/` (ActivityStream + mock), `lib/weather/` (WeatherFeed + mock), `lib/sim/` (pentagram geometry + entities + migrations + modulation), `app/observatory/` (server shell), `components/observatory/` (8 components incl. PentagramCanvas, KpiStrip, ActivityRail, WeatherTile, FocusCard, IntroAnimation). Adapter-binding pattern preserved verbatim from `lib/score/index.ts:17`. New deps: Vitest + Playwright (testing only). Three remaining ASSUMPTIONs all gated by v0.1 spike: Pixi mount pattern, sprite-count headroom (1000 → 500 fallback ladder), test framework choice. Risk register: 10 risks logged with mitigations; biggest = R-2 (sprite budget) — pre-bench is explicit v0.1 task. |
 | 2026-05-07 | planning-sprints | Sprint plan written for cycle-001 (observatory-v0). Covers Sprint 1 = v0.1 idle frame in full detail; Sprints 2–4 (v0.2–v0.4) listed in Sprint Overview as forward trajectory only — each will be planned via `/sprint-plan` after the prior passes review+audit. Sprint 1 is MEDIUM scope (10 tasks): 2 spikes (Pixi mount, 500/750/1000 sprite pre-bench) + test-framework wiring + activity/weather STUB adapters + sim/pentagram + sim/entities + observatory route+client + PentagramCanvas + 5 chrome components. Goal IDs auto-assigned from PRD §6: G-1 demo-end-to-end, G-2 visual identity, G-3 mock honesty, G-4 sim alive. Sprint 1 covers G-2 complete + G-1/G-3/G-4 partial (per PRD §9 iteration ladder, by design). E2E validation task deferred to Sprint 4. Critical-path: spikes 1.1+1.2 first → 1.3 test deps → 1.6 pentagram math → 1.7 entities → 1.9 PentagramCanvas. Initialized `grimoires/loa/ledger.json` (cycle-001, active). |
+| 2026-05-07 PM | plan-and-analyze (zksoju lane · main) | PRD authored across 6 revisions (r1 strawman → r6 post-flatline-r3 · 941 lines · `grimoires/loa/prd.md`). Demo-frame locked: bazi-style archetype quiz (GET-chain · 1 signing prompt at mint) → archetype card → Solana Genesis Stone twin mint (devnet · Metaplex Token Metadata · visible NFT). Eileen's separation-as-moat doctrine = deck punchline. Three-view architecture: substrate (sonar/score/anchor) · operator surface (Score dashboard · zerker parallel) · member surface (Blinks · v0 ship). |
+| 2026-05-07 PM | flatline-review (zksoju lane · main) | 3 rounds adversarial multi-model review (claude-opus-4-8 + gpt-5.4-codex + gemini-3.0-pro · subscription auth · $0 each · 147-190s). r1: 7 high-consensus + 9 blockers · r2: 17 high + 16 blockers · r3: 4 critical + 4 high. All findings integrated. Reviews preserved at `grimoires/loa/a2a/flatline/`. |
+| 2026-05-07 PM | ride (zksoju lane · main) | Companion SDD authored at `grimoires/loa/sdd.md` (PRD untouched · canonical preserved). Reality reports + drift + consistency + governance + trajectory-audit at `grimoires/loa/{reality,drift-report,consistency-report,governance-report,trajectory-audit}.md`. Drift 1/10 · Consistency 8/10 (3 README-vs-PRD naming conflicts pre-zerker-merge · resolved by reset). |
+| 2026-05-07 PM | butterfreezone-gen (zksoju lane · main) | Agent-grounded summary at `BUTTERFREEZONE.md` (898 words · Tier 1 · 13 pass / 1 fail / 2 warn). |
+| 2026-05-07 PM | merge-resolution (zksoju lane · main) | TWO parallel scaffolds collided — zerker's f3c040d (this scaffold · Next.js+Pixi+brand assets · canonical) + my 61207a7 (PRD r6 + flatline reviews · pure additions). Reset to zerker · re-applied PRD work additively at `grimoires/loa/`. Did NOT overwrite zerker's CLAUDE.md, NOTES.md (this file), .gitignore, .loa-version.json, .loa.config.yaml, or any of his app/lib/public scaffolding. |
+| 2026-05-08 | observatory-polish (zerker lane · this branch) | f3dac29 atmospheric depth — radial-gradient backdrop, perspective tilt, sprite contact-shadows. cc5e0e6 real-people pass — identity, avatar, wuxing tide-flow, live KPIs. 06982cc right-rail polish — element bleeds, real addresses, wider column. 7fc9dd7 right-rail row scale + simplify; drop cosmic sublabel. 53b6333 KpiStrip top border matching wuxing distribution. |
+| 2026-05-08 | context-absorption (this session) | Pulled main's PRD r6 + SDD r2 + sprint plan + Soju's two context docs (01-prd-r6-integration, 02-awareness-operating-model) + flatline reviews + bridge-reviews + simstim trajectories + fresh reality reports + BUTTERFREEZONE + legacy/INVENTORY into this branch. Did NOT pull main's app/lib/components deletions; observatory code preserved. NOTES.md merged by hand to keep both bodies of session continuity + decision log. |
 
 ## Decision Log
 | Date | Decision | Rationale | Decided By |
@@ -44,6 +51,20 @@
 | 2026-05-07 | Sprint plan covers Sprint 1 (v0.1) only — Sprints 2–4 listed as overview forecast, planned individually after each predecessor passes audit | User instruction "v0.1 idle frame is the next sprint" + ladder discipline (PRD §9 "each pass renders a working surface; iterate without re-architecting") | claude (planning-sprints) |
 | 2026-05-07 | Sprint 1 is single-day (1.0 day, 2026-05-07 → 2026-05-08) rather than the template default 2.5 days | 4-day ship clock to 2026-05-11; ladder must complete v0.1→v0.2→v0.3→v0.4 in that window | claude (planning-sprints) |
 | 2026-05-07 | Sprint 1 sprite-count target = 1000 with 750/500 fallbacks; final N committed as `OBSERVATORY_SPRITE_COUNT` constant after Task 1.2 pre-bench | PRD NFR-2 explicitly requires pre-bench; SDD §6.4 ladder; locking the constant means Sprints 2–4 don't re-bench | claude (planning-sprints) |
+| 2026-05-07 PM | T1 NFT shape: Metaplex Token Metadata (visible) | Stone is on-chain artifact users SEE in Phantom collectibles; PDA-only loses "visible NFT" demo claim; cNFT adds Bubblegum complexity on 4d clock | operator |
+| 2026-05-07 PM | T2 MVD spine-first model | flatline r1+r2+r3 critical finding (900-930 across rounds): trigger-tree fired too late; spine-first gates stretch goals on day-1 spine running end-to-end | operator + flatline |
+| 2026-05-07 PM | T3 quiz chain via GET (not POST) | Solana Actions spec: POSTs require wallet signing; GETs don't. 5-step quiz via GET-chain = 1 signing prompt total (at final mint) instead of 6 | spec-resolved |
+| 2026-05-07 PM | D-3 anchor program devnet locked v0 | Mainnet-beta unaudited on 4d clock = unacceptable risk per flatline r1 SKP-003 (820); deferred post-audit | operator + eileen + flatline |
+| 2026-05-07 PM | D-12 anchor upgrade authority frozen post-deploy | flatline r2 SKP-005 (720): mutable upgrade auth during public hackathon = griefing/credential-theft risk; freeze (`set_authority(None)`) post-deploy | operator + flatline |
+| 2026-05-07 PM | Sponsored payer pattern (gasless witness) | Eileen §6.1 honored; backend keypair pays PDA rent; users see zero cost | operator (eileen ratified) |
+| 2026-05-07 PM | ed25519 verification via Solana instructions sysvar pattern | flatline r3 SKP-002 (890): in-program signature verification not supported on Solana; must use Ed25519Program prior instruction + sysvar read | spec-correct fix |
+| 2026-05-07 PM | Drop wallet-age sybil check | flatline r3 SKP-001 (850): `getSignaturesForAddress` too slow for Action timeout; rely on IP rate limit + getBalance ≥0.01 SOL | flatline-fix |
+| 2026-05-07 PM | Quiz state HMAC-SHA256 (proper construction) | flatline r3 SKP-001 (900): raw `sha256(secret \|\| ...)` is length-extension vulnerable; replaced with `HMAC-SHA256(secret, canonicalEncode(...))` | flatline-fix |
+| 2026-05-07 PM | Tiered sponsored-payer alerts (5/2/1 SOL) | flatline r3 SKP-005 (720): single threshold = 0-warning outage; tiered (warn/page/halt) + day-of-demo top-up + halt-disable env flag | flatline-fix |
+| 2026-05-07 PM | Score dashboard moves to zerker's parallel lane | We provide event schema · zerker ships dashboard via Score API/CLI/MCP. Tightens our scope; preserves Score sovereignty. Indexer integration post-anchor-deploy | operator |
+| 2026-05-07 PM | Gumi authors quiz (parallel, non-blocking) | 5 resonant questions + 4 answers + 5 archetype reveals. Placeholders ready if she's blocked. Not birthday/gender — must feel familiar | operator (gumi ratified) |
+| 2026-05-07 PM | Monetization = sponsored awareness slots | Frontier required artifact; brands/community-ops pay for surface layer; we are infrastructure FOR them; platform/medium agnostic | operator |
+| 2026-05-07 PM | Deck punchline = separation-as-moat | Eileen's design: substrate (truth) ≠ presentation (voice); agents present, never mutate state; hallucinations become cosmetic, not financial | operator (eileen ratified) |
 
 ## Sprint-1 Spike Outputs (2026-05-07)
 
@@ -74,7 +95,12 @@ Demo-machine bench pending; v0.1 ships at the 1000 default with the fallback lad
 
 ## Open at Handoff (for next session)
 
-The 8 hackathon-brief gaps were closed during `/plan-and-analyze` (see Decision Log Q1–Q6). Remaining open item is `Q-pixi` resolution above (now closed) and the demo-machine sprite bench (Task 1.2 methodology above). Sprint 2 (v0.2 mocked liveness) is next per PRD §9 ladder.
+- **PRD r6 / SDD r2 / sprint plan now live** in `grimoires/loa/{prd,sdd,sprint}.md`. Major architectural reframe: this branch's observatory is now formally the **operator surface** in PRD r6 §3.1 three-view architecture (substrate / operator / member). zksoju + gumi own the member-surface Blink; we own the operator-surface dashboard.
+- **Per `grimoires/loa/context/01-prd-r6-integration.md` T-3**: open questions still owned by zerker:
+  - **Q5 movement model** — wandering, schooling, drifting? (zerker designs · sprint-1+2 work per Soju's lane note)
+  - **Q6 demo entry point** — landing → sim, or sim immediately? (operator decides at sprint-4 per Soju)
+- **Per `grimoires/loa/context/02-awareness-operating-model.md` brownfield rule**: existing `lib/score`, `lib/sim`, `app/globals.css` design tokens stay in place — get adapted through stable names later, not rewritten.
+- **Three-view alignment opportunity**: when zksoju ships `packages/peripheral-events`, our activity stream can consume the same `WorldEvent` fixtures the member-surface Blink emits. Same canonical truth → two different surfaces. Architectural punchline visible in the demo.
 
 ## What Already Lives in the Kit
 
@@ -90,6 +116,10 @@ The 8 hackathon-brief gaps were closed during `/plan-and-analyze` (see Decision 
 - `lib/score/{types,mock,index}.ts` — read-adapter contract + deterministic mock (seeded from wallet address)
 - `lib/utils.ts` — cn() helper (clsx + tailwind-merge)
 - Tailwind utilities: `bg-puru-{element}-{tint|pastel|dim|vivid}`, `text-puru-ink-{rich|base|soft|dim|ghost}`, `bg-puru-cloud-{bright|base|dim|deep|shadow}`, `font-puru-{body|display|card|cn|mono}`, `text-{2xs|caption|xs..3xl}`, `leading-puru-{tight|normal|relaxed|loose}`
+
+## Visual References — Observatory v0 (2026-05-08)
+
+Deep-research dig (Gemini grounded search, 60 sources) saved to `grimoires/loa/context/03-observatory-visual-references-dig-2026-05-08.md`. Top-7 references ranked by applicability to the calm god's-eye observatory: Listen to Wikipedia (Hatnote), earth.nullschool.net, Sandspiel/Noita, Mini Tokyo 3D, Flow-Lenia (mass-conservation), Björk's Biophilia, Hades (diegetic UI). Six implementable provocations + four anti-patterns documented. The single load-bearing structural idea: **mass conservation across the wuxing pentagram** — total visual energy = constant; an event that brightens fire MUST darken water/metal via the Ke cycle, converting the diagram from cluster-display into homeostatic organism.
 
 ## Stack Notes Worth Remembering
 
