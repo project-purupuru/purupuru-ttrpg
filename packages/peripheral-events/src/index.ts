@@ -1,5 +1,49 @@
 // @purupuru/peripheral-events · L2 sealed substrate
-// SDD r2 §3 will populate WorldEvent · BaziQuizState · ClaimMessage · canonical eventId
-// S1-T1: empty package · tsc-clean stub · S1-T2 fills schemas
+// Public API per SDD r2 §1+§3
+//
+// Schema validation at every boundary · effect-schema decode/encode roundtrip
+// tested in tests/. Canonical eventId stable across re-encodes per AC-1.1.
 
 export const PACKAGE_VERSION = "0.0.1" as const
+
+// World events · sealed discriminated union (4 v0 variants)
+export {
+  Element,
+  ElementAffinity,
+  ElementShiftEvent,
+  MintEvent,
+  OracleSource,
+  QuizCompletedEvent,
+  SolanaPubkey,
+  WeatherEvent,
+  WorldEvent,
+  eventReferencesPuruhani,
+  eventTagOf,
+} from "./world-event.js"
+
+// Bazi quiz state · HMAC-validated · GET-chain URL state shape
+export {
+  Answer,
+  BaziQuizState,
+  CompletedQuizState,
+  QuizStep,
+} from "./bazi-quiz-state.js"
+
+// Claim message · server-signed payload for genesis-stone mint
+export {
+  buildClaimMessage,
+  byteToElement,
+  ClaimMessage,
+  ClaimNonce,
+  elementToByte,
+  QuizStateHash,
+  SolanaCluster,
+} from "./claim-message.js"
+
+// Canonical eventId derivation · stable hash across re-encodes
+export {
+  CURRENT_SCHEMA_VERSION,
+  eventIdOf,
+  verifyEventId,
+} from "./event-id.js"
+export type { SourceTag } from "./event-id.js"
