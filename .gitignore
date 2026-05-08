@@ -52,3 +52,7 @@ next-env.d.ts
 bun.lock
 yarn.lock
 package-lock.json
+
+# Loa operational state (cost tracking · trajectory may be operational)
+grimoires/loa/a2a/.daily-spend-*.json
+grimoires/loa/a2a/cost-ledger.jsonl

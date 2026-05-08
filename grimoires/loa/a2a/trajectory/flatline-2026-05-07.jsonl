@@ -1,0 +1,864 @@
+{
+  "type": "flatline_protocol",
+  "event": "complete",
+  "timestamp": "2026-05-08T00:39:07Z",
+  "state": "DONE",
+  "data": {
+    "consensus_summary": {
+      "high_consensus_count": 7,
+      "disputed_count": 1,
+      "low_value_count": 0,
+      "blocker_count": 10,
+      "model_agreement_percent": 91,
+      "models": 3,
+      "tertiary_items": 0,
+      "confidence": "full"
+    },
+    "high_consensus": [
+      {
+        "id": "IMP-001",
+        "description": "Replay prevention is security-critical and the proposed fix is concrete, low-cost, and prevents a likely edge-runtime implementation flaw. Atomic nonce storage and TTL semantics should be specified before implementation.",
+        "gpt_score": 930,
+        "opus_score": 880,
+        "tertiary_score": 850,
+        "delta": 50,
+        "average_score": 905,
+        "source": "gpt_scored",
+        "would_integrate": true,
+        "agreement": "HIGH"
+      },
+      {
+        "id": "IMP-002",
+        "description": "The result_token is a core trust boundary between quiz completion and mint authorization. Explicit signing, claims, rotation, and binding rules are necessary to avoid ambiguous or insecure implementations.",
+        "gpt_score": 910,
+        "opus_score": 900,
+        "tertiary_score": 900,
+        "delta": 10,
+        "average_score": 905,
+        "source": "gpt_scored",
+        "would_integrate": true,
+        "agreement": "HIGH"
+      },
+      {
+        "id": "IMP-003",
+        "description": "This addresses a known Solana instruction-sysvar footgun with direct security impact. The bounds check and immediate-predecessor invariant are cheap to specify and test.",
+        "gpt_score": 880,
+        "opus_score": 870,
+        "tertiary_score": 950,
+        "delta": 10,
+        "average_score": 875,
+        "source": "gpt_scored",
+        "would_integrate": true,
+        "agreement": "HIGH"
+      },
+      {
+        "id": "IMP-004",
+        "description": "Valuable because orphaned PDA states would be severe for users, but the underlying atomicity is normally guaranteed by Solana transaction semantics. The test is still worthwhile as a regression guard around CPI ordering assumptions.",
+        "gpt_score": 760,
+        "opus_score": 830,
+        "tertiary_score": 950,
+        "delta": 70,
+        "average_score": 795,
+        "source": "gpt_scored",
+        "would_integrate": true,
+        "agreement": "HIGH"
+      },
+      {
+        "id": "IMP-005",
+        "description": "Two-sided timestamp validation is a strong security hardening measure with minimal implementation cost. The future-dating scenario is plausible enough to warrant explicit bounds.",
+        "gpt_score": 790,
+        "opus_score": 840,
+        "tertiary_score": 820,
+        "delta": 50,
+        "average_score": 815,
+        "source": "gpt_scored",
+        "would_integrate": true,
+        "agreement": "HIGH"
+      },
+      {
+        "id": "IMP-006",
+        "description": "This resolves a real ambiguity in effective validity windows. It is less critical than signature or nonce mechanics, but cheap to clarify and useful for aligning security and UX expectations.",
+        "gpt_score": 740,
+        "opus_score": 810,
+        "tertiary_score": 850,
+        "delta": 70,
+        "average_score": 775,
+        "source": "gpt_scored",
+        "would_integrate": true,
+        "agreement": "HIGH"
+      },
+      {
+        "id": "IMP-009",
+        "description": "Adding a fallback for HMAC quiz state is valuable because canonical encoding and hashing can become schedule risks. KV-backed state preserves demo function and likely security properties, though it changes the architecture trade-off.",
+        "gpt_score": 770,
+        "opus_score": 720,
+        "tertiary_score": 780,
+        "delta": 50,
+        "average_score": 745,
+        "source": "gpt_scored",
+        "would_integrate": true,
+        "agreement": "HIGH"
+      }
+    ],
+    "disputed": [
+      {
+        "id": "IMP-012",
+        "description": "The quiz_state_hash input domain is a trust-anchor detail and must be deterministic across systems. Pinning canonical hash inputs prevents drift and strengthens the result_token-to-ClaimMessage binding.",
+        "gpt_score": 890,
+        "opus_score": 480,
+        "tertiary_score": 850,
+        "delta": 410,
+        "average_score": 685,
+        "source": "gpt_scored",
+        "would_integrate": true,
+        "agreement": "DISPUTED"
+      }
+    ],
+    "low_value": [],
+    "blockers": [
+      {
+        "id": "SKP-001",
+        "concern": "Day-1 spine requires three high-risk Solana spikes (Metaplex Phantom devnet visibility, ed25519-via-instructions-sysvar pattern, partial-sign tx assembly) AND a working spine end-to-end in a single afternoon (2026-05-08 PM), with operator new to Solana smart contracts",
+        "severity": "CRITICAL",
+        "severity_score": 880,
+        "why_matters": "If any spike fails late on day-1, the cascading triggers (drop Metaplex, revert to PDA-only, rename 'mint' to 'claim record') require deck rewrites and demo reframing under a 3-day remaining clock. Day-1 is overloaded with: scaffold + GET endpoint + result render + vercel deploy + deck draft + 3 unfamiliar Solana spikes + attest_witness instruction. Compressing all of this into one PM session with a Solana learner is unrealistic and the spine itself becomes the failure mode.",
+        "location": "§7.5 Day-1 spine + §12 Day 1 PM row + §11 risk row 'zksoju Solana learning curve'",
+        "recommendation": "Move the 3 Solana spikes to a dedicated Day 0.5 (2026-05-07 evening) or extend Day-1 spine deadline to EOD Day 2 morning. Alternatively, designate one spike (the simplest — partial-sign tx assembly with memo program) as the day-1 hard requirement and explicitly time-box the other two to Day 2 AM with pre-decided fallbacks invoked automatically at the time-box boundary, not based on judgment under pressure.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-003",
+        "concern": "Freezing upgrade authority immediately after a 4-day unaudited devnet deploy conflicts with the high implementation risk acknowledged elsewhere.",
+        "severity": "HIGH",
+        "severity_score": 735,
+        "why_matters": "If the program contains a security or demo-breaking bug, freezing forces a redeploy and client reconfiguration under deadline pressure. That may be worse than the governance risk for a devnet hackathon artifact.",
+        "location": "FR-3 upgrade authority; deploy section; risks",
+        "recommendation": "Clarify whether freeze is required before recording or only before submission. Consider a time-boxed upgrade window on devnet plus explicit freeze proof after smoke tests pass.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-002",
+        "concern": "Global override flag for sponsored-payer safety halt risks fund depletion",
+        "severity": "HIGH",
+        "severity_score": 750,
+        "why_matters": "Using a boolean DISABLE_PAYER_HALT=true flag for demos creates a vulnerable window. If the demo endpoint is scraped or the flag is accidentally left on, the sponsored-payer wallet could be completely drained by bots.",
+        "location": "FR-4 (tiered sponsored-payer alerts)",
+        "recommendation": "Replace the global boolean override with an IP allowlist, a specific wallet allowlist, or a strict time-bound automatic expiry (e.g., OVERRIDE_UNTIL_TS) to ensure safety limits automatically re-engage.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-004",
+        "concern": "Metaplex Phantom devnet visibility is the linchpin of the 'visible NFT in collectibles tab' demo claim, but smoke test is gated to day-1 with no pre-decided fallback art/UX if it fails late",
+        "severity": "HIGH",
+        "severity_score": 740,
+        "why_matters": "The deck framing leans on 'visible NFT in Phantom collectibles' as the on-chain artifact users SEE. If Phantom doesn't render Metaplex token metadata correctly on devnet (known to vary by wallet version, metadata URI hosting, indexer staleness), the demo loses its visual punchline. Trigger fires 'revert to PDA-only · update deck framing to honest' but PDA-only has no rendering surface in any wallet — the user sees nothing after signing. The fallback is described but not pre-staged: there is no in-app stone card design, no explorer-deep-link UX, no shareable card render path that does not depend on Metaplex success.",
+        "location": "§7.5 trigger 4 + FR-3 Metaplex bullet + §11 risk 'Metaplex Phantom devnet visibility unverified'",
+        "recommendation": "Pre-build the in-app stone reveal card as the PRIMARY visual artifact (canonical, always works) and treat Phantom collectibles rendering as ENHANCEMENT only. Demo recording shows the in-app card with a 'view on Solana Explorer' link as the proof; Phantom rendering is bonus. This decouples the deck framing from the riskiest dependency. Update FR-4 to require the in-app stone card render regardless of Metaplex outcome.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-004",
+        "concern": "The MVP list marks nearly every advanced feature as must-ship while the Day-1 spine model treats most of them as stretch, creating contradictory scope authority.",
+        "severity": "HIGH",
+        "severity_score": 720,
+        "why_matters": "When schedule pressure hits, engineers will not know whether to optimize for the spine, Metaplex mint, dashboard, observability, or descriptor PR. This increases the chance of shipping a half-integrated path.",
+        "location": "Section 7 MVP; Section 7.5 Day-1 spine and stretch goals",
+        "recommendation": "Split requirements into explicit P0 demo spine, P1 stretch, and P2 post-hackathon. Only label P0 as must-ship by deadline.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-001",
+        "concern": "The PRD depends on server-tracked nonces and rate limits but does not specify any durable datastore, schema, consistency model, or atomic write path for replay prevention.",
+        "severity": "CRITICAL",
+        "severity_score": 860,
+        "why_matters": "Vercel/serverless handlers are stateless; without durable atomic nonce storage, replay protection may be ineffective or inconsistently enforced under concurrent mint attempts.",
+        "location": "FR-3 ClaimMessage nonce; FR-4 mint endpoint; security section",
+        "recommendation": "Define the backing store for nonce consumption and rate limits, require atomic check-and-set semantics, and add concurrent replay tests for same wallet, same nonce, and parallel POSTs.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-002",
+        "concern": "The Solana ed25519 verification design is security-critical but still underspecified at the byte-layout and instruction-position level.",
+        "severity": "HIGH",
+        "severity_score": 790,
+        "why_matters": "A malformed Ed25519 instruction, wrong offset parsing, or unexpected preceding instruction could allow claim bypasses or false rejects. This is the core authorization boundary for free sponsored mints.",
+        "location": "FR-3 claim_genesis_stone CryptoLOCK; FR-4 transaction assembly",
+        "recommendation": "Include exact Ed25519 instruction byte parsing rules, offset bounds checks, instruction-index assumptions, negative test vectors, and tests with extra compute-budget or unrelated instructions before the claim.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-003",
+        "concern": "Upgrade authority frozen post-deploy on devnet means any bug discovered between sprint-3 deploy and sprint-4 demo recording is unfixable except by full redeploy under a new program ID, breaking BLINK_DESCRIPTOR references and the indexer integration with zerker",
+        "severity": "HIGH",
+        "severity_score": 750,
+        "why_matters": "Frozen authority is the right doctrinal stance but combined with (a) operator new to Solana, (b) ed25519-via-sysvar being unfamiliar, (c) Metaplex CPI being new, (d) one devnet deploy on day 3, the probability of needing a hotfix is non-trivial. A new program ID requires updating: backend signing-key constants, indexer subscription (zerker), BLINK_DESCRIPTOR txShape references, frontend client, and may invalidate already-minted stones. The PRD does not document this redeploy protocol or its blast radius.",
+        "location": "FR-3 'upgrade authority FROZEN post-deploy' + D-12 closure",
+        "recommendation": "Either (a) keep upgrade authority retained until post-demo, then transfer to None as a documented sprint-4 close action (acceptable for devnet-only), OR (b) freeze on deploy but document and pre-rehearse the redeploy runbook explicitly: program-ID rotation steps, indexer reconnect, frontend env-var swap, time budget for the rotation. Add to risks table with explicit fallback timeline.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-002",
+        "concern": "ed25519-via-instructions-sysvar verification logic in claim_genesis_stone is described conceptually but lacks specification of byte-offset parsing for the Ed25519Program instruction format",
+        "severity": "HIGH",
+        "severity_score": 780,
+        "why_matters": "The Solana Ed25519 native program packs signature/pubkey/message at specific byte offsets within the instruction data, with multiple offset fields (signature_offset, signature_instruction_index, public_key_offset, etc.). Anchor programs reading the instructions sysvar must parse these offsets correctly or signature verification is bypassed entirely (an attacker submits a valid Ed25519 instruction signing arbitrary content while the on-chain program reads ClaimMessage from instruction args without binding). Multiple known exploits in production Solana programs have stemmed from incomplete instructions-sysvar verification. PRD says 'offsets match the Ed25519 instruction format (per Solana docs)' but does not specify (a) that program MUST verify the signed message bytes equal canonical-serialized ClaimMessage from the claim instruction args, (b) the exact offset fields checked, (c) anti-malleability checks.",
+        "location": "FR-3 Instruction B, ed25519 verification bullet",
+        "recommendation": "Add explicit subsection specifying: (1) program reads Ed25519Program ix from sysvar at index `current_index - 1`, (2) extracts message_offset/message_size/pubkey_offset/sig_offset, (3) verifies pubkey bytes at offset == hardcoded claim_signer pubkey, (4) verifies message_size == sizeof(ClaimMessage canonical bytes), (5) verifies message bytes byte-for-byte match `canonical_serialize(claim_message_arg)`, (6) golden test exercises an attack where Ed25519Program verifies a different message than claim_message_arg — must REJECT. Reference one Anchor reference implementation (e.g., light-protocol or wormhole-anchor patterns) explicitly.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-001",
+        "concern": "walletAwareGet constraint breaks GET chain HMAC and result token binding",
+        "severity": "CRITICAL",
+        "severity_score": 900,
+        "why_matters": "With walletAwareGet set to false, Solana Action clients will not send the user's wallet address on GET requests. The specified GET chain requires 'account' for HMAC validation and the result_token, which will be undefined, breaking the entire quiz and mint flow.",
+        "location": "FR-2 (walletAwareGet: false) and FR-4 (Quiz chain GET endpoints)",
+        "recommendation": "Remove 'account' from the GET chain state, HMAC generation, and result_token. Delay binding the user's account until the final POST request, where the Action client provides the pubkey natively.",
+        "source": "tertiary_skeptic"
+      }
+    ],
+    "degraded": false,
+    "degraded_model": null,
+    "confidence": "full",
+    "phase": "prd",
+    "document": "grimoires/loa/prd.md",
+    "domain": " prd purupuru awareness layer",
+    "tertiary_model_used": "gemini-3.0-pro",
+    "tertiary_status": "active",
+    "execution": {
+      "mode": "hitl",
+      "mode_reason": "Simstim workflow active (.run/simstim-state.json state=RUNNING)",
+      "run_id": null
+    },
+    "timestamp": "2026-05-08T00:39:07Z",
+    "metrics": {
+      "total_latency_ms": 160000,
+      "cost_cents": 0,
+      "cost_usd": 0
+    }
+  }
+}
+{
+  "type": "flatline_protocol",
+  "event": "complete",
+  "timestamp": "2026-05-08T01:03:19Z",
+  "state": "DONE",
+  "data": {
+    "consensus_summary": {
+      "high_consensus_count": 7,
+      "disputed_count": 3,
+      "low_value_count": 0,
+      "blocker_count": 14,
+      "model_agreement_percent": 80,
+      "models": 3,
+      "tertiary_items": 0,
+      "confidence": "full"
+    },
+    "high_consensus": [
+      {
+        "id": "IMP-001",
+        "description": "High-impact security and operations gap with low documentation cost. Secret location, rotation, and relationship to the keypair model are essential for a reliable implementation and incident response.",
+        "gpt_score": 910,
+        "opus_score": 900,
+        "tertiary_score": 950,
+        "delta": 10,
+        "average_score": 905,
+        "source": "gpt_scored",
+        "would_integrate": true,
+        "agreement": "HIGH"
+      },
+      {
+        "id": "IMP-002",
+        "description": "Core product logic is underspecified. A deterministic answer-to-archetype algorithm is required for correctness, consistency across deployments, testing, and downstream integrations.",
+        "gpt_score": 940,
+        "opus_score": 880,
+        "tertiary_score": 920,
+        "delta": 60,
+        "average_score": 910,
+        "source": "gpt_scored",
+        "would_integrate": true,
+        "agreement": "HIGH"
+      },
+      {
+        "id": "IMP-003",
+        "description": "Valuable freshness rule that closes a real semantic and replay-adjacent gap. Slightly less critical than signing/canonicalization issues, but cheap to specify and likely important to the product narrative.",
+        "gpt_score": 760,
+        "opus_score": 860,
+        "tertiary_score": 880,
+        "delta": 100,
+        "average_score": 810,
+        "source": "gpt_scored",
+        "would_integrate": true,
+        "agreement": "HIGH"
+      },
+      {
+        "id": "IMP-004",
+        "description": "Failure-mode policy for nonce storage is important because either fail-open or fail-closed has meaningful security and availability consequences. This should be decided explicitly before implementation.",
+        "gpt_score": 820,
+        "opus_score": 820,
+        "tertiary_score": 850,
+        "delta": 0,
+        "average_score": 820,
+        "source": "gpt_scored",
+        "would_integrate": true,
+        "agreement": "HIGH"
+      },
+      {
+        "id": "IMP-005",
+        "description": "Canonical encoding must be byte-identical across TypeScript and Rust. Ambiguity here can cause hard-to-debug mint failures and security validation inconsistencies, while the fix is mostly specification work.",
+        "gpt_score": 930,
+        "opus_score": 810,
+        "tertiary_score": 950,
+        "delta": 120,
+        "average_score": 870,
+        "source": "gpt_scored",
+        "would_integrate": true,
+        "agreement": "HIGH"
+      },
+      {
+        "id": "IMP-007",
+        "description": "Important UX and idempotency behavior gap. The on-chain uniqueness rule is clear, but the API and user-facing semantics need to be explicit to avoid confusing repeated submissions.",
+        "gpt_score": 780,
+        "opus_score": 720,
+        "tertiary_score": 720,
+        "delta": 60,
+        "average_score": 750,
+        "source": "gpt_scored",
+        "would_integrate": true,
+        "agreement": "HIGH"
+      },
+      {
+        "id": "IMP-008",
+        "description": "The ambient stats are central to the stated awareness-layer demonstration, and missing fixture schema plus aggregation rules would block reliable implementation and rehearsal.",
+        "gpt_score": 880,
+        "opus_score": 740,
+        "tertiary_score": 860,
+        "delta": 140,
+        "average_score": 810,
+        "source": "gpt_scored",
+        "would_integrate": true,
+        "agreement": "HIGH"
+      }
+    ],
+    "disputed": [
+      {
+        "id": "IMP-013",
+        "description": "Useful fallback specification. It prevents demo-pressure ambiguity if the mint route degrades to witness-only behavior, though it is more UX/contingency planning than core protocol correctness.",
+        "gpt_score": 720,
+        "opus_score": 0,
+        "tertiary_score": 650,
+        "delta": 720,
+        "average_score": 720,
+        "source": "gpt_scored",
+        "would_integrate": true,
+        "agreement": "DISPUTED"
+      },
+      {
+        "id": "IMP-014",
+        "description": "Strong operational security issue. Rate-limit identity behind Vercel/CDN is easy to get wrong and should be specified, though it is less central than signature and mint correctness.",
+        "gpt_score": 790,
+        "opus_score": 0,
+        "tertiary_score": 700,
+        "delta": 790,
+        "average_score": 790,
+        "source": "gpt_scored",
+        "would_integrate": true,
+        "agreement": "DISPUTED"
+      },
+      {
+        "id": "IMP-015",
+        "description": "Concrete validation bug class with a cheap test addition. Enforcing the step-to-answer-count invariant is important because HMAC integrity alone does not imply state validity.",
+        "gpt_score": 840,
+        "opus_score": 0,
+        "tertiary_score": 720,
+        "delta": 840,
+        "average_score": 840,
+        "source": "gpt_scored",
+        "would_integrate": true,
+        "agreement": "DISPUTED"
+      }
+    ],
+    "low_value": [],
+    "blockers": [
+      {
+        "id": "SKP-003",
+        "concern": "Canonical serialization is not specified across TypeScript, Rust, HMAC, quiz hashes, and ed25519 ClaimMessage bytes.",
+        "severity": "HIGH",
+        "severity_score": 790,
+        "why_matters": "A single mismatch in field order, integer encoding, string normalization, date encoding, CBOR implementation, or Rust struct serialization will make valid claims unverifiable or allow ambiguous payloads.",
+        "location": "§3.2 BaziQuizState, §3.3 ClaimMessage, §5.1 ed25519 verification",
+        "recommendation": "Define one canonical byte format with test vectors shared by TS and Rust. Include golden fixtures for quiz HMAC, quiz_state_hash, ClaimMessage bytes, ed25519 signature, and Anchor verification.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-001",
+        "concern": "Claim-signer keypair compromise is unrecoverable because the Anchor program hardcodes the signer pubkey AND the upgrade authority is frozen post-deploy. A leaked CLAIM_SIGNER_SECRET enables forging ClaimMessage payloads to mint stones to arbitrary wallets indefinitely with no on-chain remediation path.",
+        "severity": "CRITICAL",
+        "severity_score": 920,
+        "why_matters": "Combines two one-way decisions (hardcoded signer + frozen upgrade authority) into a single unrecoverable failure mode. A single env-var leak — vercel access, accidental log emission, repo commit — becomes terminal. Even non-malicious key loss (former contributor leaves with access) bricks the system.",
+        "location": "§5.2 (upgrade authority frozen), §5.1 (hardcoded claim-signer), §6.1 (CLAIM_SIGNER_SECRET stored in vercel env), D-13 (rotation deferred post-hackathon)",
+        "recommendation": "Either (a) keep upgrade authority on a multisig until post-demo and only freeze AFTER an incident-free window, or (b) store claim-signer pubkey in a program-state account writable by a separate admin keypair so rotation is possible without redeploy. Document key-loss runbook BEFORE deploy. Treat 'frozen forever from minute one' as the actual highest-blast-radius decision in the SDD.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-005",
+        "concern": "Ed25519 instruction-sysvar verification is high risk and lacks precise constraints on instruction position, message offset parsing, duplicate ed25519 instructions, and canonical matching between instruction data and Anchor args.",
+        "severity": "HIGH",
+        "severity_score": 760,
+        "why_matters": "Incorrect parsing can let an attacker include a valid signature over different bytes, rely on a different ed25519 instruction in the transaction, or bypass intended signer/message binding.",
+        "location": "§5.1 claim_genesis_stone",
+        "recommendation": "Use a known audited helper or write exhaustive tests for malformed offsets, wrong signer, wrong message, duplicate ed25519 instructions, reordered instructions, extra trailing bytes, and non-canonical ClaimMessage encodings. Require exact byte equality to the serialized Anchor argument.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-002",
+        "concern": "Ed25519-signature-via-instructions-sysvar verification reads `current_instruction_index - 1` and assumes that slot contains the Ed25519Program instruction. Solana transactions allow N instructions; nothing in the spec prevents an attacker from constructing a tx where the prior Ed25519Program instruction signs a DIFFERENT message that happens to validate, or where the program reads the wrong index because additional instructions are sandwiched.",
+        "severity": "CRITICAL",
+        "severity_score": 880,
+        "why_matters": "This is the load-bearing security primitive for the whole mint flow. The §5.1 pseudocode parses Ed25519 instruction data layout 'per Solana docs' but doesn't pin the offset-validation logic, doesn't explicitly check that ONLY one Ed25519Program instruction exists in the tx, and doesn't validate that the message bytes hash exactly matches `sha256(canonical_serialize(ClaimMessage args))`. Subtle bugs in this pattern have produced production exploits in other Solana programs.",
+        "location": "§5.1 'A · claim_genesis_stone' · steps 1-4",
+        "recommendation": "Spike 2 must produce a written threat-model checklist BEFORE building the real instruction: (1) reject if any Ed25519Program instruction is at an index other than expected, (2) canonical-serialize ClaimMessage with explicit field-tag prefixes (not just struct ordering), (3) byte-equal compare against the message in the Ed25519 instruction, (4) write fuzz tests against the parser. Treat passing spike-2 as 'pattern works' NOT 'invariants verified.'",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-003",
+        "concern": "Freezing upgrade authority immediately post-deploy prevents critical bug fixes",
+        "severity": "HIGH",
+        "severity_score": 750,
+        "why_matters": "For a hackathon, freezing the contract immediately after deploy means any discovered bug (e.g., in signature verification or PDA logic) cannot be patched without deploying a entirely new program, breaking all client routing and requiring frontend updates.",
+        "location": "Section 5.2 Upgrade authority",
+        "recommendation": "Retain upgrade authority during the evaluation phase, or transfer it to a multisig, instead of permanently freezing it on day 1.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-005",
+        "concern": "HMAC over quiz state uses 'length-prefixed CBOR' but no canonicalization specification. CBOR allows multiple valid encodings of the same logical value (integer width, map-key ordering, indefinite-length forms). Without a strict canonical-CBOR profile (e.g., RFC 8949 §4.2.1), two different byte sequences could decode to the same `(step, answers)` and produce different MACs, opening forgery, replay, and DoS surfaces.",
+        "severity": "HIGH",
+        "severity_score": 740,
+        "why_matters": "§3.2 explicitly forbids 'ambiguous concatenation' via length-prefix, but length-prefix alone is not canonicalization. An attacker who can submit step/answers via URL controls byte-level encoding and can probe for HMAC oracle behavior. Length-extension is golden-tested but encoding-malleability is not.",
+        "location": "§3.2 (canonicalEncode definition), §4.1 (HMAC carried via URL)",
+        "recommendation": "Pin to RFC 8949 §4.2.1 canonical CBOR (or just use HMAC over a fixed-format string like `step|answer1|answer2|...` with explicit separator handling). Add an encoding-malleability fuzz test to the unit pyramid. State which CBOR library and which canonical-mode flag in the code.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-001",
+        "concern": "HMAC state does not bind to user wallet, allowing unlimited replay across different wallets",
+        "severity": "CRITICAL",
+        "severity_score": 850,
+        "why_matters": "A user can complete the quiz once to get a valid `(answers, mac)` pair, and submit it to the POST endpoint with thousands of different wallets. This bypasses the intended quiz effort and allows mass-minting Genesis Stones.",
+        "location": "Section 3.2 BaziQuizState & Section 4.2 POST mint",
+        "recommendation": "Since GET cannot bind the wallet, the server must mark the `mac` or a unique `quiz_id` inside the HMAC payload as 'consumed' in Vercel KV upon a successful POST signature issuance.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-002",
+        "concern": "Nonce replay prevention is internally inconsistent: §3.3 says nonce is stored in Vercel KV, while §5.1 says the Anchor program rejects `nonce not in seen_nonces`. The on-chain program cannot consult Vercel KV, and an on-chain global seen-nonce set is not designed.",
+        "severity": "CRITICAL",
+        "severity_score": 900,
+        "why_matters": "Replay protection can fail or become impossible to implement safely. A valid signed ClaimMessage could be replayed until expiry unless replay state is enforced on-chain, but unbounded on-chain nonce storage can become a cost and scalability problem.",
+        "location": "§3.3 ClaimMessage and §5.1 claim_genesis_stone validation",
+        "recommendation": "Choose one authoritative replay model. Prefer an on-chain claim PDA keyed by wallet or claim hash for idempotence, plus expiry checks. If nonce uniqueness is required, define a bounded nonce PDA/account strategy and cleanup posture, or remove the claim that server-side KV prevents on-chain replay.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-004",
+        "concern": "Spike 1/2/3 'must pass by EOD 2026-05-08' but the SDD does not define (a) a specific time-of-day cutoff, (b) the go/no-go decision-maker, (c) what 'partial pass' means, or (d) how the deck-rewrite for Spike-1-fail (stretch #13, sprint-4 morning) reconciles with a failure detected on day 1. There is a 3-day gap between fail-detection and pre-staged fallback.",
+        "severity": "HIGH",
+        "severity_score": 760,
+        "why_matters": "With deadline 2026-05-11 and demo recording ~2026-05-10, a Spike-1 failure detected late on 2026-05-08 leaves the team committed to 'mint' language with no time to rewrite product framing. The brittleness lives in the gap between detection and decision. Stretch #13 places the deck-template work AFTER the time when the decision was supposed to bind.",
+        "location": "§5.3 (spikes), §9 (day-1 spine), §10 stretch #13",
+        "recommendation": "Move the 'pre-stage 2 deck templates' work to sprint-1 morning (parallel with spikes), not sprint-4. Define explicit Spike-1 cutoff (e.g., 18:00 PT 2026-05-08) and named decision-maker. Specify what counts as pass: NFT visible in Phantom collectibles tab on at least 2 wallets across 2 OS platforms within 30s of mint.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-002",
+        "concern": "Sponsored-payer wallet can be drained via intentional transaction failures",
+        "severity": "HIGH",
+        "severity_score": 780,
+        "why_matters": "The server partial-signs as `fee_payer`. An attacker can collect valid signed transactions and submit them repeatedly, or submit them to fail (e.g. hitting the idempotent PDA check). Solana charges the fee payer for failed transactions, allowing an attacker to drain the sponsored-payer funds very quickly.",
+        "location": "Section 6.2 Sponsored-payer tiered alerts",
+        "recommendation": "Shift the fee burden to the user (wallet), or introduce strong Sybil resistance (e.g., ReCaptcha) before the server issues a sponsored-payer signature.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-004",
+        "concern": "The Anchor program scope understates the complexity of minting a visible Metaplex NFT. A two-instruction program description omits mint account creation, token account handling, metadata PDA accounts, edition accounts, rent, authorities, compute budget, and CPI signer seeds.",
+        "severity": "HIGH",
+        "severity_score": 780,
+        "why_matters": "The day-1 or sprint-3 plan may discover that the program/account surface is much larger than designed, causing schedule failure or insecure shortcuts around metadata and mint authority.",
+        "location": "§5 Solana Anchor program and §5.3 spikes",
+        "recommendation": "Expand the Anchor account model before implementation. List all accounts required for mint, metadata, master edition if used, token program, associated token program, system program, rent/sysvars, and CPI signer authority. Keep PDA-only fallback as the default until the Metaplex spike passes.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-001",
+        "concern": "The mint Action state handoff is underspecified and may be non-functional: the result button href is `/api/actions/mint/genesis-stone`, but the POST contract expects `{ account, answers, mac }`. Solana Action POST bodies are wallet-controlled and typically provide the account/signature context, not arbitrary quiz answers unless encoded in the action href or parameters.",
+        "severity": "CRITICAL",
+        "severity_score": 910,
+        "why_matters": "The core vertical slice can reach the archetype result and then fail at the only signing step because the server cannot reconstruct or validate the quiz state at mint time.",
+        "location": "§4.1 result endpoint and §4.2 POST mint",
+        "recommendation": "Define the exact Action POST state transport. Put the validated quiz state or opaque claim token in the mint href query string, or issue a server-side claim session ID from `/result` with TTL and bind it during POST. Add an integration test using the actual Dialect/Actions inspector payload shape.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-006",
+        "concern": "The sponsored-payer demo override disables the halt condition while allowing unbounded mint attempts, and the stated conservation invariant is not tied to an enforcement mechanism.",
+        "severity": "HIGH",
+        "severity_score": 735,
+        "why_matters": "A bot or repeated failed flow during the demo window can drain the payer, break the live demo, or create uncontrolled spend. Logging every 30 seconds detects damage after it starts but does not prevent it.",
+        "location": "§6.2 Sponsored-payer tiered alerts",
+        "recommendation": "Keep a hard per-window mint cap even when `DISABLE_PAYER_HALT=true`. Enforce wallet/IP/session quotas before transaction creation, reserve estimated fees before signing, and fail closed when committed plus reserved mints exceeds the payer budget.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-003",
+        "concern": "Vercel KV nonce store is named as the durability fix for replay protection but the SDD does not specify provisioning steps, region, consistency model, or fallback behavior on KV outage. Vercel KV reads can be eventually consistent across regions; a fast-replay attack within the consistency window could double-spend a nonce.",
+        "severity": "HIGH",
+        "severity_score": 780,
+        "why_matters": "The replay-protection guarantee depends on read-after-write consistency for the nonce check. If KV is configured for read-replica reads (default in some tiers), nonce_seen=false can persist beyond the actual write. The §6.2 conservation invariant assumes nonce uniqueness; without it, sponsored-payer drain-via-replay becomes possible.",
+        "location": "§3.3 (Vercel KV note), §4.2 step 5 (nonce generation), §6.1 (no KV in keypair model)",
+        "recommendation": "Specify KV configuration: strongly-consistent reads, single-region (likely iad1), `SET nonce ... NX EX 300` atomic check-and-set (not GET-then-SET). Add KV provisioning to sprint-1 spine checklist. Document fallback when KV is unreachable: fail-closed (503) not fail-open. Alert on KV latency p99 > 100ms during demo.",
+        "source": "tertiary_skeptic"
+      }
+    ],
+    "degraded": false,
+    "degraded_model": null,
+    "confidence": "full",
+    "phase": "sdd",
+    "document": "grimoires/loa/sdd.md",
+    "domain": " smaller than the final",
+    "tertiary_model_used": "gemini-3.0-pro",
+    "tertiary_status": "active",
+    "execution": {
+      "mode": "hitl",
+      "mode_reason": "Simstim workflow active (.run/simstim-state.json state=RUNNING)",
+      "run_id": null
+    },
+    "timestamp": "2026-05-08T01:03:19Z",
+    "metrics": {
+      "total_latency_ms": 189000,
+      "cost_cents": 0,
+      "cost_usd": 0
+    }
+  }
+}
+{
+  "type": "flatline_protocol",
+  "event": "complete",
+  "timestamp": "2026-05-08T01:09:48Z",
+  "state": "DONE",
+  "data": {
+    "consensus_summary": {
+      "high_consensus_count": 6,
+      "disputed_count": 2,
+      "low_value_count": 0,
+      "blocker_count": 18,
+      "model_agreement_percent": 85,
+      "models": 3,
+      "tertiary_items": 0,
+      "confidence": "full"
+    },
+    "high_consensus": [
+      {
+        "id": "IMP-001",
+        "description": "Very high ROI because it exposes whether the sprint plan is feasible at all. The implementation cost is low, and without this the schedule claims are not testable.",
+        "gpt_score": 930,
+        "opus_score": 780,
+        "tertiary_score": 850,
+        "delta": 150,
+        "average_score": 855,
+        "source": "gpt_scored",
+        "would_integrate": true,
+        "agreement": "HIGH"
+      },
+      {
+        "id": "IMP-002",
+        "description": "Strong improvement to dependency ordering. If spike outcomes gate later spine work, they need to happen first or be split into mock and real paths. Low cost and prevents schedule collapse.",
+        "gpt_score": 910,
+        "opus_score": 860,
+        "tertiary_score": 900,
+        "delta": 50,
+        "average_score": 885,
+        "source": "gpt_scored",
+        "would_integrate": true,
+        "agreement": "HIGH"
+      },
+      {
+        "id": "IMP-003",
+        "description": "Valuable because fallback artifacts must exist before the failure moment. Turning the contingency into committed work with acceptance criteria materially reduces execution risk.",
+        "gpt_score": 860,
+        "opus_score": 820,
+        "tertiary_score": 800,
+        "delta": 40,
+        "average_score": 840,
+        "source": "gpt_scored",
+        "would_integrate": true,
+        "agreement": "HIGH"
+      },
+      {
+        "id": "IMP-004",
+        "description": "Good enforceability fix. A named gate with owner and artifact makes the sprint boundary auditable instead of aspirational. Low implementation cost.",
+        "gpt_score": 840,
+        "opus_score": 720,
+        "tertiary_score": 750,
+        "delta": 120,
+        "average_score": 780,
+        "source": "gpt_scored",
+        "would_integrate": true,
+        "agreement": "HIGH"
+      },
+      {
+        "id": "IMP-005",
+        "description": "Important security and operational detail. It is slightly narrower than the sprint feasibility issues, but key source, rotation, and transition behavior should be specified before implementation.",
+        "gpt_score": 780,
+        "opus_score": 850,
+        "tertiary_score": 950,
+        "delta": 70,
+        "average_score": 815,
+        "source": "gpt_scored",
+        "would_integrate": true,
+        "agreement": "HIGH"
+      },
+      {
+        "id": "IMP-007",
+        "description": "Strong evidence requirement for an irreversible security action. Capturing `solana program show` output is cheap and makes the audit claim defensible.",
+        "gpt_score": 760,
+        "opus_score": 760,
+        "tertiary_score": 820,
+        "delta": 0,
+        "average_score": 760,
+        "source": "gpt_scored",
+        "would_integrate": true,
+        "agreement": "HIGH"
+      }
+    ],
+    "disputed": [
+      {
+        "id": "IMP-013",
+        "description": "Important secret-management gap for production-critical keys. The cost is modest and the downside of leakage is severe, so this should be integrated.",
+        "gpt_score": 820,
+        "opus_score": 0,
+        "tertiary_score": 850,
+        "delta": 820,
+        "average_score": 820,
+        "source": "gpt_scored",
+        "would_integrate": true,
+        "agreement": "DISPUTED"
+      },
+      {
+        "id": "IMP-014",
+        "description": "Sensible low-cost external dependency recheck. It is not a major plan defect, but a five-minute demo-day verification is worth adding given Phantom devnet variability.",
+        "gpt_score": 610,
+        "opus_score": 0,
+        "tertiary_score": 760,
+        "delta": 610,
+        "average_score": 610,
+        "source": "gpt_scored",
+        "would_integrate": true,
+        "agreement": "DISPUTED"
+      }
+    ],
+    "low_value": [],
+    "blockers": [
+      {
+        "id": "SKP-002",
+        "concern": "Assumed availability of 10+ SOL from Solana devnet faucets.",
+        "severity": "HIGH",
+        "severity_score": 720,
+        "why_matters": "Solana devnet faucets are frequently rate-limited (e.g., 1 SOL per IP per day), degraded, or offline. Relying on gathering >10 SOL in a 30-minute window on Day 4 is a massive risk that could block the entire demo and submission.",
+        "location": "Sprint 2 / S2-T9 and Sprint 4 / S4-T1",
+        "recommendation": "Start dripping devnet SOL into the sponsored-payer wallet immediately on Day 1. Prepare a localnet (solana-test-validator) fallback environment in case devnet liquidity is entirely unavailable on Day 4.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-001",
+        "concern": "Freezing Anchor program upgrade authority (None) on devnet deployment.",
+        "severity": "HIGH",
+        "severity_score": 750,
+        "why_matters": "If a critical bug is found during Day 4 testing, fixing it will require deploying a new program ID. This invalidates all client configurations, indexer mappings, and existing devnet state, severely jeopardizing the strict 4-day deadline.",
+        "location": "Sprint 3 / S3-T1",
+        "recommendation": "Keep the upgrade authority assigned to the deployer keypair. Do not freeze the devnet contract, or at least defer freezing until immediately after the final demo recording is verified.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-007",
+        "concern": "Freezing the Anchor upgrade authority on Day 3 before final demo and submission leaves no recovery path for late-discovered bugs.",
+        "severity": "CRITICAL",
+        "severity_score": 880,
+        "why_matters": "A small program bug, account sizing issue, event mismatch, or client integration mismatch after freeze could force a redeploy to a new program ID and invalidate deck, indexer, and client configuration.",
+        "location": "S3-T1 · upgrade authority frozen",
+        "recommendation": "Delay authority freeze until after the final recorded demo, or freeze only a clearly labeled demo program after a successful end-to-end rehearsal.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-002",
+        "concern": "S1-T9 mint endpoint has dual estimates (1.5h mock OR 3h real after spikes) but the dependency chain requires Spike 2+3 results before the task can be scoped — yet S1-T9 is scheduled in the same day as the spikes",
+        "severity": "HIGH",
+        "severity_score": 780,
+        "why_matters": "Spike 2 (1.5h) + Spike 3 (1.5h, depends on Spike 2) = 3h sequential before S1-T9 can even decide between mock/real. If spikes finish at noon best-case, the 'real' 3h variant pushes mint completion to 3pm — leaving zero buffer for S1-T10 (vercel deploy verification) and the AC-S1-5 spike-fallback documentation. Estimation ambiguity at sprint-planning time is itself a blocker",
+        "location": "Sprint 1 S1-T9 + dependency on Spike 2+3",
+        "recommendation": "Lock S1-T9 to mock-only on day-1 regardless of spike outcome. Move 'real claim_genesis_stone integration' explicitly to S2-T1/S3-T2 where it already lives. The day-1 spine should prove the API surface, not the cryptography",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-005",
+        "concern": "S3-T1 freezes upgrade authority post-deploy ('cannot redeploy') on the SAME day as S3-T2 real mint integration and S3-T3 sybil protection",
+        "severity": "CRITICAL",
+        "severity_score": 850,
+        "why_matters": "Freezing upgrade authority before the mint flow has been E2E-validated against the deployed program means any bug discovered in S3-T2 (3h task) or during S3-T3 sybil testing requires redeploying to a NEW program ID — invalidating all prior PDAs, the indexer subscription (S3-T9), and the dialect registry submission (S3-T6). The plan also has zero buffer between freeze and demo recording (S4-T3)",
+        "location": "Sprint 3 S3-T1 (freeze) → S3-T2 (real mint integration on frozen program)",
+        "recommendation": "Defer freezing upgrade authority until after AC-S3-3 (full E2E mint passing) is verified, ideally end of sprint-3 or morning of sprint-4. Or split S3-T1 into 'deploy with retained authority' and 'freeze authority' as separate tasks with a verification gate between them",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-012",
+        "concern": "Secret management is underspecified for `SPONSORED_PAYER_SECRET`, `BACKUP_PAYER_SECRET`, and `CLAIM_SIGNER_SECRET`, including format, rotation, separation, access, and logging safeguards.",
+        "severity": "HIGH",
+        "severity_score": 790,
+        "why_matters": "Leaked or misconfigured keys can drain funds, invalidate claims, or expose private signing authority. Hackathon shortcuts often result in secrets appearing in logs, fixtures, or Vercel previews.",
+        "location": "S2-T9 · S2-T10 · S3-T5",
+        "recommendation": "Define exact secret format, validation checks, no-log guards, separate environments, and a post-demo rotation/revocation task.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-010",
+        "concern": "Sponsored-payer funding assumptions are fragile: devnet faucet availability, balance thresholds of 5-10 SOL, and disabling payer halt during recording are all operational risks.",
+        "severity": "HIGH",
+        "severity_score": 760,
+        "why_matters": "If faucet access fails or the payer drains during recording, the demo path can fail even when the code is correct. Disabling halt also increases blast radius if a public endpoint is abused.",
+        "location": "S2-T9 · S3-T4 · S4-T1 · S4-T6",
+        "recommendation": "Fund and verify payer accounts before Day 2 close, cap demo endpoint access with a temporary allowlist or shared secret, and avoid disabling halt globally unless the endpoint is private.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-006",
+        "concern": "Sponsored-payer halt is explicitly DISABLED during demo recording (S4-T1: DISABLE_PAYER_HALT=true) without a circuit breaker for adversarial drain",
+        "severity": "HIGH",
+        "severity_score": 760,
+        "why_matters": "The demo URL is publicly registered with dialect registry (S3-T6) and active during recording. With halt disabled and >10 SOL funded, an attacker monitoring the registry could observe the prod URL and drain the sponsored-payer via automated mint requests, even with the 5/IP/hour rate limit (50 IPs = 250 mints). At ~0.0001 SOL/tx that's small — but if mint failures incur retries or amplification, drain is faster. The S4-T6 'post-recording re-enable halt' is a manual step with no enforced timing",
+        "location": "Sprint 4 S4-T1 + S4-T6 (halt disable/re-enable cycle)",
+        "recommendation": "Implement a time-bounded auto-disable: DISABLE_PAYER_HALT_UNTIL=<ISO-timestamp 2h from set> instead of a boolean. The env var auto-expires and halt re-engages without manual intervention. Add a hard balance floor (e.g., halt re-engages if balance drops below 3 SOL regardless of disable flag)",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-001",
+        "concern": "Sprint 1 has 13 tasks (10 main + 3 spikes) totaling ~14 hours of estimated work for a single owner (zksoju) on Day 1, with the spine + spikes all gating sprint-2",
+        "severity": "CRITICAL",
+        "severity_score": 900,
+        "why_matters": "A 14-hour day-1 plan for one operator is physically infeasible. When the day inevitably runs short, the cut trigger 'HALT and operator-pair before sprint-2' fires, but there is no slack in sprints 2-4 to absorb a half-day slip. The entire 4-day hackathon ship depends on day-1 spine + 3 spikes completing — if even one spike runs long, S2-T1 (4h anchor work, gates on Spike 2) cannot start on time and cascades into S3-T2 (real mint integration) which gates the demo",
+        "location": "Sprint 1 task table + sprint-1 acceptance criteria + cut triggers",
+        "recommendation": "Either: (a) defer S1-T8 (ambient Blink) and S1-T11 (deck draft) to sprint-2; (b) parallelize spikes to gumi/zerker (currently marked 'parallel non-blocking' but doing unrelated work); or (c) explicitly time-box sprint-1 to spine-only (T1-T7 + spikes) and accept that AC-S1-3 and AC-S1-6 are stretch goals. Document a hard-stop time after which spikes auto-trigger the documented fallback paths",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-008",
+        "concern": "The Anchor `claim_genesis_stone` instruction is estimated at 4 hours despite requiring message decoding, ed25519 sysvar verification, nonce/replay checks, expiration, cluster binding, account constraints, and seven invariant tests.",
+        "severity": "CRITICAL",
+        "severity_score": 900,
+        "why_matters": "This is the highest-risk correctness component and is likely underestimated. A rushed implementation can create replay, spoofing, or account mutation bugs.",
+        "location": "S2-T1",
+        "recommendation": "Split S2-T1 into a minimal audited claim-record instruction and separate stretch NFT/event features. Require a small threat model before coding the instruction.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-004",
+        "concern": "The Day-1 HMAC placeholder creates a false-positive spine risk: the quiz chain can appear complete while the real tamper-resistant state model remains unproven until Day 2.",
+        "severity": "HIGH",
+        "severity_score": 735,
+        "why_matters": "If canonical encoding or HMAC validation fails later, the result and mint flow may need route and state rewrites after the demo spine has already been built around placeholder assumptions.",
+        "location": "S1-T6 · S2-T2 · quiz state chain",
+        "recommendation": "Implement the real state envelope shape on Day 1 with a temporary key if necessary, so S2 only hardens key management and tests instead of changing the protocol.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-014",
+        "concern": "The demo plan depends on multiple external systems at recording time: Vercel, devnet, Phantom, Dialect inspector, optional registry, KV, faucet-funded payer, and possibly Score.",
+        "severity": "HIGH",
+        "severity_score": 775,
+        "why_matters": "Even if the product is implemented correctly, external instability can break the final recording window.",
+        "location": "S3-S4 demo and deployment tasks",
+        "recommendation": "Record a clean fallback demo using deterministic fixtures before integrating optional live dependencies, then record the live version only if all systems are healthy.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-006",
+        "concern": "The fallback to local file storage for nonce state is not viable for production Vercel serverless semantics and may not persist across instances or deploys.",
+        "severity": "CRITICAL",
+        "severity_score": 845,
+        "why_matters": "A fallback that does not actually work in the target runtime can silently remove replay protection while the deck still implies a protected flow.",
+        "location": "Sprint-2 cut triggers · Vercel KV setup blocked",
+        "recommendation": "Replace the local file fallback with a supported managed store, an on-chain PDA nonce, or an explicit 'demo-only no replay guarantee' mode that cannot be confused with production.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-005",
+        "concern": "The plan assumes Vercel KV can provide strongly consistent nonce protection with `SET NX EX`, but does not verify region, failure semantics, latency, or whether the serverless execution path can enforce single-use claims under concurrency.",
+        "severity": "CRITICAL",
+        "severity_score": 860,
+        "why_matters": "Replay protection is central to the claim flow. Weak consistency or retry behavior can allow duplicate claims or create false rejects during the demo.",
+        "location": "S2-T4 · S3-T2 · nonce store",
+        "recommendation": "Spike KV concurrency before building the mint route. If strong guarantees are uncertain, move nonce enforcement on-chain or make the demo claim explicitly non-authoritative.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-009",
+        "concern": "The plan relies on Phantom devnet collectibles rendering as a binary gate, but wallet UI indexing and collectible display can be delayed or inconsistent outside the team's control.",
+        "severity": "HIGH",
+        "severity_score": 710,
+        "why_matters": "A technically successful mint may still fail the visual demo acceptance criterion, causing avoidable schedule churn late in the sprint.",
+        "location": "S1-Sp1 · AC-S3-3 · S4-T3",
+        "recommendation": "Prepare a deterministic claim-record UI and explorer-link proof as the primary fallback, and record a rehearsal with the exact wallet/client combination before Day 4.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-002",
+        "concern": "The plan requires reading Next.js version-specific docs before code changes, but no sprint task or acceptance gate enforces that requirement.",
+        "severity": "HIGH",
+        "severity_score": 720,
+        "why_matters": "The project-level instructions warn this Next.js version has breaking API and file-structure changes. Route handlers, metadata, or deployment assumptions may be implemented incorrectly if the team relies on stale knowledge.",
+        "location": "S1-T5 through S1-T8 · apps/web route handlers",
+        "recommendation": "Add a Day-1 task before route implementation to inspect `node_modules/next/dist/docs/` for route handlers, API responses, caching, and deployment behavior, with findings captured in the sprint notes.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-001",
+        "concern": "The sprint scope is significantly overcommitted for a 4-day hackathon, combining Next.js routing, Solana Actions, Anchor program development, Metaplex mint visibility, nonce infrastructure, Vercel deployment, observability, rate limiting, deck, demo, and submission.",
+        "severity": "CRITICAL",
+        "severity_score": 930,
+        "why_matters": "A single blocker in the spine or crypto path can consume the entire schedule, causing the team to miss the demo deadline despite having partial components working.",
+        "location": "Overall sprint plan · S1-S4 task load",
+        "recommendation": "Cut to one default demo path now: fixture ambient + quiz + mock claim record. Treat real mint, Score wiring, registry submission, and indexer as explicit stretch only after the spine video is recorded.",
+        "source": "tertiary_skeptic"
+      },
+      {
+        "id": "SKP-004",
+        "concern": "Vercel KV is introduced in S2-T4 with no prior provisioning step — 'Vercel KV setup blocked' is listed as a cut trigger but provisioning typically requires account/billing decisions that are not in the plan",
+        "severity": "HIGH",
+        "severity_score": 720,
+        "why_matters": "Vercel KV (Upstash-backed) requires Pro plan or paid add-on, region selection, and DNS propagation. The fallback ('local file storage with nonce-table') is described as 'dev-only · production needs KV' — but sprint-3 ships to production. If KV provisioning is blocked at S2-T4, the production deploy in sprint-3 is unsafe (replay attacks possible against file-based nonce store under serverless cold starts)",
+        "location": "Sprint 2 S2-T4 + Sprint 2 cut triggers (KV provisioning)",
+        "recommendation": "Add an explicit pre-sprint-2 task: provision Vercel KV during sprint-1 idle time (e.g., evening of 2026-05-08). Document the billing cost and operator approval gate. If KV is not viable, reframe to a single-region SQLite file with strict cold-start handling — but make that decision before sprint-2 starts, not as an emergency fallback",
+        "source": "tertiary_skeptic"
+      }
+    ],
+    "degraded": false,
+    "degraded_model": null,
+    "confidence": "full",
+    "phase": "sprint",
+    "document": "grimoires/loa/sprint.md",
+    "domain": "created 2026 05 07 absorbs",
+    "tertiary_model_used": "gemini-3.0-pro",
+    "tertiary_status": "active",
+    "execution": {
+      "mode": "hitl",
+      "mode_reason": "Simstim workflow active (.run/simstim-state.json state=RUNNING)",
+      "run_id": null
+    },
+    "timestamp": "2026-05-08T01:09:48Z",
+    "metrics": {
+      "total_latency_ms": 142000,
+      "cost_cents": 0,
+      "cost_usd": 0
+    }
+  }
+}
