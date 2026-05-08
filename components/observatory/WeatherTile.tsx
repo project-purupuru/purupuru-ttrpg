@@ -26,29 +26,30 @@ export function WeatherTile({ state }: { state: WeatherState }) {
           Weather
         </h3>
       </header>
-      <div className="px-6 py-5">
-        <div className="flex items-end justify-between gap-3">
-          <span
-            className="font-puru-display text-4xl text-puru-ink-rich"
-            aria-label={state.precipitation}
-          >
-            {PRECIP_GLYPH[state.precipitation]}
-          </span>
-          <span className="font-puru-mono text-2xl tabular-nums text-puru-ink-rich">
-            {state.temperature_c}°
-          </span>
+      <div className="flex items-center gap-4 px-6 py-4">
+        <span
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-puru-card text-lg text-puru-cloud-bright"
+          style={{ backgroundColor: `var(--puru-${state.amplifiedElement}-vivid)` }}
+          aria-label={`amplifies ${state.amplifiedElement}`}
+        >
+          {ELEMENT_KANJI[state.amplifiedElement]}
+        </span>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <p className="truncate font-puru-mono text-sm">
+            <span className="tabular-nums text-puru-ink-rich">
+              {state.temperature_c}°
+            </span>
+            <span className="text-puru-ink-soft"> {state.precipitation}</span>
+            <span className="text-puru-ink-soft"> · amplifies </span>
+            <span className="text-puru-ink-base">{state.amplifiedElement}</span>
+          </p>
         </div>
-        <div className="mt-4 flex items-center gap-2">
-          <span
-            className="flex h-7 w-7 items-center justify-center rounded-full font-puru-card text-base text-puru-cloud-bright"
-            style={{ backgroundColor: `var(--puru-${state.amplifiedElement}-vivid)` }}
-          >
-            {ELEMENT_KANJI[state.amplifiedElement]}
-          </span>
-          <span className="font-puru-mono text-2xs uppercase tracking-[0.18em] text-puru-ink-soft">
-            amplifies {state.amplifiedElement}
-          </span>
-        </div>
+        <span
+          className="font-puru-display text-2xl leading-none text-puru-ink-rich"
+          aria-hidden
+        >
+          {PRECIP_GLYPH[state.precipitation]}
+        </span>
       </div>
     </section>
   );

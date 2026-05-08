@@ -61,30 +61,26 @@ export function ActivityRail() {
       ) : (
         <ul className="flex-1 divide-y divide-puru-cloud-dim/70 overflow-y-auto overflow-x-hidden">
           {events.map((e) => (
-            <li key={e.id} className="puru-row flex items-center gap-3 px-5 py-3">
+            <li key={e.id} className="puru-row flex items-center gap-4 px-6 py-4">
               <span
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full font-puru-card text-base text-puru-cloud-bright"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-puru-card text-lg text-puru-cloud-bright"
                 style={{ backgroundColor: `var(--puru-${e.element}-vivid)` }}
                 aria-label={e.element}
               >
                 {KIND_GLYPH[e.kind]}
               </span>
-              <div className="flex min-w-0 flex-1 flex-col">
-                <p className="truncate font-puru-mono text-xs">
-                  <span className="font-puru-display text-sm text-puru-ink-rich">
-                    {shortAddr(e.actor)}
-                  </span>
+              <div className="flex min-w-0 flex-1 flex-col gap-1">
+                <p className="truncate font-puru-mono text-sm">
+                  <span className="text-puru-ink-rich">{shortAddr(e.actor)}</span>
                   <span className="text-puru-ink-soft"> {KIND_LABEL[e.kind]}</span>
                   {e.target ? (
                     <>
                       <span className="text-puru-ink-soft"> → </span>
-                      <span className="font-puru-display text-sm text-puru-ink-base">
-                        {shortAddr(e.target)}
-                      </span>
+                      <span className="text-puru-ink-base">{shortAddr(e.target)}</span>
                     </>
                   ) : null}
                 </p>
-                <span className="font-puru-mono text-2xs uppercase tracking-[0.18em] text-puru-ink-dim">
+                <span className="font-puru-mono text-xs uppercase tracking-[0.18em] text-puru-ink-dim">
                   {timeAgo(e.at, now)}
                 </span>
               </div>
