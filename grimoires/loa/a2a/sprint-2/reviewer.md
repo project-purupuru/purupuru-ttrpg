@@ -62,7 +62,18 @@ End-to-end devnet mint test requires: deploy + API route at `/api/actions/mint/g
 
 > "dependency-cruiser CI guard live · synthetic violation tested" (sprint.md:L110)
 
-**Status: ✗ Not met** · T7 (bd-ww5 in beads) ready but not executed in this session. Recommend agent-driven follow-up — does not block T1 deploy or sprint-3 start.
+**Status: ✓ Met** (via eslint-plugin-import patterns · NOT dependency-cruiser)
+
+Implementation differs from sprint plan AC's literal tool name because dependency-cruiser ≥16 hard-rejects node 23 (operator's current runtime · declares `^20.12||^22||>=24`). Used eslint-plugin-import's `no-restricted-imports` patterns instead — same boundary-enforcement intent · already in pipeline via eslint-config-next · covered by `pnpm lint`.
+
+Evidence:
+- Substrate boundary rule: `eslint.config.mjs:21-50` blocks peripheral-events from importing `next/*`, `react/*`, `@solana/*`, `@metaplex-foundation/*`
+- cmp-boundary rule: `eslint.config.mjs:54-77` blocks medium-blink from importing `@purupuru/world-sources` (must go through WorldEvent)
+- Custom error messages name the SDD section + rationale + suggested fix · readable diagnostics at lint time
+- Synthetic violation tests proven both directions:
+  - `import "react"` injected into peripheral-events → eslint flagged with exact substrate-purity message
+  - `import "@purupuru/world-sources"` injected into medium-blink → flagged with cmp-boundary message
+- `pnpm lint` exits 0 · 0 errors · 8 warnings (all in pre-existing evals fixtures + Sp1/Sp3 spike code · not in any sprint-2 file)
 
 ### AC-S2-6: cmp-boundary golden tests
 
@@ -229,22 +240,26 @@ bd-1b6  S2-T2   ✅ closed  · HMAC quiz state · 22 tests
 bd-mhc  S2-T3   ✅ closed  · ClaimMessage 98B sign/verify · 24 tests
 bd-2xg  S2-T4   ✅ closed  · KV nonce store · 13 tests
 bd-15d  S2-T1   ✅ closed  · claim_genesis_stone Phases A+B+C · 6 invariant tests
-bd-ww5  S2-T7   ⏳ open    · dep-cruiser CI guard (P2 · agent-driven · ~1h)
+bd-ww5  S2-T7   ✅ closed  · substrate-purity boundary lint via eslint-plugin-import
 bd-26s  S2-T5   💤 open    · BLINK_DESCRIPTOR upstream PR (stretch · external)
 bd-ric  S2-T6   💤 open    · gumi voice integration (stretch · external)
 bd-24n  S2-T8   💤 open    · cmp-boundary lint (stretch · blocked on T6)
 ```
 
+**Sprint-2 critical path: 7/7 closed.** Only stretch tasks remain (all P3 · all external dependencies).
+
 ## Commits in this Implementation
 
 ```
+3cf7a68 feat(sprint-2 · S2-T7): substrate-purity boundary enforcement via eslint-plugin-import
+a5399f2 docs(sprint-2): implementation report + Decision Log entries for [ACCEPTED-DEFERRED] ACs
 bb7b73f feat(sprint-2 · S2-T1 Phase B+C): Metaplex CreateV1 CPI + StoneClaimed emit + invariant tests
 6dd1c70 scaffold(sprint-2 · S2-T1 Phase A): claim_genesis_stone shell + T1.5 collection bootstrap
 8d5b85f feat(sprint-2 · S2-T2/T3/T4): off-chain claim primitives · 59 new tests
 e474b31 chore(state): archive cycle-098-leftover progress files from sprint-2/
 ```
 
-Total: ~1500 LOC added · 65 new tests · 0 typecheck regressions · 0 build regressions.
+Total: ~1600 LOC added · 65 new unit tests + 6 anchor invariant tests · 0 typecheck regressions · 0 build regressions · `pnpm lint` exits 0.
 
 ## Feedback Addressed
 
