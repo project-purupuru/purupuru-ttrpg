@@ -55,7 +55,7 @@ export function ObservatoryClient() {
         <div className="relative min-h-0">
           <PentagramCanvas />
         </div>
-        <aside className="grid min-h-0 grid-rows-[1fr_auto] overflow-hidden">
+        <aside className="grid min-h-0 grid-rows-[1fr_auto] gap-2 overflow-hidden bg-puru-cloud-deep">
           <div className="min-h-0 overflow-hidden">
             <ActivityRail />
           </div>
