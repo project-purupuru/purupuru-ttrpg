@@ -1,0 +1,18 @@
+# Environment Variables (Reality Snapshot · 2026-05-07)
+
+NONE FOUND in application code (no application code exists).
+
+`.gitignore` references the standard Next.js env tier:
+
+  .env, .env.local, .env.development.local, .env.test.local, .env.production.local, *.env
+
+`.env.example` is permitted (`!.env.example`) but does not yet exist.
+
+PRD does not enumerate runtime env vars in detail. Anticipated vars (forward-looking, from prd.md §3.3 + standard Solana Actions stack):
+
+  SOLANA_RPC_URL          [planned · devnet only v0]
+  WITNESS_PROGRAM_ID      [planned · anchor program deployment address]
+  BACKEND_FEE_PAYER_KEYPAIR  [planned · sponsored-payer for gasless witness]
+  SCORE_API_URL           [planned · score-puru integration]
+  SONAR_GRAPHQL_URL       [planned · Hasura subscription endpoint]
+  WEATHER_BOT_FEED        [planned · puruhpuruweather upstream]

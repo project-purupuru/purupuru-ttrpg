@@ -1,0 +1,24 @@
+{
+  "generated_at": "2026-05-07T19:36:00Z",
+  "generator": "riding-codebase v0.6.0",
+  "loa_framework_version_caller": "1.116.1",
+  "loa_framework_version_target": "1.130.0",
+  "target_repo": "/Users/zksoju/Documents/GitHub/purupuru-ttrpg",
+  "is_genesis_state": true,
+  "git_commits_at_ride": 0,
+  "non_vendored_files_count": 5,
+  "staleness_threshold_days": 7,
+  "files": {
+    "index.md": {"approx_tokens": 350},
+    "architecture-overview.md": {"approx_tokens": 1100},
+    "api-surface.md": {"approx_tokens": 500},
+    "types.md": {"approx_tokens": 700},
+    "interfaces.md": {"approx_tokens": 600},
+    "entry-points.md": {"approx_tokens": 500},
+    "structure.md": {"approx_tokens": 800}
+  },
+  "approx_total_tokens": 4550,
+  "budget_target_tokens": 8500,
+  "within_budget": true,
+  "notes": "Token counts are approximate. Genesis-stage repo: every file documents 'nothing built yet' as the truth. Re-run /ride after sprint-1 to populate with grounded file:line citations."
+}

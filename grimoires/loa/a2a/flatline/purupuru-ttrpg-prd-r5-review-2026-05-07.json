@@ -1,0 +1,394 @@
+[flatline] Execution mode: autonomous (reason: Config autonomous_mode.enabled=true)
+[flatline] Tertiary model: gemini-3.0-pro (active)
+[flatline] Document: grimoires/bonfire/specs/purupuru-ttrpg-genesis-prd-2026-05-07.md
+[flatline] Phase: prd
+[flatline] Mode: autonomous
+[flatline] Timeout: 300s
+[flatline] Budget: 300 cents
+[flatline] Extracted domain:  prd purupuru awareness layer
+[flatline] State: INIT -> KNOWLEDGE
+[flatline] Retrieving knowledge context (two-tier)
+[flatline] Tier 1: Local knowledge retrieval
+[flatline] Tier 1: Local knowledge retrieval complete
+[flatline] Tier 2: NotebookLM knowledge retrieval
+[flatline] NotebookLM: disabled (skipping)
+[flatline] Knowledge retrieval complete (two-tier)
+[flatline] State: KNOWLEDGE -> PHASE1
+[flatline] Starting Phase 1: Independent reviews (4 parallel calls)
+[flatline] Flatline model 'claude-opus-4-8' (config_key=primary) accepted via forward-compat pattern
+[flatline] Flatline model 'gpt-5.4-codex' (config_key=secondary) accepted via forward-compat pattern
+[flatline] Flatline model 'gemini-3.0-pro' (config_key=tertiary) accepted via forward-compat pattern
+[flatline] Tertiary model confirmed: gemini-3.0-pro (3-model Flatline active)
+[flatline] Phase 1 complete (6 calls). Total cost so far: 0 cents
+[flatline] State: KNOWLEDGE -> PHASE2
+[flatline] Starting Phase 2: Cross-scoring (6 parallel calls)
+[flatline] Phase 2 complete (6 calls). Total cost: 0 cents
+[flatline] State: KNOWLEDGE -> CONSENSUS
+[flatline] Calculating consensus
+[flatline] Including tertiary model scores in consensus (3-model mode)
+[flatline] Including tertiary model skeptic concerns in consensus
+[scoring-engine] Input items: GPT=16, Opus=8 (mode=standard)
+[scoring-engine] Thresholds: high=700, delta=300, low=400, blocker=700
+[scoring-engine] 3-model consensus mode: including tertiary items and cross-scores
+[scoring-engine] Consensus: HIGH=7 DISPUTED=8 LOW=0 BLOCKERS=14 (50% agreement)
+[flatline] State: KNOWLEDGE -> DONE
+{
+  "consensus_summary": {
+    "high_consensus_count": 7,
+    "disputed_count": 8,
+    "low_value_count": 0,
+    "blocker_count": 14,
+    "model_agreement_percent": 50,
+    "models": 3,
+    "tertiary_items": 0,
+    "confidence": "full"
+  },
+  "high_consensus": [
+    {
+      "id": "IMP-001",
+      "description": "Critical. Unenumerated acceptance-criteria ranges make the PRD non-verifiable and directly break downstream planning, implementation, and audit mapping. Low implementation cost with high clarity gain.",
+      "gpt_score": 950,
+      "opus_score": 880,
+      "tertiary_score": 900,
+      "delta": 70,
+      "average_score": 915,
+      "source": "gpt_scored",
+      "would_integrate": true,
+      "agreement": "HIGH"
+    },
+    {
+      "id": "IMP-002",
+      "description": "Critical. GET-chained state can plausibly fail in real wallet/client/CDN paths, and discovering that during integration would be expensive. Defining a budget and fallback is low-cost compared with the risk.",
+      "gpt_score": 900,
+      "opus_score": 860,
+      "tertiary_score": 850,
+      "delta": 40,
+      "average_score": 880,
+      "source": "gpt_scored",
+      "would_integrate": true,
+      "agreement": "HIGH"
+    },
+    {
+      "id": "IMP-003",
+      "description": "Critical. The result_token is a security boundary between quiz state and mint authorization; leaving format and replay rules undefined creates a real integrity gap. Should be specified before implementation.",
+      "gpt_score": 930,
+      "opus_score": 850,
+      "tertiary_score": 950,
+      "delta": 80,
+      "average_score": 890,
+      "source": "gpt_scored",
+      "would_integrate": true,
+      "agreement": "HIGH"
+    },
+    {
+      "id": "IMP-004",
+      "description": "Valuable. Voice corpus quality matters to the demo and needs reviewable criteria, though it is less structurally critical than mint/security flows. Clear ACs and placeholder policy are worth adding.",
+      "gpt_score": 760,
+      "opus_score": 780,
+      "tertiary_score": 880,
+      "delta": 20,
+      "average_score": 770,
+      "source": "gpt_scored",
+      "would_integrate": true,
+      "agreement": "HIGH"
+    },
+    {
+      "id": "IMP-005",
+      "description": "Critical. Aggregate counters are product-critical and currently lack ownership, persistence, privacy, and empty-state behavior. This would otherwise become a late integration blocker or credibility issue.",
+      "gpt_score": 860,
+      "opus_score": 810,
+      "tertiary_score": 820,
+      "delta": 50,
+      "average_score": 835,
+      "source": "gpt_scored",
+      "would_integrate": true,
+      "agreement": "HIGH"
+    },
+    {
+      "id": "IMP-006",
+      "description": "Critical. Metaplex metadata configuration affects scope, CPI complexity, collection verification, mutability, and demo feasibility. Ambiguity here is a major schedule and architecture risk.",
+      "gpt_score": 920,
+      "opus_score": 770,
+      "tertiary_score": 920,
+      "delta": 150,
+      "average_score": 845,
+      "source": "gpt_scored",
+      "would_integrate": true,
+      "agreement": "HIGH"
+    },
+    {
+      "id": "IMP-007",
+      "description": "Valuable. Cross-cluster replay prevention is meaningful, and Solana programs do not inherently know cluster identity. The mechanism must be explicit for the invariant to be testable, though it is narrower than the core token/mint specs.",
+      "gpt_score": 780,
+      "opus_score": 720,
+      "tertiary_score": 700,
+      "delta": 60,
+      "average_score": 750,
+      "source": "gpt_scored",
+      "would_integrate": true,
+      "agreement": "HIGH"
+    }
+  ],
+  "disputed": [
+    {
+      "id": "IMP-009",
+      "description": "Valuable. Team credentials are important for the Frontier artifact set, but this is more deck/source-material quality than implementation correctness. Worth integrating if the PRD is the deck source of truth.",
+      "gpt_score": 620,
+      "opus_score": 0,
+      "tertiary_score": 650,
+      "delta": 620,
+      "average_score": 620,
+      "source": "gpt_scored",
+      "would_integrate": true,
+      "agreement": "DISPUTED"
+    },
+    {
+      "id": "IMP-010",
+      "description": "Valuable. Cross-repo schema drift and dashboard readiness are real demo risks. A written interface and fallback are high-leverage, though the score is slightly below critical because the core product can still demo without the parallel dashboard.",
+      "gpt_score": 790,
+      "opus_score": 0,
+      "tertiary_score": 800,
+      "delta": 790,
+      "average_score": 790,
+      "source": "gpt_scored",
+      "would_integrate": true,
+      "agreement": "DISPUTED"
+    },
+    {
+      "id": "IMP-011",
+      "description": "Critical. Duplicate claim handling is a predictable live-demo path and a common user flow. Defining API semantics and UX is low-cost and prevents confusing failures.",
+      "gpt_score": 820,
+      "opus_score": 0,
+      "tertiary_score": 720,
+      "delta": 820,
+      "average_score": 820,
+      "source": "gpt_scored",
+      "would_integrate": true,
+      "agreement": "DISPUTED"
+    },
+    {
+      "id": "IMP-012",
+      "description": "Valuable. Narrative ambiguity between Base and Solana stones can weaken judge comprehension, but it is mostly positioning rather than implementation risk. A short canonical framing is worth adding.",
+      "gpt_score": 650,
+      "opus_score": 0,
+      "tertiary_score": 600,
+      "delta": 650,
+      "average_score": 650,
+      "source": "gpt_scored",
+      "would_integrate": true,
+      "agreement": "DISPUTED"
+    },
+    {
+      "id": "IMP-013",
+      "description": "Valuable. Monetization needs enough definition to be credible, especially if used in the Frontier pitch. A lightweight v1 spec is useful, though not a near-term build blocker.",
+      "gpt_score": 640,
+      "opus_score": 0,
+      "tertiary_score": 680,
+      "delta": 640,
+      "average_score": 640,
+      "source": "gpt_scored",
+      "would_integrate": true,
+      "agreement": "DISPUTED"
+    },
+    {
+      "id": "IMP-014",
+      "description": "Critical. FR-10 cannot be enforced without a concrete blocklist. Enumerating forbidden substrate tokens gives the lint/audit gate real teeth and directly supports the core moat claim.",
+      "gpt_score": 840,
+      "opus_score": 0,
+      "tertiary_score": 860,
+      "delta": 840,
+      "average_score": 840,
+      "source": "gpt_scored",
+      "would_integrate": true,
+      "agreement": "DISPUTED"
+    },
+    {
+      "id": "IMP-015",
+      "description": "Valuable. Freshness and stale fallback behavior matter for demo quality and product trust, but the risk is bounded and easier to handle operationally than the mint/security gaps.",
+      "gpt_score": 610,
+      "opus_score": 0,
+      "tertiary_score": 550,
+      "delta": 610,
+      "average_score": 610,
+      "source": "gpt_scored",
+      "would_integrate": true,
+      "agreement": "DISPUTED"
+    },
+    {
+      "id": "IMP-016",
+      "description": "Nice-to-have. Sponsored-payer operations are a real demo risk, but the proposed policy is mostly runbook detail and can be handled outside the PRD if time is constrained. Still useful if operational readiness is weak.",
+      "gpt_score": 570,
+      "opus_score": 0,
+      "tertiary_score": 580,
+      "delta": 570,
+      "average_score": 570,
+      "source": "gpt_scored",
+      "would_integrate": true,
+      "agreement": "DISPUTED"
+    }
+  ],
+  "low_value": [],
+  "blockers": [
+    {
+      "id": "SKP-001",
+      "concern": "4-day timeline includes operator learning Solana/Anchor/Metaplex from scratch on the critical path with no fallback owner",
+      "severity": "CRITICAL",
+      "severity_score": 880,
+      "why_matters": "zksoju is sole owner of substrate + BLINK_DESCRIPTOR + anchor program + emitter + deploy + demo + simulator while simultaneously learning a new smart contract stack. Sprint-1+2 risk is acknowledged but no co-pilot or pre-flight spike is scheduled. If Anchor scaffold doesn't compile by 2026-05-08 EOD (Trigger 1), the cut drops Metaplex AND claim_genesis_stone — gutting the demo's 'visible NFT' headline less than 72 hours before submission.",
+      "location": "§6 stakeholders · §11 risks · §12 timeline · §7.5 Trigger 1",
+      "recommendation": "Run a 4-hour Solana spike BEFORE day 1 (today/tomorrow morning): anchor init, ed25519 sysvar verify, Metaplex CPI hello-world, devnet deploy roundtrip. If spike fails, fire Trigger 1 preemptively rather than mid-sprint. Identify a named pair-partner (codex? eileen?) reachable async for unblock within 2h SLA.",
+      "source": "tertiary_skeptic"
+    },
+    {
+      "id": "SKP-003",
+      "concern": "HMAC URL state with secret rotation is unspecified, and a leaked HMAC secret invalidates every in-flight quiz session",
+      "severity": "HIGH",
+      "severity_score": 760,
+      "why_matters": "FR-1 specifies `mac = sha256(secret || step || answers || account)` but no rotation, key-id, or multi-key validation strategy. If the secret leaks (vercel env exposure, git accident, contractor offboarding), there is no graceful rotation — every active quiz state token becomes either still-valid-after-leak or instantly-invalid for honest users. The quiz_state_hash baked into ClaimMessage means a HMAC-key rotation also breaks pending mints.",
+      "location": "§4 FR-1 AC-1.7 · §5 security",
+      "recommendation": "Add a `kid` (key id) byte prefix to the HMAC payload and accept N most-recent keys at validation. On rotation, mint flows older than 5min are accepted by previous key, new flows use new key. Document rotation procedure (env var swap + redeploy).",
+      "source": "tertiary_skeptic"
+    },
+    {
+      "id": "SKP-002",
+      "concern": "Metaplex Token Metadata CPI from Anchor on a 4-day clock with a first-time Solana developer is high-variance work that gates the entire demo punchline",
+      "severity": "CRITICAL",
+      "severity_score": 820,
+      "why_matters": "Metaplex CPI requires correct account ordering, signer seeds for PDA-as-update-authority, master edition vs metadata account distinction, and creators array signing nuances. Common failure modes (InvalidMetadataKey, IncorrectOwner, account size mismatch) can burn an entire day each for a learner. Trigger 1 reverts to PDA-only, but PDA-only undermines the 'visible in Phantom collectibles' narrative that the deck leads with.",
+      "location": "§4 FR-3 · §11 risks",
+      "recommendation": "Either (a) pre-stage a working Metaplex+Anchor reference repo before day 0 close, OR (b) downgrade T1 to: ship a PDA + a separate off-chain metadata.json hosted on the emitter, framed as 'on-chain claim record + canonical metadata' — preserves the visible artifact story without Metaplex CPI risk. Decide before sprint-1 starts.",
+      "source": "tertiary_skeptic"
+    },
+    {
+      "id": "SKP-005",
+      "concern": "Nonce replay protection is mentioned but persistence is not specified, which is risky in a Vercel/serverless environment with multiple instances and redeploys.",
+      "severity": "HIGH",
+      "severity_score": 740,
+      "why_matters": "Without durable nonce storage or deterministic one-claim constraints, replay protection may fail under concurrency or after cold starts. Attackers could reuse signed messages within the expiry window.",
+      "location": "FR-3 · ClaimMessage nonce and FR-4 · result_token",
+      "recommendation": "Specify durable storage for issued and consumed nonces, such as Redis/KV/Postgres, with atomic consume semantics. Also enforce one stone per wallet on-chain as the final backstop.",
+      "source": "tertiary_skeptic"
+    },
+    {
+      "id": "SKP-002",
+      "concern": "Prematurely freezing upgrade authority creates a fragile dependency on upstream PRs",
+      "severity": "HIGH",
+      "severity_score": 780,
+      "why_matters": "If a critical bug is discovered in the Anchor program during the hackathon, freezing the upgrade authority forces a redeployment with a new program ID. Updating the program ID requires an upstream PR to `freeside-mediums` for the `BLINK_DESCRIPTOR`. If the upstream review is delayed (per MVD Trigger 2), the entire demo remains broken.",
+      "location": "FR-3 · upgrade authority FROZEN post-deploy",
+      "recommendation": "Keep the upgrade authority active during the hackathon/demo phase. Freeze it only after the hackathon judging concludes and the codebase is audited for the future mainnet launch.",
+      "source": "tertiary_skeptic"
+    },
+    {
+      "id": "SKP-003",
+      "concern": "Server-tracked nonce implementation is stateful and redundant against Anchor PDAs",
+      "severity": "HIGH",
+      "severity_score": 750,
+      "why_matters": "Tracking nonces server-side in a Vercel Edge environment requires an external database (e.g., KV/Redis), introducing latency and race conditions. Furthermore, it is structurally redundant: the Anchor program already enforces idempotency and prevents replay attacks per-wallet via the `GenesisStone` PDA derivation (`[b\"stone\", wallet]`).",
+      "location": "FR-3 · Instruction B (ClaimMessage nonce)",
+      "recommendation": "Remove the `nonce: [u8; 16]` from the `ClaimMessage` payload. Rely entirely on the Anchor program's PDA initialization constraints to prevent duplicate claims and replay attacks.",
+      "source": "tertiary_skeptic"
+    },
+    {
+      "id": "SKP-001",
+      "concern": "Synchronous 'wallet age' check via RPC will cause Blink POST timeouts",
+      "severity": "CRITICAL",
+      "severity_score": 850,
+      "why_matters": "Checking minimum wallet age (7 days) requires fetching transaction history (`getSignaturesForAddress`). This RPC call is slow, heavily rate-limited, and often paginated. Running this synchronously in a Vercel Edge function during the POST `/api/actions/mint/genesis-stone` will likely exceed Twitter/Dialect strict action timeouts or fail due to RPC node limits, randomly breaking the mint flow for legitimate users.",
+      "location": "FR-4 · Sybil protection (minimum wallet age: 7 days)",
+      "recommendation": "Remove the wallet age check for the v0 devnet demo. Rely solely on the IP rate limit and the >=0.01 SOL balance check, which can be executed with a single, highly performant `getBalance` RPC call.",
+      "source": "tertiary_skeptic"
+    },
+    {
+      "id": "SKP-003",
+      "concern": "The MVP scope remains too broad for a 4-day deadline given Anchor, Metaplex metadata, signed claims, Blinks, substrate package, upstream descriptor PR, observability, rate limits, demo simulator, and deck production are all treated as must-ship.",
+      "severity": "CRITICAL",
+      "severity_score": 870,
+      "why_matters": "A late integration failure could leave no coherent demo path. The cut triggers exist, but several fire after large amounts of time have already been spent on high-risk implementation.",
+      "location": "Section 7 · MVP and Section 12 · Timeline",
+      "recommendation": "Define a day-1 runnable demo spine as the primary artifact: GET quiz, result card, mock or witness-only devnet transaction, and deck narrative. Treat Metaplex, dashboard, simulator, and upstream descriptor as stretch until the spine is verified end-to-end.",
+      "source": "tertiary_skeptic"
+    },
+    {
+      "id": "SKP-004",
+      "concern": "The PRD assumes Metaplex Token Metadata will be visible in Phantom collectibles on devnet, but wallet collectible indexing and display behavior can be delayed, inconsistent, or dependent on metadata hosting and token account setup.",
+      "severity": "HIGH",
+      "severity_score": 770,
+      "why_matters": "The demo claim depends on judges seeing the stone as a visible NFT. If Phantom does not display it during recording, the product proof becomes weaker.",
+      "location": "FR-3 · Metaplex Token Metadata · visible in Phantom collectibles",
+      "recommendation": "Validate Phantom devnet visibility immediately with a minimal mint before building the full flow. Prepare a fallback explorer link, transaction confirmation screen, and in-app stone card that clearly distinguishes wallet display from on-chain proof.",
+      "source": "tertiary_skeptic"
+    },
+    {
+      "id": "SKP-001",
+      "concern": "The PRD defines the quiz MAC as `sha256(secret || step || answers || account)`, which is not HMAC and is vulnerable to construction mistakes including ambiguous concatenation and length-extension style attacks.",
+      "severity": "CRITICAL",
+      "severity_score": 900,
+      "why_matters": "Quiz state integrity is load-bearing for mint authorization. If state can be forged or parsed ambiguously, users could mint arbitrary elements or bypass quiz progression.",
+      "location": "FR-1 · BaziQuizState HMAC integrity check",
+      "recommendation": "Replace with standard `HMAC-SHA256(secret, canonical_json_or_cbor_payload)` using length-delimited canonical encoding. Add tests for answer reordering, delimiter ambiguity, tampering, replay, and malformed step transitions.",
+      "source": "tertiary_skeptic"
+    },
+    {
+      "id": "SKP-002",
+      "concern": "The ed25519 verification design is underspecified and may be technically incorrect for Solana programs if it assumes arbitrary in-program signature verification rather than verifying a prior Ed25519 program instruction through the instructions sysvar.",
+      "severity": "CRITICAL",
+      "severity_score": 890,
+      "why_matters": "If signature verification is implemented incorrectly, unauthorized claims may pass or legitimate claims may fail at mint time, breaking the central on-chain proof.",
+      "location": "FR-3 · claim_genesis_stone · CryptoLOCK ed25519",
+      "recommendation": "Specify the exact Solana pattern: transaction includes an Ed25519 verification instruction before `claim_genesis_stone`; Anchor program reads the instructions sysvar and verifies signer pubkey, message bytes, offsets, and instruction index. Freeze the canonical byte serialization for `ClaimMessage`.",
+      "source": "tertiary_skeptic"
+    },
+    {
+      "id": "SKP-006",
+      "concern": "The transaction signing sequence for sponsored payer plus wallet authority is underspecified for Solana Actions/Blinks wallet behavior.",
+      "severity": "HIGH",
+      "severity_score": 720,
+      "why_matters": "Wallets may reject partially signed transactions, require specific serialization, or alter fee payer expectations. A mismatch would break the only signing step in the demo.",
+      "location": "FR-4 · POST mint endpoint · partially-signed transaction",
+      "recommendation": "Create an early compatibility spike against Phantom and Dialect inspector. Document transaction version, blockhash handling, fee payer, required signers, serialization format, and whether the backend or wallet submits.",
+      "source": "tertiary_skeptic"
+    },
+    {
+      "id": "SKP-004",
+      "concern": "`sha256` is named for both eventId derivation and HMAC, but plain SHA-256 is not an HMAC — risk of length-extension attacks if implemented literally",
+      "severity": "HIGH",
+      "severity_score": 750,
+      "why_matters": "Spec says `mac = sha256(secret || step || answers || account)` — this is a classic length-extension vulnerability against SHA-256. An attacker who has any one valid (state, mac) pair could potentially forge `(state || extension, mac')` without knowing the secret. Same risk applies if eventId derivation uses raw SHA-256 over secret-influenced data.",
+      "location": "§4 FR-1 (BaziQuizState HMAC) · IMP-003 eventId",
+      "recommendation": "Replace `sha256(secret || ...)` with `HMAC-SHA256(secret, canonicalEncode(...))` using Node's `crypto.createHmac` or Web Crypto's HMAC. eventId derivation should also use a domain-separated keyed construction or include a length-prefixed canonical encoding. Add a unit test that asserts length-extension forgery fails.",
+      "source": "tertiary_skeptic"
+    },
+    {
+      "id": "SKP-005",
+      "concern": "sponsored-payer balance halt at <1 SOL is a single threshold with no warning band — devnet faucet flakiness can cause 0-warning mint outage during demo recording",
+      "severity": "HIGH",
+      "severity_score": 720,
+      "why_matters": "Demo recording on day 4 depends on the mint POST succeeding live. Devnet faucet rate-limits and outages are common. A single hard threshold (`< 1 SOL → 503`) provides no grace period and no proactive top-up signal. If the operator records the demo at the moment balance crosses threshold, the recording fails silently or returns 503 mid-take.",
+      "location": "§4 FR-4 · §5 security · §11 risks",
+      "recommendation": "Add tiered alerts: <5 SOL warn, <2 SOL page operator, <1 SOL halt. Pre-stage a refill script keyed to a backup keypair. For demo day, top up to >10 SOL the morning of recording and disable sponsored-payer halt for the recording window via env flag (re-enable after).",
+      "source": "tertiary_skeptic"
+    }
+  ],
+  "degraded": false,
+  "degraded_model": null,
+  "confidence": "full",
+  "phase": "prd",
+  "document": "grimoires/bonfire/specs/purupuru-ttrpg-genesis-prd-2026-05-07.md",
+  "domain": " prd purupuru awareness layer",
+  "tertiary_model_used": "gemini-3.0-pro",
+  "tertiary_status": "active",
+  "execution": {
+    "mode": "autonomous",
+    "mode_reason": "Config autonomous_mode.enabled=true",
+    "run_id": null
+  },
+  "timestamp": "2026-05-07T23:47:19Z",
+  "metrics": {
+    "total_latency_ms": 160000,
+    "cost_cents": 0,
+    "cost_usd": 0
+  }
+}
+[flatline] Flatline: 3-model (claude-opus-4-8 + gpt-5.4-codex + gemini-3.0-pro)
+[flatline] Flatline Protocol complete. Cost: 0 cents, Latency: 160000ms

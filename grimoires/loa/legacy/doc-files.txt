@@ -1,0 +1,4 @@
+README.md
+CLAUDE.md
+grimoires/loa/prd.md
+grimoires/loa/NOTES.md

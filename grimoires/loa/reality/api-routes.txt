@@ -1,0 +1,10 @@
+# API Routes (Reality Snapshot · 2026-05-07)
+
+NONE FOUND.
+
+The repo contains no application code. PRD describes a planned Solana Action endpoint at `apps/blink-emitter` (next.js), with at minimum:
+
+  GET  /api/actions/blink           [PLANNED · prd.md FR-8 stateless GET, wallet-agnostic per Solana Actions spec]
+  POST /api/actions/blink           [PLANNED · prd.md FR-4 corrected POST flow]
+
+These are forward-looking only. No file under `apps/`, `app/`, `src/`, or `pages/` exists.

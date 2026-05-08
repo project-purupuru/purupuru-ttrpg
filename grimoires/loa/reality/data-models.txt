@@ -1,0 +1,19 @@
+# Data Models (Reality Snapshot · 2026-05-07)
+
+NONE FOUND.
+
+No `.ts`, `.tsx`, `.rs`, `.sol`, `.py`, `.go`, `.proto`, schema, or migration files exist outside of the vendored `.claude/`, `.loa/`, `.beads/` directories.
+
+PRD describes a planned (not-yet-implemented) Effect Schema discriminated union:
+
+  WorldEvent = mint | weather_shift | element_surge   [PLANNED · prd.md tl;dr · 3 v0 variants]
+  eventId    = sha256(canonical_encoded + version + source)   [PLANNED · prd.md FR-1, FR-3]
+
+PRD also describes an off-chain ECS conceptual model and an on-chain PDA projection:
+
+  WitnessRecord PDA · seeds = b'witness' · event_id · witness_wallet
+                    · data  = (witness, event_id, event_kind, ts, slot)
+                    · fee_payer = backend keypair (sponsored)
+  [PLANNED · prd.md §3.3]
+
+These are forward-looking; no schema, type, or contract code exists yet.

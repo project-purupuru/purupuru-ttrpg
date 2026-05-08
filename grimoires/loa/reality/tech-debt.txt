@@ -1,0 +1,13 @@
+# Tech Debt Markers (Reality Snapshot · 2026-05-07)
+
+NONE FOUND in application code (no application code exists).
+
+The PRD itself flags openly-tracked debt and decisions:
+
+  - SKP-001 (flatline blocker)  : MVD floor is OPEN · 4d clock · single-owner risk
+  - D-1 (operator decision)     : may rename target repo (project-purupuru/purupuru-ttrpg → ?)
+  - D-3 (operator decision)     : devnet locked v0 · mainnet deferred
+  - DISPUTED IMP-015            : ECS / PDA conflation · resolved by §3.5 split (kept here as scar)
+  - 3 disputed flatline items   : 2 folded, 1 operator-decided
+
+These are proactive design-time markers, not in-code debt. There is no in-code TODO/FIXME/HACK/XXX yet because there is no in-code anything yet.

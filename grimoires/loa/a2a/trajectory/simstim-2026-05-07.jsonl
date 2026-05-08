@@ -1,0 +1,18 @@
+{
+  "type": "simstim",
+  "event": "flatline_readiness",
+  "timestamp": "2026-05-07T23:56:21Z",
+  "data": {
+    "status": "DEGRADED",
+    "exit_code": 3
+  }
+}
+{
+  "type": "simstim",
+  "event": "workflow_started",
+  "timestamp": "2026-05-07T23:56:21Z",
+  "data": {
+    "simstim_id": "simstim-20260507-ac37df65",
+    "from_phase": null
+  }
+}
