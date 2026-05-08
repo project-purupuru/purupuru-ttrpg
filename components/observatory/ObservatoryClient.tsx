@@ -15,6 +15,7 @@ import { WeatherTile } from "./WeatherTile";
 import { IntroAnimation } from "./IntroAnimation";
 import { PentagramCanvas } from "./PentagramCanvas";
 import { FocusCard } from "./FocusCard";
+import { MusicPlayer } from "./MusicPlayer";
 
 const ZERO_DISTRIBUTION: Record<Element, number> = {
   wood: 0, fire: 0, earth: 0, water: 0, metal: 0,
@@ -34,7 +35,15 @@ export function ObservatoryClient() {
     activityStream.recent(CYCLE_BALANCE_WINDOW),
   );
   const [focused, setFocused] = useState<PuruhaniIdentity | null>(null);
-  const [soundEnabled, setSoundEnabled] = useState(false);
+  // `playing` drives the MusicPlayer's <audio> element. `sfxEnabled`
+  // independently toggles the pentatonic sonifier — both must be true
+  // for the per-event chimes to fire, so the user can run the
+  // soundtrack alone, the chimes alone (rare, but possible after a
+  // first play), or both. The sonifier's AudioContext is independent
+  // of the MP3 audio routing, so the two streams don't fight for the
+  // same resource.
+  const [playing, setPlaying] = useState(false);
+  const [sfxEnabled, setSfxEnabled] = useState(true);
   const focusCardRef = useRef<HTMLElement>(null);
   // Timestamp of the most-recent sprite-click. Used by the
   // outside-click-closes-focus listener to ignore the same click that
@@ -47,35 +56,35 @@ export function ObservatoryClient() {
     setFocused(id);
   }, []);
 
-  // Sound toggle — must be invoked from a click handler, since the
-  // browser autoplay policy requires a user gesture to resume the
-  // AudioContext on first activation. Subsequent toggles just suspend
-  // and resume the existing context (instant).
-  const handleToggleSound = useCallback(async () => {
-    const sonifier = getSonifier();
-    if (soundEnabled) {
-      sonifier.stop();
-      setSoundEnabled(false);
-    } else {
-      await sonifier.start();
-      setSoundEnabled(true);
-    }
-  }, [soundEnabled]);
+  // Stable identities for the music player's prop callbacks. The
+  // sonifier lifecycle is owned by the effect below — these handlers
+  // just flip React state.
+  const handlePlayingChange = useCallback((next: boolean) => {
+    setPlaying(next);
+  }, []);
+  const handleSfxToggle = useCallback(() => {
+    setSfxEnabled((prev) => !prev);
+  }, []);
 
-  // Sonification subscription — separate from the recentActivity
-  // subscription so the audio engine doesn't run unless explicitly
-  // enabled. Each event maps to a soft pentatonic note (per dig
-  // 2026-05-08 §2 Listen to Wikipedia + dig discussion of game-audio
-  // patterns); cooldown + polyphony cap inside the sonifier prevent
-  // stacking even at burst cadence.
+  // Sonifier lifecycle — runs only while BOTH music is playing AND sfx
+  // is enabled. Cleanup unsubscribes and suspends the AudioContext, so
+  // toggling either flag off silences the chimes without affecting the
+  // <audio> element. The first sonifier.start() call rides the user
+  // gesture from a button click (effect runs synchronously after the
+  // click-driven render); subsequent resumes don't need a fresh gesture
+  // per AudioContext spec.
   useEffect(() => {
-    if (!soundEnabled) return;
+    if (!playing || !sfxEnabled) return;
     const sonifier = getSonifier();
+    void sonifier.start();
     const unsub = activityStream.subscribe((e) => {
       sonifier.play({ element: e.element, kind: e.kind });
     });
-    return unsub;
-  }, [soundEnabled]);
+    return () => {
+      unsub();
+      sonifier.stop();
+    };
+  }, [playing, sfxEnabled]);
 
   // Outside-click-closes — listener attaches only while a sprite is
   // focused, so the click that *opened* the card never reaches this
@@ -144,14 +153,22 @@ export function ObservatoryClient() {
         distribution={distribution}
         cosmicIntensity={weather.cosmic_intensity}
         cycleBalance={cycleBalance}
-        soundEnabled={soundEnabled}
-        onToggleSound={handleToggleSound}
       />
       <main className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[1fr_440px]">
         <div className="relative min-h-0">
           <PentagramCanvas
             onSpriteClick={handleSpriteClick}
             focusedTrader={focused?.trader ?? null}
+          />
+          {/* MusicPlayer + FocusCard share the canvas pane's stacking
+              context so the focus card cleanly slides in over the
+              player when a sprite is clicked. Both anchored to bottom-
+              left at the same width (340px) so they line up exactly. */}
+          <MusicPlayer
+            playing={playing}
+            onPlayingChange={handlePlayingChange}
+            sfxEnabled={sfxEnabled}
+            onSfxToggle={handleSfxToggle}
           />
           <FocusCard
             identity={focused}

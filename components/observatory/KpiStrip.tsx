@@ -5,7 +5,6 @@ import { useMemo } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { ELEMENTS, type Element } from "@/lib/score";
 import { Users, Lightning, Scales } from "@phosphor-icons/react";
-import { SoundToggle } from "./SoundToggle";
 
 const ELEMENT_KANJI: Record<Element, string> = {
   wood: "木",
@@ -20,15 +19,11 @@ export function KpiStrip({
   distribution,
   cosmicIntensity,
   cycleBalance,
-  soundEnabled,
-  onToggleSound,
 }: {
   totalActive: number;
   distribution: Record<Element, number>;
   cosmicIntensity: number;
   cycleBalance: number;
-  soundEnabled: boolean;
-  onToggleSound: () => void;
 }) {
   // Dominant element + its share of the population. Computed each render
   // so it tracks the score adapter's drift in lockstep with the canvas.
@@ -99,9 +94,6 @@ export function KpiStrip({
         value={cosmicIntensity.toFixed(2)}
         icon={<Lightning weight="fill" />}
       />
-      <div className="flex shrink-0 items-center bg-puru-cloud-bright px-3">
-        <SoundToggle enabled={soundEnabled} onToggle={onToggleSound} />
-      </div>
     </section>
   );
 }

@@ -121,7 +121,7 @@ export function FocusCard({
       role="dialog"
       aria-label="puruhani details"
       aria-hidden={!isOpen}
-      className="absolute left-4 bottom-4 z-20 w-[340px]"
+      className="absolute left-4 bottom-4 z-20 w-[340px] md:bottom-[82px]"
       style={{
         transform: isOpen ? "translateX(0)" : "translateX(-110%)",
         opacity: isOpen ? 1 : 0,
