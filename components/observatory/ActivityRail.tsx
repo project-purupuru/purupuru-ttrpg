@@ -83,14 +83,14 @@ export function ActivityRail() {
       <header className="relative shrink-0 bg-puru-cloud-bright px-6 py-4 shadow-[0_1px_0_0_var(--puru-surface-border),0_2px_4px_var(--puru-surface-shadow-sm)]">
         <div className="flex items-center justify-between gap-4">
           <div className="flex min-w-0 flex-col">
-            <span className="font-puru-mono text-2xs uppercase tracking-[0.22em] text-puru-ink-dim">
+            <span className="font-puru-body text-2xs uppercase tracking-[0.22em] text-puru-ink-dim">
               on-chain
             </span>
             <h3 className="mt-1 font-puru-display text-xl text-puru-ink-rich">
               Activity
             </h3>
           </div>
-          <span className="inline-flex shrink-0 items-center gap-1.5 font-puru-mono text-2xs uppercase tracking-[0.22em] text-puru-ink-dim">
+          <span className="inline-flex shrink-0 items-center gap-1.5 font-puru-body text-2xs uppercase tracking-[0.22em] text-puru-ink-dim">
             <span
               className="puru-live-dot inline-block h-1.5 w-1.5 rounded-full"
               style={{ backgroundColor: "var(--puru-wood-vivid)" }}
@@ -121,7 +121,7 @@ export function ActivityRail() {
       </div>
       {events.length === 0 ? (
         <div className="flex flex-1 items-center justify-center px-5 py-12">
-          <p className="font-puru-mono text-xs uppercase tracking-[0.18em] text-puru-ink-dim">
+          <p className="font-puru-body text-xs uppercase tracking-[0.18em] text-puru-ink-dim">
             awaiting first event
           </p>
         </div>
@@ -156,14 +156,14 @@ export function ActivityRail() {
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-puru-body text-sm leading-tight text-puru-ink-base">
-                    <span className="font-puru-card text-puru-ink-rich">
+                    <span className="font-puru-display text-xs text-puru-ink-rich">
                       {actor?.displayName ?? e.actor.slice(0, 6)}
                     </span>
-                    <span className="ml-1 font-puru-mono text-2xs text-puru-ink-dim">
+                    <span className="ml-1 font-puru-body text-2xs text-puru-ink-dim">
                       @{actor?.username ?? e.actor.slice(2, 8).toLowerCase()}
                     </span>
                   </p>
-                  <p className="mt-0.5 truncate font-puru-mono text-xs leading-tight text-puru-ink-soft">
+                  <p className="mt-0.5 truncate font-puru-body text-xs leading-tight text-puru-ink-soft">
                     <span aria-hidden className="mr-1">{KIND_GLYPH[e.kind]}</span>
                     {KIND_LABEL[e.kind]}
                     {target ? (
@@ -171,7 +171,7 @@ export function ActivityRail() {
                     ) : null}
                   </p>
                 </div>
-                <span className="shrink-0 self-start font-puru-mono text-2xs uppercase tracking-[0.18em] tabular-nums text-puru-ink-dim">
+                <span className="shrink-0 self-start font-puru-body text-2xs uppercase tracking-[0.18em] tabular-nums text-puru-ink-dim">
                   {timeAgo(e.at, now)}
                 </span>
               </li>
