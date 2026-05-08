@@ -4,13 +4,13 @@ import { useEffect, useState } from "react";
 import { scoreAdapter } from "@/lib/score";
 import { weatherFeed } from "@/lib/weather";
 import type { WeatherState } from "@/lib/weather";
-import { ELEMENTS, type Element } from "@/lib/score";
+import type { Element } from "@/lib/score";
 import { TopBar } from "./TopBar";
 import { KpiStrip } from "./KpiStrip";
 import { ActivityRail } from "./ActivityRail";
 import { WeatherTile } from "./WeatherTile";
 import { IntroAnimation } from "./IntroAnimation";
-import { PentagramCanvas, OBSERVATORY_SPRITE_COUNT } from "./PentagramCanvas";
+import { PentagramCanvas } from "./PentagramCanvas";
 
 const ZERO_DISTRIBUTION: Record<Element, number> = {
   wood: 0, fire: 0, earth: 0, water: 0, metal: 0,
@@ -42,13 +42,10 @@ export function ObservatoryClient() {
     };
   }, []);
 
-  const distributionTotal = ELEMENTS.reduce((sum, el) => sum + distribution[el], 0);
-  const activeCount = distributionTotal > 0 ? OBSERVATORY_SPRITE_COUNT : 0;
-
   return (
     <div className="flex h-dvh flex-col bg-puru-cloud-base text-puru-ink-base">
       {!introDone && <IntroAnimation onDone={() => setIntroDone(true)} />}
-      <TopBar activeCount={activeCount} />
+      <TopBar />
       <KpiStrip
         distribution={distribution}
         cosmicIntensity={cosmicIntensity}
