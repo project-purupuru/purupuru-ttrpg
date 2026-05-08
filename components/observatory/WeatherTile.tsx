@@ -1,8 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { WeatherState } from "@/lib/weather";
+import type { WeatherState, Precipitation } from "@/lib/weather";
 import type { Element } from "@/lib/score";
+import { KpiCell } from "./KpiCell";
+import {
+  Sun,
+  CloudRain,
+  CloudSnow,
+  CloudLightning,
+  MapPin,
+  type Icon,
+} from "@phosphor-icons/react";
 
 const ELEMENT_KANJI: Record<Element, string> = {
   wood: "木",
@@ -12,12 +21,16 @@ const ELEMENT_KANJI: Record<Element, string> = {
   metal: "金",
 };
 
-const PRECIP_GLYPH = {
-  clear: "☀",
-  rain: "☂",
-  snow: "❄",
-  storm: "⚡",
-} as const;
+// Maps precipitation state to its Phosphor fill-weight icon. Picked
+// to mirror the original Unicode glyphs (☀ ☂ ❄ ⚡) that read at a
+// glance — sun for clear, rain/snow clouds for the wet states, and
+// lightning for storm.
+const PRECIP_ICON: Record<Precipitation, Icon> = {
+  clear: Sun,
+  rain: CloudRain,
+  snow: CloudSnow,
+  storm: CloudLightning,
+};
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
@@ -62,38 +75,32 @@ export function WeatherTile({ state }: { state: WeatherState }) {
         </div>
       </header>
       <div
-        className="flex items-center gap-4 px-6 py-4"
+        className="grid grid-cols-3 gap-2 px-3 py-3"
         style={{
-          backgroundImage: `linear-gradient(to left, color-mix(in oklch, var(--puru-${state.amplifiedElement}-vivid) 12%, transparent) 0%, transparent 55%)`,
+          backgroundImage: `linear-gradient(to left, color-mix(in oklch, var(--puru-${state.amplifiedElement}-vivid) 10%, transparent) 0%, transparent 60%)`,
         }}
       >
-        <span
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-puru-card text-lg text-puru-cloud-bright"
-          style={{ backgroundColor: `var(--puru-${state.amplifiedElement}-vivid)` }}
-          aria-label={`amplifies ${state.amplifiedElement}`}
-        >
-          {ELEMENT_KANJI[state.amplifiedElement]}
-        </span>
-        <div className="flex min-w-0 flex-1 flex-col">
-          <p className="truncate font-puru-mono text-sm">
-            <span className="tabular-nums text-puru-ink-rich">
-              {state.temperature_c}°
-            </span>
-            <span className="ml-2 text-puru-ink-soft">{state.precipitation}</span>
-          </p>
-          <p className="mt-0.5 flex min-w-0 items-baseline gap-3 font-puru-mono text-xs text-puru-ink-soft">
-            <span className="truncate text-puru-ink-base">{state.location}</span>
-            <span className="truncate">
-              amplifies <span className="text-puru-ink-base">{state.amplifiedElement}</span>
-            </span>
-          </p>
-        </div>
-        <span
-          className="font-puru-display text-2xl leading-none text-puru-ink-rich"
-          aria-hidden
-        >
-          {PRECIP_GLYPH[state.precipitation]}
-        </span>
+        {(() => {
+          const PrecipIcon = PRECIP_ICON[state.precipitation];
+          return (
+            <KpiCell
+              label="temperature"
+              value={`${state.temperature_c}°`}
+              aside={<PrecipIcon weight="fill" />}
+            />
+          );
+        })()}
+        <KpiCell
+          label="location"
+          value={state.location}
+          aside={<MapPin weight="fill" />}
+        />
+        <KpiCell
+          label="amplifies"
+          value={state.amplifiedElement}
+          aside={ELEMENT_KANJI[state.amplifiedElement]}
+          asideStyle={{ color: `var(--puru-${state.amplifiedElement}-vivid)` }}
+        />
       </div>
     </section>
   );

@@ -7,6 +7,9 @@ import { OBSERVATORY_SPRITE_COUNT } from "@/lib/sim/entities";
 import { buildIdentityRegistry } from "@/lib/sim/identity";
 import type { PuruhaniIdentity } from "@/lib/sim/types";
 import { PuruhaniAvatar } from "./PuruhaniAvatar";
+import type { ActionKind } from "@/lib/activity/types";
+import { KpiCell } from "./KpiCell";
+import { Sparkle, Sword, Flower } from "@phosphor-icons/react";
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
@@ -66,6 +69,15 @@ export function ActivityRail() {
   // lives in the body where width can flex.
   const lastSeen = events.length > 0 ? timeAgo(events[0].at, now) : "—";
 
+  // Live tally over the displayed window — counts only what's in `events`
+  // (capped at 50). Reads as "what's happening right now," not lifetime
+  // totals; refreshes on every new event without any extra subscription.
+  const counts = useMemo(() => {
+    const c: Record<ActionKind, number> = { mint: 0, attack: 0, gift: 0 };
+    for (const e of events) c[e.kind]++;
+    return c;
+  }, [events]);
+
   return (
     <aside className="flex h-full min-h-0 flex-col overflow-hidden border-l border-puru-surface-border bg-puru-cloud-bright shadow-puru-tile">
       <header className="relative shrink-0 bg-puru-cloud-bright px-6 py-4 shadow-[0_1px_0_0_var(--puru-surface-border),0_2px_4px_var(--puru-surface-shadow-sm)]">
@@ -90,6 +102,23 @@ export function ActivityRail() {
           </span>
         </div>
       </header>
+      <div className="grid shrink-0 grid-cols-3 gap-2 border-b border-puru-surface-border bg-puru-cloud-base/60 px-3 py-3">
+        <KpiCell
+          label="mints"
+          value={counts.mint}
+          aside={<Sparkle weight="fill" />}
+        />
+        <KpiCell
+          label="attacks"
+          value={counts.attack}
+          aside={<Sword weight="fill" />}
+        />
+        <KpiCell
+          label="gifts"
+          value={counts.gift}
+          aside={<Flower weight="fill" />}
+        />
+      </div>
       {events.length === 0 ? (
         <div className="flex flex-1 items-center justify-center px-5 py-12">
           <p className="font-puru-mono text-xs uppercase tracking-[0.18em] text-puru-ink-dim">
