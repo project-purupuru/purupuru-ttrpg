@@ -5,12 +5,14 @@ import { scoreAdapter } from "@/lib/score";
 import { weatherFeed } from "@/lib/weather";
 import type { WeatherState } from "@/lib/weather";
 import type { Element } from "@/lib/score";
+import type { PuruhaniIdentity } from "@/lib/sim/types";
 import { TopBar } from "./TopBar";
 import { KpiStrip } from "./KpiStrip";
 import { ActivityRail } from "./ActivityRail";
 import { WeatherTile } from "./WeatherTile";
 import { IntroAnimation } from "./IntroAnimation";
 import { PentagramCanvas } from "./PentagramCanvas";
+import { FocusCard } from "./FocusCard";
 
 const ZERO_DISTRIBUTION: Record<Element, number> = {
   wood: 0, fire: 0, earth: 0, water: 0, metal: 0,
@@ -23,6 +25,7 @@ export function ObservatoryClient() {
   const [cycleBalance, setCycleBalance] = useState(0.5);
   const [totalActive, setTotalActive] = useState(0);
   const [weather, setWeather] = useState<WeatherState>(weatherFeed.current());
+  const [focused, setFocused] = useState<PuruhaniIdentity | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -62,7 +65,11 @@ export function ObservatoryClient() {
       />
       <main className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[1fr_440px]">
         <div className="relative min-h-0">
-          <PentagramCanvas />
+          <PentagramCanvas
+            onSpriteClick={setFocused}
+            focusedTrader={focused?.trader ?? null}
+          />
+          <FocusCard identity={focused} onClose={() => setFocused(null)} />
         </div>
         <aside className="grid min-h-0 grid-rows-[1fr_auto] overflow-hidden">
           <div className="min-h-0 overflow-hidden">

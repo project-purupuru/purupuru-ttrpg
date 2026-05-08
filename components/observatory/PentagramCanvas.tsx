@@ -23,7 +23,6 @@ import {
 } from "@/lib/sim/entities";
 import type { Puruhani, PuruhaniIdentity } from "@/lib/sim/types";
 import { weatherFeed } from "@/lib/weather";
-import { activityStream, type ActivityEvent } from "@/lib/activity";
 import { avatarToCanvas } from "@/lib/sim/avatar";
 import {
   tideUnitVectorsFor,
@@ -33,6 +32,8 @@ import {
 
 interface PentagramCanvasProps {
   onSpriteClick?: (identity: PuruhaniIdentity) => void;
+  /** Wallet of the currently-focused puruhani; non-focused sprites dim. */
+  focusedTrader?: string | null;
 }
 
 const ELEMENT_HEX: Record<Element, number> = {
@@ -74,6 +75,7 @@ interface SpriteEntry {
   vx: number;          // wander velocity (px / 16ms-ish frame)
   vy: number;
   migration: Migration | null;
+  focusAlpha: number;  // 0..1 — smoothly tracks focus dim/restore target
 }
 
 function topAffinity(
@@ -190,9 +192,27 @@ function rng(seed: number): () => number {
   };
 }
 
-export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
+// Per-channel lerp between two hex colors. t=0 → a, t=1 → b.
+// Used for the smooth tint transition when sprite focus dim/restores.
+function lerpHex(a: number, b: number, t: number): number {
+  const ar = (a >> 16) & 0xff, ag = (a >> 8) & 0xff, ab = a & 0xff;
+  const br = (b >> 16) & 0xff, bg = (b >> 8) & 0xff, bb = b & 0xff;
+  const r = Math.round(ar + (br - ar) * t);
+  const g = Math.round(ag + (bg - ag) * t);
+  const bl = Math.round(ab + (bb - ab) * t);
+  return (r << 16) | (g << 8) | bl;
+}
+
+export function PentagramCanvas({ onSpriteClick, focusedTrader = null }: PentagramCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const appRef = useRef<Application | null>(null);
+  // Read-by-Pixi-ticker mirror of the focusedTrader prop — keeps the
+  // canvas useEffect from re-initializing on every focus change while
+  // letting the ticker observe the latest selection each frame.
+  const focusedTraderRef = useRef<string | null>(null);
+  useEffect(() => {
+    focusedTraderRef.current = focusedTrader;
+  }, [focusedTrader]);
 
   useEffect(() => {
     let cancelled = false;
@@ -265,37 +285,18 @@ export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
         amplificationFactor = s.amplificationFactor;
       });
 
-      // ─── Element energy — mass-conserved homeostatic state ─────────────────
-      // Each vertex carries an "energy" scalar that responds to two
-      // drivers: the slow weather-driven equilibrium (amplified element
-      // pulled toward 1.4, others toward 0.9 — sum stays at 5.0), and
-      // transient event pulses drained from activityStream at an
-      // attention-budget rate. An event of element X bumps energy[X]
-      // by +0.5 and pulls 0.125 from each of the other four. Decay back
-      // to the weather equilibrium with a ~1.5s exponential timeconstant.
-      // Reference: dig 2026-05-08 §6 — Flow-Lenia mass-conservation.
+      // ─── Element energy — slow weather-driven equilibrium ──────────────────
+      // Each vertex carries an "energy" scalar pulled toward a target
+      // determined by the weather state: amplified element targets 1.4,
+      // others target 0.9 — sum stays at 5.0 (mass-conserved per
+      // Flow-Lenia, dig 2026-05-08 §6). Exponential approach with 1.5s
+      // timeconstant means amplifiedElement transitions smoothly when
+      // weather shifts. Per-event pulses live in the activity rail; the
+      // canvas reads as ambient world mood only.
       const energy: Record<Element, number> = {
         wood: 1, fire: 1, earth: 1, water: 1, metal: 1,
       };
-      const PULSE_BUMP = 0.5;
       const DECAY_TC_MS = 1500;
-      const ATTENTION_BUDGET_MS = 500;  // max 2 pulses/sec drained from queue
-      const pulseQueue: ActivityEvent[] = [];
-      let pulseAccum = 0;
-      const onActivity = (e: ActivityEvent) => {
-        // Cap queue so a stalled session doesn't accumulate forever
-        if (pulseQueue.length < 32) pulseQueue.push(e);
-      };
-      const unsubActivity = activityStream.subscribe(onActivity);
-
-      function applyPulse(el: Element) {
-        energy[el] += PULSE_BUMP;
-        const drain = PULSE_BUMP / 4;  // mass-conserved: total Δ = 0
-        for (const other of ELEMENTS) {
-          if (other === el) continue;
-          energy[other] -= drain;
-        }
-      }
 
       // ─── Entities ──────────────────────────────────────────────────────────
       const entities: Puruhani[] = await seedPopulation(
@@ -339,11 +340,27 @@ export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
         const entry: SpriteEntry = {
           entity, node, shadow, baseScale,
           vx: 0, vy: 0, migration: null,
+          focusAlpha: 1,
         };
         sprites.push(entry);
       }
       app.stage.addChild(shadowLayer);
       app.stage.addChild(spriteLayer);
+
+      // ─── Focus glow — soft element-tinted ring under the selected sprite ──
+      // Sits above shadows but below sprites so it reads as a halo on the
+      // ground rather than a bezel painted over the avatar. Single Graphics
+      // updated per-tick — drawn only when focusedTraderRef has a match.
+      const focusGlow = new Graphics();
+      focusGlow.alpha = 0;
+      app.stage.addChildAt(focusGlow, app.stage.getChildIndex(spriteLayer));
+      const FOCUS_LERP_TC_MS = 280;
+      const SHADOW_BASE_ALPHA = 0.22;
+      // When dimmed, tint multiplies the avatar texture toward this hex so
+      // non-selected sprites read as recessed-into-shadow rather than
+      // see-through. 0x4a4a4a ≈ 29% brightness — keeps the silhouette
+      // and avatar features readable while clearly de-emphasised.
+      const FOCUS_DIM_TINT = 0x4a4a4a;
 
       // ─── Migration scheduler ───────────────────────────────────────────────
       // With 80 sprites we want roughly one migration every 1.5s — frequent
@@ -425,23 +442,6 @@ export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
           }
         }
 
-        // ─── Drain attention-budget queue ─────────────────────────────────
-        // Cap visible event-pulses to ~2/sec regardless of how fast
-        // events arrive — preserves the calm observatory rhythm vs a
-        // transaction-explorer firehose (dig 2026-05-08 §3 Watch Dogs
-        // Legion Player Attention System).
-        pulseAccum += dt;
-        while (pulseAccum >= ATTENTION_BUDGET_MS && pulseQueue.length > 0) {
-          pulseAccum -= ATTENTION_BUDGET_MS;
-          const e = pulseQueue.shift()!;
-          applyPulse(e.element);
-        }
-        // Drop excess accumulator if the queue empties — don't bank
-        // budget; the system should settle back to baseline cleanly.
-        if (pulseQueue.length === 0 && pulseAccum > ATTENTION_BUDGET_MS) {
-          pulseAccum = ATTENTION_BUDGET_MS;
-        }
-
         // ─── Element-energy decay toward weather equilibrium ──────────────
         // amplified element pulled toward 1.4, others toward 0.9 — sum
         // stays at 5.0 (mass-conserved). Exponential approach with
@@ -458,9 +458,10 @@ export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
         }
 
         // ─── Apply energy to vertex visuals ───────────────────────────────
-        // Halo: alpha follows raw energy; amplified element also carries
-        // the slow ~7s breath pulse on top so the lit vertex feels
-        // actively driven by something beyond the diagram.
+        // Halo only — disk and ring stay constant (set once at construction)
+        // so the kanji glyph reads as a stable artifact. The halo carries
+        // both the slow energy bias (amplifiedElement glows brighter) and
+        // the ~7s breath pulse layered on top of the amplified element.
         for (const el of ELEMENTS) {
           const v = vertexByElement[el];
           if (!v) continue;
@@ -470,14 +471,7 @@ export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
             const breath = 0.5 + 0.5 * Math.sin(tMs / 7000 + HALO_BREATH_PHASE[el]);
             breathBoost = HALO_AMP_GAIN * ampNorm * (0.7 + 0.3 * breath);
           }
-          // halo: 0.18 baseline · scales with energy (≈0.16 dim, ≈0.25 amp,
-          // ≈0.27 fresh-pulse) plus the weather breath on the amplified one
           v.halo.alpha = HALO_BASE_ALPHA * e + breathBoost;
-          v.halo.scale.set(0.92 + 0.08 * e);
-          // disk + ring: subtle alpha lift with energy, never strong enough
-          // to break the ceramic-tile register
-          v.disk.alpha = 0.85 + 0.15 * e;
-          v.ring.alpha = 0.45 * (0.7 + 0.3 * e);
         }
 
         // Tide multiplier from cosmic energy. 0 → 1.0 (baseline),
@@ -549,6 +543,46 @@ export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
           const phase = s.entity.breath_phase;
           const breath = 1 + 0.06 * Math.sin(2 * Math.PI * phase);
           s.node.scale.set(s.baseScale * (reduce ? 1 : breath));
+
+          // ─── Focus tint — darken non-selected sprites when one is focused ──
+          // focusAlpha smoothly approaches 1 when this sprite is the
+          // focused one (or nothing is focused), otherwise 0. Mapped onto
+          // a tint multiplier so dimmed sprites stay fully opaque (avatars
+          // recognisable, just recessed into shadow) instead of going
+          // see-through. Shadow alpha rides a half-amplitude version so
+          // ground-presence stays partially visible on the dim crowd.
+          const focusedT = focusedTraderRef.current;
+          const focusTarget = focusedT === null || s.entity.trader === focusedT ? 1 : 0;
+          const focusLerp = 1 - Math.exp(-dt / FOCUS_LERP_TC_MS);
+          s.focusAlpha += (focusTarget - s.focusAlpha) * focusLerp;
+          s.node.tint = lerpHex(FOCUS_DIM_TINT, 0xffffff, s.focusAlpha);
+          s.shadow.alpha = SHADOW_BASE_ALPHA * (0.55 + 0.45 * s.focusAlpha);
+        }
+
+        // ─── Focus glow — draw soft element-tinted ring under selected ─────
+        // Single Graphics, redrawn each frame from scratch. Cheap enough
+        // (1 circle + breath) and keeps the position dead-true to the
+        // sprite's render-time offset (wobble + tide + migration all
+        // already baked into s.node.x/y above).
+        const focusedT = focusedTraderRef.current;
+        if (focusedT) {
+          const target = sprites.find((s) => s.entity.trader === focusedT);
+          if (target) {
+            const breathPhase = 0.5 + 0.5 * Math.sin(tMs / 1300);
+            const r = 28 + 4 * breathPhase;
+            const color = ELEMENT_HEX[target.entity.primaryElement];
+            focusGlow.clear();
+            focusGlow.circle(target.node.x, target.node.y + 2, r + 6);
+            focusGlow.fill({ color, alpha: 0.10 });
+            focusGlow.circle(target.node.x, target.node.y + 2, r);
+            focusGlow.stroke({ width: 1.5, color, alpha: 0.55 });
+            focusGlow.alpha = Math.min(1, focusGlow.alpha + dt / 200);
+          } else {
+            focusGlow.alpha = Math.max(0, focusGlow.alpha - dt / 200);
+          }
+        } else {
+          focusGlow.alpha = Math.max(0, focusGlow.alpha - dt / 200);
+          if (focusGlow.alpha === 0) focusGlow.clear();
         }
       };
       app.ticker.add(ticker);
@@ -597,7 +631,6 @@ export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
       rafCleanup = () => {
         app.ticker.remove(ticker);
         unsubWeather();
-        unsubActivity();
         ro.disconnect();
       };
     })();
