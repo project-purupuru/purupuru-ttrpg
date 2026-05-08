@@ -51,7 +51,7 @@ export function ObservatoryClient() {
         cosmicIntensity={cosmicIntensity}
         cycleBalance={cycleBalance}
       />
-      <main className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[1fr_380px]">
+      <main className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[1fr_440px]">
         <div className="relative min-h-0">
           <PentagramCanvas />
         </div>

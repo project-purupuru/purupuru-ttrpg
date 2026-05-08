@@ -26,7 +26,12 @@ export function WeatherTile({ state }: { state: WeatherState }) {
           Weather
         </h3>
       </header>
-      <div className="flex items-center gap-4 px-6 py-4">
+      <div
+        className="flex items-center gap-4 px-6 py-4"
+        style={{
+          backgroundImage: `linear-gradient(to left, color-mix(in oklch, var(--puru-${state.amplifiedElement}-vivid) 12%, transparent) 0%, transparent 55%)`,
+        }}
+      >
         <span
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-puru-card text-lg text-puru-cloud-bright"
           style={{ backgroundColor: `var(--puru-${state.amplifiedElement}-vivid)` }}

@@ -14,8 +14,8 @@ function timeAgo(iso: string, now: number): string {
 }
 
 function shortAddr(addr: string): string {
-  if (!addr || addr.length < 8) return addr;
-  return `…${addr.slice(-4)}`;
+  if (!addr || addr.length < 6) return addr;
+  return addr.slice(0, 6);
 }
 
 const KIND_LABEL = {
@@ -61,7 +61,13 @@ export function ActivityRail() {
       ) : (
         <ul className="flex-1 divide-y divide-puru-cloud-dim/70 overflow-y-auto overflow-x-hidden">
           {events.map((e) => (
-            <li key={e.id} className="puru-row flex items-center gap-4 px-6 py-4">
+            <li
+              key={e.id}
+              className="puru-row relative flex items-center gap-4 px-6 py-4"
+              style={{
+                backgroundImage: `linear-gradient(to left, color-mix(in oklch, var(--puru-${e.element}-vivid) 12%, transparent) 0%, transparent 55%)`,
+              }}
+            >
               <span
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-puru-card text-lg text-puru-cloud-bright"
                 style={{ backgroundColor: `var(--puru-${e.element}-vivid)` }}
@@ -69,21 +75,16 @@ export function ActivityRail() {
               >
                 {KIND_GLYPH[e.kind]}
               </span>
-              <div className="flex min-w-0 flex-1 flex-col gap-1">
-                <p className="truncate font-puru-mono text-sm">
-                  <span className="text-puru-ink-rich">{shortAddr(e.actor)}</span>
-                  <span className="text-puru-ink-soft"> {KIND_LABEL[e.kind]}</span>
-                  {e.target ? (
-                    <>
-                      <span className="text-puru-ink-soft"> → </span>
-                      <span className="text-puru-ink-base">{shortAddr(e.target)}</span>
-                    </>
-                  ) : null}
-                </p>
-                <span className="font-puru-mono text-xs uppercase tracking-[0.18em] text-puru-ink-dim">
-                  {timeAgo(e.at, now)}
-                </span>
-              </div>
+              <p className="min-w-0 flex-1 truncate font-puru-mono text-sm">
+                <span className="text-puru-ink-rich">{shortAddr(e.actor)}</span>
+                <span className="text-puru-ink-soft"> {KIND_LABEL[e.kind]}</span>
+                {e.target ? (
+                  <span className="text-puru-ink-base"> {shortAddr(e.target)}</span>
+                ) : null}
+              </p>
+              <span className="shrink-0 font-puru-mono text-xs uppercase tracking-[0.18em] text-puru-ink-dim">
+                {timeAgo(e.at, now)}
+              </span>
             </li>
           ))}
         </ul>

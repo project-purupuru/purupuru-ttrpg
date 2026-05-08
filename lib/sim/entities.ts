@@ -26,8 +26,21 @@ export function breathPeriodMs(element: Element): number {
 }
 
 export function syntheticAddress(seed: number): Wallet {
-  const hex = Math.abs(seed).toString(16).padStart(8, "0");
-  return `0x${hex}${hex}${hex}${hex}${hex}`;
+  // Spread the seed across 40 hex chars via 5 independent multiplicative
+  // hashes (Knuth-style large-prime mixers). Deterministic so the
+  // activity stream's actor IDs round-trip to the same entity sprites,
+  // but visually each address looks like a real Ethereum-style wallet
+  // (no leading-zero pile-up at the start).
+  const mix = (n: number, prime: number) =>
+    ((Math.abs(n) * prime) >>> 0).toString(16).padStart(8, "0");
+  return (
+    "0x" +
+    mix(seed, 2654435761) +
+    mix(seed, 1597334677) +
+    mix(seed, 3266489917) +
+    mix(seed, 374761393) +
+    mix(seed, 668265263)
+  );
 }
 
 function rng(seed: number): () => number {
