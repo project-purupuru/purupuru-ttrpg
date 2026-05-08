@@ -4,7 +4,7 @@ import Image from "next/image";
 
 export function TopBar() {
   return (
-    <header className="flex h-16 shrink-0 items-center border-b border-puru-cloud-dim bg-puru-cloud-bright px-8">
+    <header className="flex h-16 shrink-0 items-center border-b border-puru-cloud-edge bg-puru-cloud-raised px-8">
       <Image
         src="/brand/purupuru-wordmark.svg"
         alt="purupuru"

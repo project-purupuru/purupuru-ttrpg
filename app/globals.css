@@ -32,9 +32,11 @@
   color-scheme: light dark;
 
   /* ── Cloud surfaces (warm cream, not void) ─────────────────────────── */
+  --puru-cloud-raised: oklch(1.00 0.005 90);
   --puru-cloud-bright: oklch(0.97 0.010 90);
   --puru-cloud-base:   oklch(0.94 0.015 90);
   --puru-cloud-dim:    oklch(0.88 0.020 90);
+  --puru-cloud-edge:   oklch(0.82 0.025 85);
   --puru-cloud-deep:   oklch(0.78 0.025 85);
   --puru-cloud-shadow: oklch(0.65 0.030 85);
 
@@ -225,9 +227,11 @@
    ───────────────────────────────────────────────────────────────────────────── */
 
 [data-theme="old-horai"] {
+  --puru-cloud-raised: oklch(0.30 0.018 80);
   --puru-cloud-bright: oklch(0.24 0.015 80);
   --puru-cloud-base:   oklch(0.20 0.012 80);
   --puru-cloud-dim:    oklch(0.14 0.010 80);
+  --puru-cloud-edge:   oklch(0.32 0.012 80);
   --puru-cloud-deep:   oklch(0.10 0.008 80);
   --puru-cloud-shadow: oklch(0.06 0.006 80);
 
@@ -409,9 +413,11 @@
   --color-puru-metal-tint: var(--puru-metal-tint);
 
   /* Surfaces */
+  --color-puru-cloud-raised: var(--puru-cloud-raised);
   --color-puru-cloud-bright: var(--puru-cloud-bright);
   --color-puru-cloud-base:   var(--puru-cloud-base);
   --color-puru-cloud-dim:    var(--puru-cloud-dim);
+  --color-puru-cloud-edge:   var(--puru-cloud-edge);
   --color-puru-cloud-deep:   var(--puru-cloud-deep);
   --color-puru-cloud-shadow: var(--puru-cloud-shadow);
 

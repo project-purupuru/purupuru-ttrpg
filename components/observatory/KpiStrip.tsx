@@ -21,7 +21,7 @@ export function KpiStrip({
 }) {
   const total = ELEMENTS.reduce((sum, el) => sum + distribution[el], 0);
   return (
-    <section className="flex shrink-0 items-stretch gap-4 border-b border-puru-cloud-dim bg-puru-cloud-bright px-6 py-4">
+    <section className="flex shrink-0 items-stretch gap-4 border-b border-puru-cloud-edge bg-puru-cloud-bright px-6 py-4">
       <Tile label="wuxing distribution">
         <div className="flex h-7 w-full overflow-hidden rounded-puru-sm">
           {ELEMENTS.map((el) => {

@@ -43,7 +43,7 @@ export function ObservatoryClient() {
   }, []);
 
   return (
-    <div className="flex h-dvh flex-col bg-puru-cloud-base text-puru-ink-base">
+    <div className="flex h-dvh flex-col bg-puru-cloud-deep text-puru-ink-base">
       {!introDone && <IntroAnimation onDone={() => setIntroDone(true)} />}
       <TopBar />
       <KpiStrip

@@ -46,8 +46,8 @@ export function ActivityRail() {
   }, []);
 
   return (
-    <aside className="flex h-full min-h-0 flex-col overflow-hidden border-l border-puru-cloud-dim bg-puru-cloud-bright">
-      <header className="shrink-0 border-b border-puru-cloud-dim px-6 py-5">
+    <aside className="flex h-full min-h-0 flex-col overflow-hidden border-l border-puru-cloud-edge bg-puru-cloud-bright">
+      <header className="shrink-0 border-b border-puru-cloud-edge bg-puru-cloud-raised px-6 py-5">
         <h3 className="font-puru-display text-xl text-puru-ink-rich">
           Recent activity
         </h3>
@@ -59,7 +59,7 @@ export function ActivityRail() {
           </p>
         </div>
       ) : (
-        <ul className="flex-1 divide-y divide-puru-cloud-dim overflow-y-auto overflow-x-hidden">
+        <ul className="flex-1 divide-y divide-puru-cloud-dim/70 overflow-y-auto overflow-x-hidden">
           {events.map((e) => (
             <li key={e.id} className="flex items-center gap-3 px-5 py-3">
               <span
