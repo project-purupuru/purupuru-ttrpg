@@ -1,0 +1,20 @@
+[package]
+name = "purupuru-anchor"
+version = "0.0.1"
+description = "Sp2 spike · ed25519-via-instructions-sysvar verification pattern"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "purupuru_anchor"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build"]
+
+[dependencies]
+anchor-lang = "0.30.1"
