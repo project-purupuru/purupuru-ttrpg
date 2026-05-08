@@ -68,6 +68,7 @@ interface Migration {
 interface SpriteEntry {
   entity: Puruhani;
   node: Sprite;
+  shadow: Graphics;    // soft elliptical contact shadow underneath
   baseScale: number;
   pulse: number;       // 0..1, decays — drives action-flash
   vx: number;          // wander velocity (px / 16ms-ish frame)
@@ -228,6 +229,10 @@ export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
         return;
       }
 
+      // Shadow layer sits below sprites so all shadows draw before any
+      // sprite — prevents one sprite from rendering over a neighbour's
+      // shadow at higher z. Implies a ground plane without one existing.
+      const shadowLayer = new Container();
       const spriteLayer = new Container();
       const sprites: SpriteEntry[] = [];
       const spritesByActor = new Map<string, SpriteEntry>();
@@ -245,13 +250,22 @@ export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
         node.cursor = "pointer";
         node.on("pointertap", () => onSpriteClick?.(entity.identity));
         spriteLayer.addChild(node);
+
+        const shadow = new Graphics();
+        shadow.ellipse(0, 0, 13, 4);
+        shadow.fill({ color: 0x000000, alpha: 0.22 });
+        shadow.x = entity.position.x;
+        shadow.y = entity.position.y + 14;
+        shadowLayer.addChild(shadow);
+
         const entry: SpriteEntry = {
-          entity, node, baseScale,
+          entity, node, shadow, baseScale,
           pulse: 0, vx: 0, vy: 0, migration: null,
         };
         sprites.push(entry);
         spritesByActor.set(entity.trader, entry);
       }
+      app.stage.addChild(shadowLayer);
       app.stage.addChild(spriteLayer);
 
       // ─── Activity stream — interaction movement on event ───────────────────
@@ -414,6 +428,11 @@ export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
             s.node.y = s.entity.position.y;
           }
 
+          // Shadow tracks the physics anchor (not the wobble) so the
+          // sprite appears to bob over a stationary ground point.
+          s.shadow.x = s.entity.position.x;
+          s.shadow.y = s.entity.position.y + 14;
+
           // Pulse decay + scale (with gentle breath jiggle)
           if (s.pulse > 0) s.pulse = Math.max(0, s.pulse - dt / 600);
           const phase = s.entity.breath_phase;
@@ -489,15 +508,26 @@ export function PentagramCanvas({ onSpriteClick }: PentagramCanvasProps) {
 
   return (
     <div
-      ref={containerRef}
-      className="relative h-full w-full"
-      data-testid="pentagram-canvas"
+      className="relative h-full w-full overflow-hidden"
+      style={{ perspective: "1400px", perspectiveOrigin: "center 60%" }}
     >
-      <noscript>
-        <p className="p-6 text-puru-ink-soft">
-          The observatory requires JavaScript to render the wuxing pentagram.
-        </p>
-      </noscript>
+      <div
+        ref={containerRef}
+        className="relative h-full w-full"
+        style={{
+          transform: "rotateX(6deg)",
+          transformOrigin: "center 55%",
+          background:
+            "radial-gradient(ellipse 75% 65% at center, color-mix(in oklch, var(--puru-cloud-bright) 80%, var(--puru-cloud-base)) 0%, var(--puru-cloud-base) 38%, var(--puru-cloud-dim) 72%, var(--puru-cloud-deep) 100%)",
+        }}
+        data-testid="pentagram-canvas"
+      >
+        <noscript>
+          <p className="p-6 text-puru-ink-soft">
+            The observatory requires JavaScript to render the wuxing pentagram.
+          </p>
+        </noscript>
+      </div>
     </div>
   );
 }
