@@ -1,8 +1,10 @@
-// AC: renders valid ActionGetResponse · 5 buttons per step (one per element)
+// AC: renders valid ActionGetResponse · QUIZ_CONFIG.buttonsPerStep buttons per step
+// (default 3 per Gumi feedback · max 5 per Blink spec)
 // 8-question corpus per operator-authored content (was 5×4 in original PRD draft)
 
 import { describe, expect, it } from "vitest"
 
+import { QUIZ_CONFIG } from "../src/quiz-config"
 import { BLINK_DESCRIPTOR } from "../src/solana-actions-types"
 import {
   renderAmbient,
@@ -25,8 +27,16 @@ describe("renderQuizStart · Q1 entry point", () => {
     expect(response.links?.actions).toBeDefined()
   })
 
-  it("AC · 5 buttons per step (one per element)", () => {
-    expect(response.links?.actions.length).toBe(5)
+  it("AC · buttons per step matches QUIZ_CONFIG.buttonsPerStep", () => {
+    expect(response.links?.actions.length).toBe(QUIZ_CONFIG.buttonsPerStep)
+  })
+
+  it("buttons carry type field (Solana Actions spec v2.4 requires it)", () => {
+    response.links?.actions.forEach((btn) => {
+      expect(btn.type).toBeDefined()
+      // Quiz buttons should be type:"post" for in-card chain (not transaction)
+      expect(["post", "external-link"]).toContain(btn.type)
+    })
   })
 
   it("respects BLINK_DESCRIPTOR title limit (≤80 chars)", () => {
@@ -46,12 +56,19 @@ describe("renderQuizStart · Q1 entry point", () => {
     })
   })
 
-  it("buttons encode answer index in URL state (a1=0..4)", () => {
+  it("buttons encode answer index in URL state (a1=...)", () => {
     const answerIndices = response.links!.actions.map((btn) => {
       const url = new URL(btn.href)
       return url.searchParams.get("a1")
     })
-    expect(answerIndices).toEqual(["0", "1", "2", "3", "4"])
+    // With buttonsPerStep=3 and selection="first-n", indices are ["0","1","2"]
+    // The original-position preserve means each button's a1 = its index in the
+    // FULL corpus (so element-mapping stays correct in result computation).
+    expect(answerIndices.length).toBe(QUIZ_CONFIG.buttonsPerStep)
+    answerIndices.forEach((idx, i) => {
+      expect(Number(idx)).toBeGreaterThanOrEqual(0)
+      expect(Number(idx)).toBeLessThanOrEqual(4)
+    })
   })
 
   it("validateActionResponse passes", () => {
@@ -62,14 +79,14 @@ describe("renderQuizStart · Q1 entry point", () => {
 })
 
 describe("renderQuizStep · steps 2-8", () => {
-  it("step 2 with 1 prior answer renders 5 buttons", () => {
+  it("step 2 with 1 prior answer renders buttonsPerStep buttons", () => {
     const response = renderQuizStep({
       step: 2,
       priorAnswers: [1],
       mac: "placeholder",
       config: testConfig,
     })
-    expect(response.links?.actions.length).toBe(5)
+    expect(response.links?.actions.length).toBe(QUIZ_CONFIG.buttonsPerStep)
     expect(response.error).toBeUndefined()
   })
 
@@ -85,7 +102,7 @@ describe("renderQuizStep · steps 2-8", () => {
     })
   })
 
-  it("step 8 carries all 8 answers in URL params (a1..a8)", () => {
+  it("step 8 carries all prior answers in URL params (a1..a8)", () => {
     const response = renderQuizStep({
       step: 8,
       priorAnswers: [0, 1, 2, 3, 4, 0, 1],
@@ -94,6 +111,7 @@ describe("renderQuizStep · steps 2-8", () => {
     })
     const firstBtn = response.links!.actions[0]
     const url = new URL(firstBtn.href)
+    // 7 prior answers preserved as-is
     expect(url.searchParams.get("a1")).toBe("0")
     expect(url.searchParams.get("a2")).toBe("1")
     expect(url.searchParams.get("a3")).toBe("2")
@@ -101,7 +119,8 @@ describe("renderQuizStep · steps 2-8", () => {
     expect(url.searchParams.get("a5")).toBe("4")
     expect(url.searchParams.get("a6")).toBe("0")
     expect(url.searchParams.get("a7")).toBe("1")
-    expect(url.searchParams.get("a8")).toBe("0") // first answer index of step 8
+    // a8 is this button's selection · index depends on selection strategy
+    expect(url.searchParams.get("a8")).not.toBeNull()
   })
 
   it("invalid step (0 or 9) returns error response", () => {

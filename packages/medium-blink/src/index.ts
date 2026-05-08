@@ -34,5 +34,17 @@ export type {
   ActionPostResponse,
   BlinkDescriptor,
   LinkedAction,
+  LinkedActionType,
   NextActionLink,
+  PostResponse,
 } from "./solana-actions-types"
+
+// Quiz config · single source of truth for shape (steps, buttons-per-step,
+// chain style). Operator + Gumi tune these without touching renderer code.
+export {
+  QUIZ_CONFIG,
+  selectAnswers,
+  shouldButtonsPost,
+} from "./quiz-config"
+
+export type { ButtonSelection, ChainStyle, QuizConfig } from "./quiz-config"

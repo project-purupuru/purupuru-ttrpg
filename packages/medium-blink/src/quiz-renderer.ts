@@ -1,6 +1,9 @@
-// Quiz renderer · GET-chain Action responses
-// SDD r2 §4.1 · per BLINK_DESCRIPTOR (button-multichoice · 5 buttons per step)
-// AC: renders valid ActionGetResponse shape · 5 buttons per step (one per element)
+// Quiz renderer · driven by quiz-config.ts (single source of truth for shape)
+// SDD r2 §4.1 · per BLINK_DESCRIPTOR
+//
+// Default config: 8 questions × 3 buttons (Gumi feedback · 5 looks ugly).
+// Buttons emit `type: "post"` so Dialect renderer treats them as chain links
+// (POST returns next action inline) NOT transaction buttons (would require wallet).
 //
 // Composition flow (Codex §5):
 //   peripheral-events BaziQuizState shape
@@ -9,6 +12,7 @@
 
 import type { Element } from "@purupuru/peripheral-events"
 
+import { QUIZ_CONFIG, selectAnswers, shouldButtonsPost } from "./quiz-config"
 import type { ActionGetResponse, LinkedAction } from "./solana-actions-types"
 import { BLINK_DESCRIPTOR } from "./solana-actions-types"
 import {
@@ -44,14 +48,18 @@ const iconUrlForArchetype = (
   return `${base}?archetype=${archetype}`
 }
 
-// Render the start of the quiz · Q1 with 5 element-leaning answers (one per element).
+// Render the start of the quiz · Q1 with N element-leaning answers (N = config.buttonsPerStep).
 //
 // Pure function · no I/O · returns a valid ActionGetResponse per Solana Actions spec.
 export const renderQuizStart = (
   config: RendererConfig = defaultConfig,
 ): ActionGetResponse => {
   const q = QUIZ_CORPUS[0]
-  if (!q) throw new Error("Quiz corpus empty · expected 8 questions")
+  if (!q) {
+    throw new Error(
+      `Quiz corpus empty · expected ${QUIZ_CONFIG.totalSteps} questions`,
+    )
+  }
 
   const buttons = buildAnswerButtons(q.step, [], q.answers, config)
 
@@ -64,26 +72,26 @@ export const renderQuizStart = (
   }
 }
 
-// Render a mid-quiz step · steps 2..8 · prior answers in URL state.
+// Render a mid-quiz step · steps 2..QUIZ_CONFIG.totalSteps · prior answers in URL state.
 //
 // Server-side caller validates HMAC over (step, priorAnswers) before rendering.
 // S2-T2 implements proper HMAC-SHA256 · this renderer just passes through the mac.
 export const renderQuizStep = (params: {
-  step: number // 1..8 · the step we're rendering
+  step: number // 1..QUIZ_CONFIG.totalSteps · the step we're rendering
   priorAnswers: ReadonlyArray<0 | 1 | 2 | 3 | 4>
   mac: string
   config?: RendererConfig
 }): ActionGetResponse => {
   const config = params.config ?? defaultConfig
 
-  if (params.step < 1 || params.step > 8) {
+  if (params.step < 1 || params.step > QUIZ_CONFIG.totalSteps) {
     return {
       icon: iconUrlForStep(1, config),
       title: "tide unread",
       description: "the path is unclear · please begin again",
       label: "begin",
       links: {
-        actions: [{ label: "begin again", href: `${config.baseUrl}/api/actions/quiz/start` }],
+        actions: [{ type: "post", label: "begin again", href: `${config.baseUrl}/api/actions/quiz/start` }],
       },
       error: { message: `Invalid step: ${params.step}` },
     }
@@ -100,7 +108,7 @@ export const renderQuizStep = (params: {
       description: "the path was lost · please begin again",
       label: "begin",
       links: {
-        actions: [{ label: "begin again", href: `${config.baseUrl}/api/actions/quiz/start` }],
+        actions: [{ type: "post", label: "begin again", href: `${config.baseUrl}/api/actions/quiz/start` }],
       },
       error: {
         message: `Answer count mismatch: expected ${params.step - 1}, got ${params.priorAnswers.length}`,
@@ -145,10 +153,15 @@ export const renderQuizResult = (params: {
     links: {
       actions: [
         {
+          // claim → real mint flow (sprint-3 wires real claim_genesis_stone tx)
+          // type:"transaction" so wallet adapter prompts for sig at click time
+          type: "transaction",
           label: "claim your stone",
           href: `${config.baseUrl}/api/actions/mint/genesis-stone`,
         },
         {
+          // ambient → chains to next inline action (no wallet needed)
+          type: "post",
           label: "see today's tide",
           href: `${config.baseUrl}/api/actions/today`,
         },
@@ -175,6 +188,9 @@ export const renderAmbient = (params: {
     links: {
       actions: [
         {
+          // chain into the quiz · POST returns Q1 inline so user starts the quiz
+          // without leaving the ambient card
+          type: "post",
           label: "what's my element?",
           href: `${config.baseUrl}/api/actions/quiz/start`,
         },
@@ -183,28 +199,35 @@ export const renderAmbient = (params: {
   }
 }
 
-// Build up to 5 answer buttons for a quiz step · each links to next step's GET endpoint.
+// Build answer buttons for a quiz step · count + selection driven by QUIZ_CONFIG.
 //
 // State encoded as URL query params: ?step=N&a1=...&aN-1=...&mac=...
-// (Server validates HMAC at every transition · S2-T2 mac, real now.)
+// Each button gets `type` matching the configured chainStyle:
+//   "inline-post" → type:"post" → POST handler returns next action inline
+//   "external-link" → type:"external-link" → simple navigation
 const buildAnswerButtons = (
   step: number,
   priorAnswers: ReadonlyArray<0 | 1 | 2 | 3 | 4>,
   answers: ReadonlyArray<{ label: string; element: Element }>,
   config: RendererConfig,
 ): LinkedAction[] => {
-  return answers.map((a, idx) => {
-    const newAnswers = [...priorAnswers, idx as 0 | 1 | 2 | 3 | 4]
+  // Apply selection strategy · slice corpus to QUIZ_CONFIG.buttonsPerStep
+  const selected = selectAnswers(answers, step - 1)
+
+  const buttonType = shouldButtonsPost() ? "post" : "external-link"
+
+  return selected.map(({ originalIndex, answer }) => {
+    const newAnswers = [...priorAnswers, originalIndex as 0 | 1 | 2 | 3 | 4]
     const nextStep = step + 1
 
     // Final step → links go to /result · earlier steps → /step
     const path =
-      nextStep > 8
+      nextStep > QUIZ_CONFIG.totalSteps
         ? "/api/actions/quiz/result"
         : "/api/actions/quiz/step"
 
     const params = new URLSearchParams()
-    if (nextStep <= 8) {
+    if (nextStep <= QUIZ_CONFIG.totalSteps) {
       params.set("step", String(nextStep))
     }
     newAnswers.forEach((ans, i) => params.set(`a${i + 1}`, String(ans)))
@@ -213,7 +236,7 @@ const buildAnswerButtons = (
     const queryString = params.toString()
     const href = `${config.baseUrl}${path}${queryString ? "?" + queryString : ""}`
 
-    return { label: a.label, href }
+    return { type: buttonType, label: answer.label, href }
   })
 }
 

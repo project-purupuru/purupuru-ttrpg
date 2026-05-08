@@ -4,10 +4,26 @@
 // Reference: https://docs.solana.com/actions
 // v0 keeps this minimal · upgrade to @solana/actions package when ergonomics demand.
 
-// Action chained linked button (GET-chain · per FR-2 actionChaining:true).
+// LinkedActionType · per Solana Actions spec (matches @dialectlabs/blinks-core).
+// Drives client-side handling of button click:
+//   "transaction"   → POST returns base64 tx → wallet signs (default · requires wallet)
+//   "post"          → POST returns next action inline → no wallet needed (chain nav)
+//   "external-link" → button is a plain hyperlink (degraded · navigates away)
+//   "message"       → POST returns text-to-sign (sign-message flow)
+//   "inline-link"   → href fetched as GET · returns next action inline (rare)
+export type LinkedActionType =
+  | "transaction"
+  | "post"
+  | "external-link"
+  | "message"
+  | "inline-link"
+
+// Action chained linked button.
 export interface LinkedAction {
+  /** Type of action · REQUIRED in Solana Actions spec v2.4+ · defaults to "transaction" if omitted */
+  type: LinkedActionType
   label: string
-  href: string // GET endpoint URL · server resolves next step
+  href: string
   // input fields disallowed v0 per BLINK_DESCRIPTOR · button-multichoice only
 }
 
@@ -24,19 +40,34 @@ export interface ActionGetResponse {
   error?: { message: string }
 }
 
-// ActionPostResponse · what POST endpoints return (sprint-1 mint endpoint S1-T9).
+// NextAction chain link · used in POST response `links.next` to drive the chain.
+//   type "post":   client POSTs to href to fetch the next action
+//   type "inline": next action is embedded directly · client renders without extra fetch
+export type NextActionLink =
+  | { type: "post"; href: string }
+  | { type: "inline"; action: ActionGetResponse }
+
+// ActionPostResponse · response from POST when button.type === "transaction".
+// Contains a base64-encoded tx the wallet signs + submits.
 export interface ActionPostResponse {
-  transaction: string // base64-encoded Solana transaction
+  type?: "transaction"
+  transaction: string
   message?: string
   links?: {
     next?: NextActionLink
   }
 }
 
-// NextAction chain link · for action-chaining via POST → GET (cycle-2 work · stub here).
-export type NextActionLink =
-  | { type: "post"; href: string }
-  | { type: "inline"; action: ActionGetResponse }
+// PostResponse · response from POST when button.type === "post".
+// NO transaction · just chains to the next action (or terminates with a message).
+// This is what our quiz-step + quiz-result POST handlers return.
+export interface PostResponse {
+  type: "post"
+  message?: string
+  links?: {
+    next: NextActionLink
+  }
+}
 
 // BLINK_DESCRIPTOR constraints (cycle-X upstream PR target · per FR-2).
 // Mirrors freeside-mediums sealed-schema discriminated-union pattern.
