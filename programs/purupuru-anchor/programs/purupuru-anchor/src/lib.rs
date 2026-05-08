@@ -43,7 +43,7 @@ use anchor_lang::solana_program::sysvar::instructions::{
     load_current_index_checked, load_instruction_at_checked, ID as INSTRUCTIONS_SYSVAR_ID,
 };
 
-declare_id!("PupuruAnch0r111111111111111111111111111111");
+declare_id!("7u27WmTz2hZHvvhL89XcSCY3eFhxEfHjUN5MjzMY6v38");
 
 #[program]
 pub mod purupuru_anchor {
