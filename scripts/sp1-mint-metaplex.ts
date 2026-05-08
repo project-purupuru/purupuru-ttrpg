@@ -123,6 +123,8 @@ try {
 }
 console.log(`   Recipient: ${recipient.toString()}`)
 
+// Wrap async work in main() so tsx's CJS default doesn't choke on top-level await.
+async function main() {
 // ── 4. Pre-flight balance check ──────────────────────────────────────
 
 const balanceLamports = await umi.rpc.getBalance(payerPubkey)
@@ -205,3 +207,10 @@ console.log(`
 
 ═══════════════════════════════════════════════════════════════════════
 `)
+}
+
+// Run main · catch + log failures so we get clean stack traces.
+main().catch((err) => {
+  console.error("\n❌ Script failed:", err)
+  process.exit(1)
+})
