@@ -27,29 +27,33 @@ import {
   TransactionInstruction,
   sendAndConfirmRawTransaction,
 } from "@solana/web3.js"
+import { readFileSync } from "node:fs"
+import { homedir } from "node:os"
+import { join } from "node:path"
 import { buildPartialSignedTx, checkPayerBalance } from "../lib/blink/sponsored-payer"
 
 const DEVNET_RPC = "https://api.devnet.solana.com"
 const MEMO_PROGRAM_ID = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr")
+const KEYPAIR_PATH = join(homedir(), ".config/solana/id.json")
 
 async function main() {
   const connection = new Connection(DEVNET_RPC, "confirmed")
 
   console.log("\n🔵 Sp3 · partial-sign tx assembly · end-to-end flow\n")
 
-  // 1 · Generate sponsored-payer + user wallet keypairs (simulated · in prod payer
-  //     is in env, user is in Phantom).
-  const sponsoredPayer = Keypair.generate()
+  // 1 · Load sponsored-payer from operator's existing devnet keypair (already funded
+  //     from Sp1 work · skips devnet airdrop rate-limit pain). User wallet stays a
+  //     fresh in-memory keypair · proves user pays 0 SOL.
+  const keypairBytes = JSON.parse(readFileSync(KEYPAIR_PATH, "utf-8")) as number[]
+  const sponsoredPayer = Keypair.fromSecretKey(new Uint8Array(keypairBytes))
   const userWallet = Keypair.generate()
 
-  console.log("  sponsored-payer:", sponsoredPayer.publicKey.toBase58())
-  console.log("  user-wallet:    ", userWallet.publicKey.toBase58())
+  console.log("  sponsored-payer:", sponsoredPayer.publicKey.toBase58(), "(from ~/.config/solana/id.json)")
+  console.log("  user-wallet:    ", userWallet.publicKey.toBase58(), "(fresh · 0 SOL)")
 
-  // 2 · Airdrop to sponsored-payer · NOT to user (proves user pays 0 SOL).
-  console.log("\n  💰 airdropping 0.5 SOL to sponsored-payer (NOT user wallet)...")
-  const airdropSig = await connection.requestAirdrop(sponsoredPayer.publicKey, 500_000_000)
-  await connection.confirmTransaction(airdropSig, "confirmed")
-  console.log("     ✅ airdrop confirmed:", airdropSig)
+  // 2 · Skipping airdrop · sponsored-payer already funded from Sp1 work.
+  //     (devnet airdrops are rate-limited · using existing balance is more realistic
+  //      anyway since production payer is loaded from env, not airdropped fresh)
 
   // 3 · Health-check · payer has enough SOL?
   const balance = await checkPayerBalance(connection, sponsoredPayer.publicKey)
