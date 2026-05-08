@@ -20,7 +20,7 @@ export async function GET(request: Request) {
   // Parse + validate step.
   const stepRaw = params.get("step")
   const step = stepRaw ? Number.parseInt(stepRaw, 10) : NaN
-  if (!Number.isInteger(step) || step < 2 || step > 5) {
+  if (!Number.isInteger(step) || step < 2 || step > 8) {
     return NextResponse.json(
       {
         icon: `${baseUrl}/api/og?step=1`,
@@ -39,11 +39,11 @@ export async function GET(request: Request) {
   }
 
   // Parse prior answers (a1..aN-1) into typed array.
-  const priorAnswers: Array<0 | 1 | 2 | 3> = []
+  const priorAnswers: Array<0 | 1 | 2 | 3 | 4> = []
   for (let i = 1; i < step; i++) {
     const raw = params.get(`a${i}`)
     const ans = raw ? Number.parseInt(raw, 10) : NaN
-    if (!Number.isInteger(ans) || ans < 0 || ans > 3) {
+    if (!Number.isInteger(ans) || ans < 0 || ans > 4) {
       return NextResponse.json(
         {
           error: { message: `Invalid answer parameter a${i}` },
@@ -51,7 +51,7 @@ export async function GET(request: Request) {
         { headers: ACTION_CORS_HEADERS, status: 400 },
       )
     }
-    priorAnswers.push(ans as 0 | 1 | 2 | 3)
+    priorAnswers.push(ans as 0 | 1 | 2 | 3 | 4)
   }
 
   // HMAC validation (placeholder S1 · S2-T2 implements proper)

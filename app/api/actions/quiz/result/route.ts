@@ -1,5 +1,5 @@
-// GET /api/actions/quiz/result?step=5&a1=...&a5=...&mac=...
-// Sprint-1 · S1-T7 · per SDD r2 §4.1
+// GET /api/actions/quiz/result?step=8&a1=...&a8=...&mac=...
+// Sprint-1 · S1-T7 · bumped to 8 questions in sprint-2 (operator-authored corpus)
 //
 // Server recomputes element from validated answers · ignores client-supplied.
 
@@ -15,12 +15,12 @@ export async function GET(request: Request) {
   const url = new URL(request.url)
   const params = url.searchParams
 
-  // Parse all 5 answers (final result endpoint).
-  const answers: Array<0 | 1 | 2 | 3> = []
-  for (let i = 1; i <= 5; i++) {
+  // Parse all 8 answers (final result endpoint).
+  const answers: Array<0 | 1 | 2 | 3 | 4> = []
+  for (let i = 1; i <= 8; i++) {
     const raw = params.get(`a${i}`)
     const ans = raw ? Number.parseInt(raw, 10) : NaN
-    if (!Number.isInteger(ans) || ans < 0 || ans > 3) {
+    if (!Number.isInteger(ans) || ans < 0 || ans > 4) {
       return NextResponse.json(
         {
           icon: `${baseUrl}/api/og?step=1`,
@@ -37,7 +37,7 @@ export async function GET(request: Request) {
         { headers: ACTION_CORS_HEADERS, status: 400 },
       )
     }
-    answers.push(ans as 0 | 1 | 2 | 3)
+    answers.push(ans as 0 | 1 | 2 | 3 | 4)
   }
 
   // Server-side element derivation: each answer leans toward an element

@@ -23,18 +23,18 @@ interface ActionPostBody {
   account?: string
 }
 
-// Parse answers (a1..a5) from URL query · mirrors result endpoint.
+// Parse answers (a1..a8) from URL query · mirrors result endpoint.
 const parseAnswersFromQuery = (
   url: URL,
-): { answers: Array<0 | 1 | 2 | 3>; error?: string } => {
-  const answers: Array<0 | 1 | 2 | 3> = []
-  for (let i = 1; i <= 5; i++) {
+): { answers: Array<0 | 1 | 2 | 3 | 4>; error?: string } => {
+  const answers: Array<0 | 1 | 2 | 3 | 4> = []
+  for (let i = 1; i <= 8; i++) {
     const raw = url.searchParams.get(`a${i}`)
     const ans = raw ? Number.parseInt(raw, 10) : NaN
-    if (!Number.isInteger(ans) || ans < 0 || ans > 3) {
+    if (!Number.isInteger(ans) || ans < 0 || ans > 4) {
       return { answers: [], error: `Invalid answer parameter a${i}` }
     }
-    answers.push(ans as 0 | 1 | 2 | 3)
+    answers.push(ans as 0 | 1 | 2 | 3 | 4)
   }
   return { answers }
 }
