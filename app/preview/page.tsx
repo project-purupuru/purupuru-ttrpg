@@ -66,7 +66,10 @@ export default async function PreviewPage({ searchParams }: PageProps) {
     // html/body (set there for the Pixi canvas main app · doesn't suit a
     // scrolling preview page).
     <main className="h-dvh overflow-y-auto bg-puru-cloud-deep p-6 md:p-12 font-puru-body">
-      <div className="mx-auto max-w-2xl space-y-6 pb-24">
+      {/* max-w-md (448px) ≈ mobile-card width · forces buttons to stack
+          vertically per Dialect's responsive layout · matches what users
+          actually see in Phantom mobile + Twitter feed */}
+      <div className="mx-auto max-w-md space-y-6 pb-24">
         {/* Header · which endpoint we're previewing */}
         <header className="space-y-3">
           <div className="flex items-baseline justify-between gap-4">
