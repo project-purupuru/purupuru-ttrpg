@@ -30,7 +30,14 @@ function parseResultQuery(url: URL):
   for (let i = 1; i <= QUIZ_CONFIG.totalSteps; i++) {
     const raw = params.get(`a${i}`)
     const ans = raw ? Number.parseInt(raw, 10) : NaN
-    if (!Number.isInteger(ans) || ans < 0 || ans > 4) {
+    const question = QUIZ_CORPUS[i - 1]
+    const maxIdx = question ? question.answers.length - 1 : 0
+    if (
+      !Number.isInteger(ans) ||
+      ans < 0 ||
+      ans > maxIdx ||
+      ans > 4
+    ) {
       return {
         ok: false,
         response: NextResponse.json(
@@ -48,7 +55,9 @@ function parseResultQuery(url: URL):
                 },
               ],
             },
-            error: { message: `Invalid answer parameter a${i}` },
+            error: {
+              message: `Invalid answer parameter a${i} (must be 0..${maxIdx} for question ${i})`,
+            },
           },
           { headers: ACTION_CORS_HEADERS, status: 400 },
         ),

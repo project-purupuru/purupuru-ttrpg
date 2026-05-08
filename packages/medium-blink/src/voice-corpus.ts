@@ -1,38 +1,57 @@
-// Operator-authored quiz corpus · 8 questions × 5 answers each (one per element).
+// Operator + Gumi-curated quiz corpus · 8 questions × 3 hand-picked answers each.
 // Per SDD r2 §3.2 + §4.1 · GET-chained quiz · HMAC-validated state per step.
 //
-// 8 × 5 = 40 element-leaning answers · cumulative vote count over 8 Qs produces
-// a stable archetype (max 8 votes per element · canonical wuxing tie-break:
-// WOOD > FIRE > EARTH > METAL > WATER per bazi-resolver.ts).
+// Per-question element selection (curated · NOT algorithmic):
+//   Q1 · Fire · Water · Metal
+//   Q2 · Earth · Fire · Water
+//   Q3 · Wood · Fire · Earth
+//   Q4 · Water · Wood · Metal
+//   Q5 · Wood · Metal · Water
+//   Q6 · Earth · Fire · Wood
+//   Q7 · Earth · Metal · Water
+//   Q8 · Wood · Fire · Metal
 //
-// Voice register: situational vignettes · feel-first · the questions read your
-// instinct, not your knowledge. NO mechanical "pick your favorite element" ·
-// the element emerges from the choice you'd actually make.
+// Coverage (24 slots = 8 Qs × 3 answers):
+//   Wood  · 5 (Q3, Q4, Q5, Q6, Q8)
+//   Fire  · 5 (Q1, Q2, Q3, Q6, Q8)
+//   Earth · 4 (Q2, Q3, Q6, Q7)
+//   Metal · 5 (Q1, Q4, Q5, Q7, Q8)
+//   Water · 5 (Q1, Q2, Q4, Q5, Q7)
+// All 5 elements appear 4-5x across the quiz · stable archetype resolution
+// without algorithmic element selection.
+//
+// Scoring (per bazi-resolver.ts):
+//   Each answer = +1 to its element. Highest score wins. Tie-break: canonical
+//   wuxing order WOOD > FIRE > EARTH > METAL > WATER (one definitive element ·
+//   no blended results per operator decision 2026-05-08).
+//
+// FUTURE (deferred to v1+):
+//   Bazi anchor · operator's note: "+1 to birth element before tallying".
+//   Requires DOB input step ahead of Q1 + bazi calculator package · this
+//   would tighten the bridge between the quiz signal and traditional bazi
+//   reading. Not in v0 scope (no DOB collection in the GET-chain Blink today).
 
 import type { Element } from "@purupuru/peripheral-events"
 
 export interface QuizQuestion {
-  step: number // 1..8
+  step: number // 1..QUIZ_CONFIG.totalSteps
   prompt: string // ≤ 280 chars
   answers: ReadonlyArray<{
-    label: string // ≤ 80 chars (button label · concise but operator authored full phrasings)
+    label: string // ≤ 80 chars · operator/Gumi prose
     element: Element // which element this answer leans toward
   }>
 }
 
-// Eight questions · each answer leans toward one element · cumulative scoring
-// determines archetype at the result step.
+// Eight questions · 3 hand-picked answers each · operator + Gumi authored.
 export const QUIZ_CORPUS: ReadonlyArray<QuizQuestion> = [
   {
     step: 1,
     prompt:
       "Your friend cancels plans last minute. What's your first reaction?",
     answers: [
-      { label: "Meh. Already had a backup plan anyway", element: "METAL" },
-      { label: "Ooh. At last, a free evening", element: "WATER" },
-      { label: "Annoyed. You don't say anything though", element: "WOOD" },
       { label: "You text back immediately: \"why\"", element: "FIRE" },
-      { label: "You check if someone else wants to hang out instead", element: "EARTH" },
+      { label: "Ooh. At last, a free evening", element: "WATER" },
+      { label: "Meh. Already had a backup plan anyway", element: "METAL" },
     ],
   },
   {
@@ -40,9 +59,7 @@ export const QUIZ_CORPUS: ReadonlyArray<QuizQuestion> = [
     prompt: "I finish what I start.",
     answers: [
       { label: "Agree", element: "EARTH" },
-      { label: "Depends on whether it's still actually worth finishing", element: "METAL" },
       { label: "I kind of start a lot of things", element: "FIRE" },
-      { label: "I finish the things that matter to me", element: "WOOD" },
       { label: "I lose interest. I don't feel bad about it", element: "WATER" },
     ],
   },
@@ -51,8 +68,6 @@ export const QUIZ_CORPUS: ReadonlyArray<QuizQuestion> = [
     prompt:
       "You're in a group chat and someone says something incredibly confidently wrong.",
     answers: [
-      { label: "You correct them", element: "METAL" },
-      { label: "You let someone else handle it", element: "WATER" },
       { label: "You wait to see if they figure it out on their own", element: "WOOD" },
       { label: "You correct them immediately perhaps a little too harshly", element: "FIRE" },
       { label: "You privately message them", element: "EARTH" },
@@ -64,8 +79,6 @@ export const QUIZ_CORPUS: ReadonlyArray<QuizQuestion> = [
     answers: [
       { label: "Sleep in, wing it. See what happens", element: "WATER" },
       { label: "Work on something you've been building", element: "WOOD" },
-      { label: "Cook, clean, catch up with someone", element: "EARTH" },
-      { label: "Go out. Doesn't matter where", element: "FIRE" },
       { label: "Finally organize that thing that's been bothering you", element: "METAL" },
     ],
   },
@@ -75,8 +88,6 @@ export const QUIZ_CORPUS: ReadonlyArray<QuizQuestion> = [
       "Someone you just met is telling you their whole life story. You:",
     answers: [
       { label: "Listen. People don't do this unless they need to", element: "WOOD" },
-      { label: "Match their energy and share yours back", element: "FIRE" },
-      { label: "Enjoy it. You love when people open up", element: "EARTH" },
       { label: "Notice what they're not saying", element: "METAL" },
       { label: "Feel everything they're feeling", element: "WATER" },
     ],
@@ -86,8 +97,6 @@ export const QUIZ_CORPUS: ReadonlyArray<QuizQuestion> = [
     prompt: "Your phone is at 3%. You have no charger. What stresses you most?",
     answers: [
       { label: "Not being reachable", element: "EARTH" },
-      { label: "Not being able to look something up", element: "METAL" },
-      { label: "Nothing. It'll charge eventually", element: "WATER" },
       { label: "Missing something happening right now", element: "FIRE" },
       { label: "Not being able to check on someone", element: "WOOD" },
     ],
@@ -96,11 +105,9 @@ export const QUIZ_CORPUS: ReadonlyArray<QuizQuestion> = [
     step: 7,
     prompt: "Be honest. How messy is your room right now?",
     answers: [
+      { label: "Clean. It bugs me when it's not", element: "EARTH" },
       { label: "Clean where it matters, messy where it doesn't", element: "METAL" },
       { label: "Messy but I know where everything is", element: "WATER" },
-      { label: "Clean. It bugs me when it's not", element: "EARTH" },
-      { label: "I'll deal with it later", element: "FIRE" },
-      { label: "Messy in waves. I clean when I feel like nesting", element: "WOOD" },
     ],
   },
   {
@@ -109,9 +116,7 @@ export const QUIZ_CORPUS: ReadonlyArray<QuizQuestion> = [
     answers: [
       { label: "Ask them questions until they answer it themselves", element: "WOOD" },
       { label: "Tell them what you'd do", element: "FIRE" },
-      { label: "Listen first, respond carefully", element: "EARTH" },
       { label: "Bluntly give them the honest answer even if it's uncomfortable", element: "METAL" },
-      { label: "Tell them what they clearly already know but can't admit", element: "WATER" },
     ],
   },
 ] as const

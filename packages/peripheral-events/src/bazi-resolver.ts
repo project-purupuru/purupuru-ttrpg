@@ -10,11 +10,13 @@ import { createHash } from "node:crypto"
 
 import type { Element } from "./world-event"
 
-// 8 questions × 5 answers = each answer leans toward one of the 5 elements.
+// 8 questions × 3 hand-curated answers per Q (operator + Gumi · 2026-05-08).
 // Caller passes the ELEMENT each answer maps to (looked up from medium-blink corpus).
-// 5-answer-per-Q gives every element a direct option in every question · cumulative
-// vote count over 8 Qs produces a stable archetype (max 8 votes per element ·
-// archetype is the element with the most votes after canonical tie-break).
+// Per-Q element distribution is curated for narrative tension · over 8 Qs each
+// element appears 4-5 times (Wood/Fire/Metal/Water=5 · Earth=4) so cumulative
+// vote totals stably resolve a single archetype.
+// Tie-break: canonical wuxing order WOOD > FIRE > EARTH > METAL > WATER ·
+// always one definitive element (no blended outcomes per operator decision).
 export const archetypeFromAnswers = (
   elementVotes: ReadonlyArray<Element>,
 ): Element => {

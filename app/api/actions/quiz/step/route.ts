@@ -10,6 +10,7 @@ import { NextResponse } from "next/server"
 
 import {
   QUIZ_CONFIG,
+  QUIZ_CORPUS,
   renderQuizStep,
   type ActionGetResponse,
   type PostResponse,
@@ -58,16 +59,28 @@ function parseStepQuery(url: URL):
     }
   }
 
-  // Parse prior answers (a1..aN-1) into typed array.
+  // Parse prior answers (a1..aN-1) into typed array. Validate each answer
+  // index fits within its question's curated answer count (corpus[i-1].answers.length).
   const priorAnswers: Array<0 | 1 | 2 | 3 | 4> = []
   for (let i = 1; i < step; i++) {
     const raw = params.get(`a${i}`)
     const ans = raw ? Number.parseInt(raw, 10) : NaN
-    if (!Number.isInteger(ans) || ans < 0 || ans > 4) {
+    const question = QUIZ_CORPUS[i - 1]
+    const maxIdx = question ? question.answers.length - 1 : 0
+    if (
+      !Number.isInteger(ans) ||
+      ans < 0 ||
+      ans > maxIdx ||
+      ans > 4
+    ) {
       return {
         ok: false,
         response: NextResponse.json(
-          { error: { message: `Invalid answer parameter a${i}` } },
+          {
+            error: {
+              message: `Invalid answer parameter a${i} (must be 0..${maxIdx} for question ${i})`,
+            },
+          },
           { headers: ACTION_CORS_HEADERS, status: 400 },
         ),
       }
