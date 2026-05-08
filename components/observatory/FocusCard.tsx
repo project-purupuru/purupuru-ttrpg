@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { ELEMENTS, scoreAdapter, type Element } from "@/lib/score";
 import type { WalletProfile, WalletSignals } from "@/lib/score";
 import { activityStream, type ActivityEvent } from "@/lib/activity";
@@ -45,10 +45,16 @@ function shortAddress(addr: string): string {
 export function FocusCard({
   identity,
   onClose,
+  wrapperRef: externalRef,
 }: {
   identity: PuruhaniIdentity | null;
   onClose: () => void;
+  /** Optional ref forwarded to the outer aside — used by parent to
+   * detect outside-clicks via containment check. */
+  wrapperRef?: RefObject<HTMLElement | null>;
 }) {
+  const localRef = useRef<HTMLElement>(null);
+  const wrapperRef = externalRef ?? localRef;
   const [profile, setProfile] = useState<WalletProfile | null>(null);
   const [signals, setSignals] = useState<WalletSignals | null>(null);
   const [recent, setRecent] = useState<ActivityEvent[]>([]);
