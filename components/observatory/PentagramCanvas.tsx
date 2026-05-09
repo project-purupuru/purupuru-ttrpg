@@ -79,15 +79,61 @@ const ELEMENT_ICON_URL: Record<Element, string> = {
   metal: "/art/elements/metal.png",
 };
 
-// Vertex glyph display size — sprites are anchored at center; the
-// halo (radius 38) sits behind so the icon reads as a labeled
-// presence on a soft colored aura.
-const VERTEX_ICON_SIZE = 100;
+// Reference geometry — the radius at which the original asset sizes
+// (VERTEX_ICON_BASE / AVATAR_DISPLAY_BASE / shadow / aura / focus glow)
+// were tuned. On mobile the canvas's min-dimension shrinks, the
+// pentagram radius shrinks with it (× 0.38), and we scale every
+// pixel-derived asset by `radius / BASE_RADIUS` so the diagram
+// reads proportionally instead of vertex icons swallowing the
+// pentagram on a narrow screen. Bumped from 228 → 340 to dial down
+// laptop/desktop asset sizes ~30% (vertex icons + sprites felt too
+// dominant on lg/xl viewports relative to the pentagram). At a
+// typical 14" MBP canvas pane (radius ≈ 354) the scale lands at
+// ~1.04 — vertex icons render ~104px instead of the original ~155px.
+// The floor below keeps mobile sized exactly as before.
+const BASE_RADIUS = 340;
+const VERTEX_ICON_BASE = 100;
+const AVATAR_DISPLAY_BASE = 40;
+const SHADOW_RX_BASE = 13;
+const SHADOW_RY_BASE = 4;
+const SHADOW_OFFSET_BASE = 14;
+const AURA_RADIUS_BASE = 32;
+const FOCUS_GLOW_R_BASE = 28;
 
 // Avatar texture sizing — generated bigger than display so retina
-// rendering stays crisp. Display target ≈ 40px on screen.
+// rendering stays crisp regardless of mobile/desktop display target.
 const AVATAR_TEX_SIZE = 96;
-const AVATAR_DISPLAY = 40;
+
+interface AssetSizes {
+  vertexIcon: number;
+  avatarDisplay: number;
+  shadowRx: number;
+  shadowRy: number;
+  shadowOffsetY: number;
+  auraRadius: number;
+  focusGlowR: number;
+  focusGlowBreathDelta: number;
+}
+
+function computeAssetSizes(radius: number): AssetSizes {
+  // Floor at 0.63 of the desktop reference. With BASE_RADIUS=270 the
+  // typical mobile pane (radius ≈ 145) computes a scale of ~0.54 which
+  // would shrink mobile alongside desktop — clamping to 0.63 keeps
+  // mobile sized as it was before the BASE_RADIUS bump while letting
+  // larger viewports inherit the new, smaller scale curve. Above the
+  // floor it scales linearly with radius.
+  const scale = Math.max(0.63, radius / BASE_RADIUS);
+  return {
+    vertexIcon: VERTEX_ICON_BASE * scale,
+    avatarDisplay: AVATAR_DISPLAY_BASE * scale,
+    shadowRx: SHADOW_RX_BASE * scale,
+    shadowRy: SHADOW_RY_BASE * scale,
+    shadowOffsetY: SHADOW_OFFSET_BASE * scale,
+    auraRadius: AURA_RADIUS_BASE * scale,
+    focusGlowR: FOCUS_GLOW_R_BASE * scale,
+    focusGlowBreathDelta: 4 * scale,
+  };
+}
 
 interface Migration {
   fromX: number;
@@ -146,12 +192,13 @@ function drawVertex(
   el: Element,
   v: { x: number; y: number },
   iconTextures: Record<Element, Texture> | null,
+  sizes: AssetSizes,
 ): VertexHandle {
   // Diffuse aura — blurred circle behind the icon so each vertex
   // carries an element-keyed energy field. Smaller base radius +
   // strong blur reads as glow rather than disk.
   const aura = new Graphics();
-  aura.circle(0, 0, 32);
+  aura.circle(0, 0, sizes.auraRadius);
   aura.fill({ color: AURA_HEX[el], alpha: 0.38 });
   // Padding lets the blur tail render past the Graphics bounding box —
   // without it the soft falloff gets clipped to the source rectangle
@@ -168,11 +215,11 @@ function drawVertex(
   if (tex) {
     icon = new Sprite(tex);
     icon.anchor.set(0.5);
-    // Uniform scale that fits the icon inside a VERTEX_ICON_SIZE box.
+    // Uniform scale that fits the icon inside a sizes.vertexIcon box.
     // Setting width/height directly would non-uniformly squish icons
     // whose source PNGs aren't square (e.g. jani-face is 399×384).
-    const dim = Math.max(tex.width, tex.height) || VERTEX_ICON_SIZE;
-    const scale = VERTEX_ICON_SIZE / dim;
+    const dim = Math.max(tex.width, tex.height) || sizes.vertexIcon;
+    const scale = sizes.vertexIcon / dim;
     icon.scale.set(scale);
     icon.x = v.x;
     icon.y = v.y;
@@ -183,7 +230,7 @@ function drawVertex(
       text: ELEMENT_KANJI[el],
       style: {
         fontFamily: "ZCOOL KuaiLe, FOT-Yuruka Std, serif",
-        fontSize: 28,
+        fontSize: sizes.vertexIcon * 0.28,
         fill: 0xffffff,
         align: "center",
       },
@@ -276,6 +323,11 @@ export function PentagramCanvas({ onSpriteClick, focusedTrader = null }: Pentagr
       const radius = Math.min(app.screen.width, app.screen.height) * 0.38;
       let geometry = createPentagram(center, radius);
       let tideUnits = tideUnitVectorsFor(geometry);
+      // `let` so the resize handler can swap in fresh sizes when the
+      // host element flexes (mobile rotation, mobile-panel-tab swap
+      // shrinking the canvas pane). `assetSizes` is the single source
+      // of truth for every pixel-derived asset size in this canvas.
+      let assetSizes = computeAssetSizes(radius);
 
       // ─── Pentagon edges (生 generation) ────────────────────────────────────
       const pentagonG = new Graphics();
@@ -316,6 +368,7 @@ export function PentagramCanvas({ onSpriteClick, focusedTrader = null }: Pentagr
           el,
           geometry.vertex(el),
           iconTextures,
+          assetSizes,
         );
       }
       app.stage.addChild(vertexLayer);
@@ -349,13 +402,13 @@ export function PentagramCanvas({ onSpriteClick, focusedTrader = null }: Pentagr
       const shadowLayer = new Container();
       const spriteLayer = new Container();
       const sprites: SpriteEntry[] = [];
-      const baseScale = AVATAR_DISPLAY / AVATAR_TEX_SIZE;
 
       for (const entity of entities) {
         const accent = topAffinity(entity.affinity, entity.primaryElement);
         const tex = makeAvatarTexture(entity.identity, entity.primaryElement, accent);
         const node = new Sprite(tex);
         node.anchor.set(0.5);
+        const baseScale = assetSizes.avatarDisplay / AVATAR_TEX_SIZE;
         node.scale.set(baseScale);
         node.x = entity.position.x;
         node.y = entity.position.y;
@@ -365,10 +418,10 @@ export function PentagramCanvas({ onSpriteClick, focusedTrader = null }: Pentagr
         spriteLayer.addChild(node);
 
         const shadow = new Graphics();
-        shadow.ellipse(0, 0, 13, 4);
+        shadow.ellipse(0, 0, assetSizes.shadowRx, assetSizes.shadowRy);
         shadow.fill({ color: 0x000000, alpha: 0.22 });
         shadow.x = entity.position.x;
-        shadow.y = entity.position.y + 14;
+        shadow.y = entity.position.y + assetSizes.shadowOffsetY;
         shadowLayer.addChild(shadow);
 
         const entry: SpriteEntry = {
@@ -584,7 +637,7 @@ export function PentagramCanvas({ onSpriteClick, focusedTrader = null }: Pentagr
           // Shadow tracks the physics anchor (not the wobble) so the
           // sprite appears to bob over a stationary ground point.
           s.shadow.x = s.entity.position.x;
-          s.shadow.y = s.entity.position.y + 14;
+          s.shadow.y = s.entity.position.y + assetSizes.shadowOffsetY;
 
           // Gentle breath scale — no event-driven pulse here; the
           // user-action interaction model is being designed separately.
@@ -643,7 +696,7 @@ export function PentagramCanvas({ onSpriteClick, focusedTrader = null }: Pentagr
           const target = sprites.find((s) => s.entity.trader === focusedT);
           if (target) {
             const breathPhase = 0.5 + 0.5 * Math.sin(tMs / 1300);
-            const r = 28 + 4 * breathPhase;
+            const r = assetSizes.focusGlowR + assetSizes.focusGlowBreathDelta * breathPhase;
             const color = ELEMENT_HEX[target.entity.primaryElement];
             focusGlow.clear();
             focusGlow.circle(target.node.x, target.node.y + 2, r + 6);
@@ -668,6 +721,11 @@ export function PentagramCanvas({ onSpriteClick, focusedTrader = null }: Pentagr
         const r = Math.min(app.screen.width, app.screen.height) * 0.38;
         geometry = createPentagram({ x: cx, y: cy }, r);
         tideUnits = tideUnitVectorsFor(geometry);
+        // Recompute responsive asset sizes for the new pane dimensions.
+        // Mutating the same `assetSizes` binding the ticker closes over
+        // means focus glow + shadow offsets pick up the new values on
+        // the next tick without needing to re-bind the ticker.
+        assetSizes = computeAssetSizes(r);
 
         // Re-build vertex layer. Re-insert at the original z-position
         // (just above the inner-star edges) so it stays UNDER shadow,
@@ -682,12 +740,14 @@ export function PentagramCanvas({ onSpriteClick, focusedTrader = null }: Pentagr
             el,
             geometry.vertex(el),
             iconTextures,
+            assetSizes,
           );
         }
         const starIdx = app.stage.getChildIndex(starG);
         app.stage.addChildAt(vertexLayer, starIdx + 1);
 
         // Re-anchor sprites at new resting positions; cancel in-flight migrations
+        const newBaseScale = assetSizes.avatarDisplay / AVATAR_TEX_SIZE;
         for (let i = 0; i < sprites.length; i++) {
           const s = sprites[i];
           const positionRng = rng(i + 1009);
@@ -704,6 +764,17 @@ export function PentagramCanvas({ onSpriteClick, focusedTrader = null }: Pentagr
           s.migration = null;
           s.vx = 0;
           s.vy = 0;
+          // Apply new responsive avatar scale; ticker's per-tick
+          // breath multiplier rides this baseScale on the next frame.
+          s.baseScale = newBaseScale;
+          s.node.scale.set(newBaseScale);
+          // Redraw shadow geometry at the new dimensions — clear()
+          // wipes the old ellipse, ellipse()+fill() re-issues with the
+          // current sizes. shadow.y is updated by the ticker every
+          // frame from assetSizes.shadowOffsetY.
+          s.shadow.clear();
+          s.shadow.ellipse(0, 0, assetSizes.shadowRx, assetSizes.shadowRy);
+          s.shadow.fill({ color: 0x000000, alpha: 0.22 });
         }
 
         drawPentagon(pentagonG, geometry);
