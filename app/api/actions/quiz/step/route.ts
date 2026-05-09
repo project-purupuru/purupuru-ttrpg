@@ -47,7 +47,7 @@ function parseStepQuery(url: URL):
             actions: [
               {
                 type: "post",
-                label: "begin again",
+                label: "Begin Again",
                 href: `${baseUrl}/api/actions/quiz/start`,
               },
             ],

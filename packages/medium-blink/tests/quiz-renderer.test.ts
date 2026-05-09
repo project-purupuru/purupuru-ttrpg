@@ -168,7 +168,7 @@ describe("renderQuizResult · archetype reveal + mint button", () => {
   it("first button links to /api/actions/mint/genesis-stone", () => {
     const response = renderQuizResult({ archetype: "WOOD", config: testConfig })
     expect(response.links!.actions[0].href).toContain("/api/actions/mint/genesis-stone")
-    expect(response.links!.actions[0].label).toContain("claim")
+    expect(response.links!.actions[0].label).toMatch(/[Cc]laim/)
   })
 
   it("renders for all 5 elements with valid limits", () => {

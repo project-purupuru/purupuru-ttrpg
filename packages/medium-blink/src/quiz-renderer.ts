@@ -103,7 +103,7 @@ export const renderQuizStep = (params: {
       description: "the path is unclear · please begin again",
       label: "begin",
       links: {
-        actions: [{ type: "post", label: "begin again", href: `${config.baseUrl}/api/actions/quiz/start` }],
+        actions: [{ type: "post", label: "Begin Again", href: `${config.baseUrl}/api/actions/quiz/start` }],
       },
       error: { message: `Invalid step: ${params.step}` },
     }
@@ -120,7 +120,7 @@ export const renderQuizStep = (params: {
       description: "the path was lost · please begin again",
       label: "begin",
       links: {
-        actions: [{ type: "post", label: "begin again", href: `${config.baseUrl}/api/actions/quiz/start` }],
+        actions: [{ type: "post", label: "Begin Again", href: `${config.baseUrl}/api/actions/quiz/start` }],
       },
       error: {
         message: `Answer count mismatch: expected ${params.step - 1}, got ${params.priorAnswers.length}`,
@@ -157,24 +157,29 @@ export const renderQuizResult = (params: {
     ARCHETYPE_REVEALS[params.archetype] ??
     "the tide reads you · claim the stone of your weather"
 
+  // Title-case the element name · "Wood" · "Fire" · etc · for the
+  // identity-locating phrase. Title Case for CTAs throughout.
+  const elementName =
+    params.archetype.charAt(0) + params.archetype.slice(1).toLowerCase()
+
   return {
     icon: iconUrlForArchetype(params.archetype, config),
-    title: `${params.archetype.toLowerCase()} · your tide`,
+    title: `Your Tide is ${elementName}.`,
     description: reveal,
-    label: "claim your stone",
+    label: "Claim Your Stone",
     links: {
       actions: [
         {
           // claim → real mint flow (sprint-3 wires real claim_genesis_stone tx)
           // type:"transaction" so wallet adapter prompts for sig at click time
           type: "transaction",
-          label: "claim your stone",
+          label: "Claim Your Stone",
           href: `${config.baseUrl}/api/actions/mint/genesis-stone`,
         },
         {
           // ambient → chains to next inline action (no wallet needed)
           type: "post",
-          label: "see today's tide",
+          label: "See Today's Tide",
           href: `${config.baseUrl}/api/actions/today`,
         },
       ],
@@ -203,7 +208,7 @@ export const renderAmbient = (params: {
           // chain into the quiz · POST returns Q1 inline so user starts the quiz
           // without leaving the ambient card
           type: "post",
-          label: "what's my element?",
+          label: "What's My Element?",
           href: `${config.baseUrl}/api/actions/quiz/start`,
         },
       ],

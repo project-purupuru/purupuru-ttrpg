@@ -121,14 +121,17 @@ export const QUIZ_CORPUS: ReadonlyArray<QuizQuestion> = [
   },
 ] as const
 
-// Archetype reveals · one per element · ≤ 280 chars.
-// Placeholder voice · operator/gumi can rewrite for v1 voice register.
+// Archetype reveals · short + intimate · used as the description (subhead) on
+// the reveal card. The title slot now carries the element-locating phrase
+// ("Your Tide is Wood.") · this slot carries the poetic kicker only.
+// Stripped: "the tide reads · ELEMENT ·" prefix (now in the title) +
+// "claim the stone of X" suffix (the button IS the claim · don't double-text it).
 export const ARCHETYPE_REVEALS: Record<Element, string> = {
-  WOOD: "the tide reads · WOOD · you hold the green that is becoming. your weather rises. claim the stone of beginnings.",
-  FIRE: "the tide reads · FIRE · you carry the burning that does not consume. your weather is light. claim the stone of warmth.",
-  EARTH: "the tide reads · EARTH · you are the still center. your weather is steadiness. claim the stone of holding.",
-  METAL: "the tide reads · METAL · you are the bell that listens. your weather is clear. claim the stone of resonance.",
-  WATER: "the tide reads · WATER · you move with what moves. your weather is depth. claim the stone of currents.",
+  WOOD: "You hold the green that is becoming.",
+  FIRE: "You carry the burning that does not consume.",
+  EARTH: "You are the still center.",
+  METAL: "You are the bell that listens.",
+  WATER: "You move with what moves.",
 }
 
 // Step indicator · plain "Question X of Y" · rendered as the description
