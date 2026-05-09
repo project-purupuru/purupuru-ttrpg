@@ -9,7 +9,13 @@ import { buildIdentityRegistry } from "@/lib/sim/identity";
 import type { PuruhaniIdentity } from "@/lib/sim/types";
 import { PuruhaniAvatar } from "./PuruhaniAvatar";
 import { KpiCell } from "./KpiCell";
-import { Sparkle, ArrowsClockwise, Compass } from "@phosphor-icons/react";
+import { Sparkle, ArrowsClockwise, Compass, UserCircle } from "@phosphor-icons/react";
+import type {
+  ElementShiftActivity,
+  MintActivity,
+  QuizCompletedActivity,
+  WeatherActivity,
+} from "@/lib/activity/types";
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
@@ -21,22 +27,24 @@ function timeAgo(iso: string, now: number): string {
   return `${Math.floor(diff / MINUTE)}m ago`;
 }
 
-// Verbs read as per-event narrative beats — register stays metaphorical
-// (canvas/rail-side); the grounded reveal copy lives in awareness-branch's
-// ARCHETYPE_REVEALS and would surface elsewhere if/when wired.
-const KIND_LABEL = {
-  mint: "claimed a stone",
-  element_shift: "drifted",
-  quiz_completed: "archetype emerged",
-  weather: "the world breathes",
-} as const;
-
-const KIND_GLYPH = {
+// Wallet-bound rows get a 2-line treatment (identity / verb) with a leading
+// glyph; ambient rows collapse to a single line of dynamic copy (no glyph,
+// the icon column already carries kind identity). Register stays metaphorical
+// per memory · grounded reveal copy lives in awareness-branch ARCHETYPE_REVEALS.
+const WALLET_BOUND_GLYPH: Record<"mint" | "element_shift", string> = {
   mint: "✦",
   element_shift: "⟳",
-  quiz_completed: "◌",
-  weather: "☁",
-} as const;
+};
+
+function walletBoundVerb(e: MintActivity | ElementShiftActivity): string {
+  if (e.kind === "mint") return "claimed a stone";
+  return `drifted to ${e.element}`;
+}
+
+function ambientCopy(e: WeatherActivity | QuizCompletedActivity): string {
+  if (e.kind === "weather") return `the world breathes ${e.element}`;
+  return `someone read ${e.element}`;
+}
 
 // Stable per-seed primary used only for identity face/personality.
 // Different from sim's distribution-based bucketing on purpose: this
@@ -138,22 +146,57 @@ export function ActivityRail() {
       ) : (
         <ul className="flex-1 overflow-y-auto overflow-x-hidden bg-puru-cloud-base">
           {events.map((e) => {
-            // Wallet-bound vs ambient: mint + element_shift carry an actor;
-            // weather + quiz_completed are wallet-agnostic per canonical
-            // schema (see lib/activity/types.ts header). Ambient rows get
-            // a glyph circle + element-name subject line instead of avatar
-            // + identity — visually distinguishes peripheral signals from
-            // wallet-attributed action.
-            const hasActor = e.kind === "mint" || e.kind === "element_shift";
-            const actor = hasActor ? resolve(e.actor) : null;
+            // Element-tinted gradient bg shared across both row classes ·
+            // gives the activity its color identity regardless of layout.
+            const rowStyle = {
+              backgroundImage: `linear-gradient(to left, color-mix(in oklch, var(--puru-${e.element}-vivid) var(--puru-bleed-mix), transparent) 0%, transparent var(--puru-bleed-stop))`,
+              color: `var(--puru-${e.element}-vivid)`,
+            };
+
+            // Ambient: single concise line · weather (element art) or
+            // quiz_completed (greyed user-circle · the user is anonymous,
+            // pre-wallet, pre-mint per canonical schema).
+            if (e.kind === "weather" || e.kind === "quiz_completed") {
+              return (
+                <li
+                  key={e.id}
+                  className="puru-row puru-row-fresh relative flex items-center gap-3 px-5 py-2.5"
+                  style={rowStyle}
+                >
+                  {e.kind === "quiz_completed" ? (
+                    <span
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-puru-cloud-dim/60 text-puru-ink-soft"
+                      aria-hidden
+                    >
+                      <UserCircle weight="regular" size={20} />
+                    </span>
+                  ) : (
+                    <Image
+                      src={`/art/elements/${e.element}.png`}
+                      alt={e.element}
+                      width={32}
+                      height={32}
+                      className="shrink-0"
+                      aria-hidden
+                    />
+                  )}
+                  <p className="min-w-0 flex-1 truncate font-puru-body text-sm leading-tight text-puru-ink-base">
+                    {ambientCopy(e)}
+                  </p>
+                  <span className="shrink-0 font-puru-body text-2xs uppercase tracking-[0.18em] tabular-nums text-puru-ink-dim">
+                    {timeAgo(e.at, now)}
+                  </span>
+                </li>
+              );
+            }
+
+            // Wallet-bound: 2-line treatment · avatar + identity + verb.
+            const actor = resolve(e.actor);
             return (
               <li
                 key={e.id}
                 className="puru-row puru-row-fresh relative flex items-center gap-3 px-5 py-3"
-                style={{
-                  backgroundImage: `linear-gradient(to left, color-mix(in oklch, var(--puru-${e.element}-vivid) var(--puru-bleed-mix), transparent) 0%, transparent var(--puru-bleed-stop))`,
-                  color: `var(--puru-${e.element}-vivid)`,
-                }}
+                style={rowStyle}
               >
                 {actor ? (
                   <PuruhaniAvatar
@@ -163,42 +206,25 @@ export function ActivityRail() {
                     size={40}
                   />
                 ) : (
-                  // Ambient rows use the same element art as the pentagram
-                  // vertices · ties the rail visually to the canvas and lets
-                  // the icon itself carry element identity (no solid bg).
-                  <Image
-                    src={`/art/elements/${e.element}.png`}
-                    alt={e.element}
-                    width={40}
-                    height={40}
-                    className="shrink-0"
-                    aria-hidden
-                  />
+                  <span
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-puru-card text-lg text-puru-cloud-bright"
+                    style={{ backgroundColor: `var(--puru-${e.element}-vivid)` }}
+                  >
+                    {WALLET_BOUND_GLYPH[e.kind]}
+                  </span>
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-puru-body text-sm leading-tight text-puru-ink-base">
-                    {hasActor && actor ? (
-                      <>
-                        <span className="font-puru-display text-xs text-puru-ink-rich">
-                          {actor.displayName}
-                        </span>
-                        <span className="ml-1 font-puru-body text-2xs text-puru-ink-dim">
-                          @{actor.username}
-                        </span>
-                      </>
-                    ) : hasActor ? (
-                      <span className="font-puru-display text-xs text-puru-ink-rich">
-                        {e.actor.slice(0, 6)}
-                      </span>
-                    ) : (
-                      <span className="font-puru-display text-xs uppercase tracking-[0.18em] text-puru-ink-rich">
-                        {e.element}
-                      </span>
-                    )}
+                    <span className="font-puru-display text-xs text-puru-ink-rich">
+                      {actor?.displayName ?? e.actor.slice(0, 6)}
+                    </span>
+                    <span className="ml-1 font-puru-body text-2xs text-puru-ink-dim">
+                      @{actor?.username ?? e.actor.slice(2, 8).toLowerCase()}
+                    </span>
                   </p>
                   <p className="mt-0.5 truncate font-puru-body text-xs leading-tight text-puru-ink-soft">
-                    <span aria-hidden className="mr-1">{KIND_GLYPH[e.kind]}</span>
-                    {KIND_LABEL[e.kind]}
+                    <span aria-hidden className="mr-1">{WALLET_BOUND_GLYPH[e.kind]}</span>
+                    {walletBoundVerb(e)}
                   </p>
                 </div>
                 <span className="shrink-0 self-start font-puru-body text-2xs uppercase tracking-[0.18em] tabular-nums text-puru-ink-dim">

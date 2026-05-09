@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import { ELEMENTS, scoreAdapter, type Element } from "@/lib/score";
 import type { WalletProfile, WalletSignals } from "@/lib/score";
 import { activityStream, type ActivityEvent } from "@/lib/activity";
+import type { ElementShiftActivity, MintActivity } from "@/lib/activity/types";
 import type { PuruhaniIdentity } from "@/lib/sim/types";
 import { PuruhaniAvatar } from "./PuruhaniAvatar";
 
@@ -27,21 +28,18 @@ const ELEMENT_KANJI: Record<Element, string> = {
 };
 
 // Kept in sync with ActivityRail · drift-report alignment 2026-05-09.
-// Note: weather + quiz_completed are wallet-agnostic on the canonical schema,
-// so they're filtered out of the recent-activity list below — only mint and
-// element_shift can reference a specific puruhani.
-const KIND_GLYPH = {
+// Per-puruhani recent-activity list shows ONLY wallet-bound variants — weather
+// + quiz_completed are wallet-agnostic on the canonical schema and never
+// reference a specific actor, so they're filtered out at the source.
+const KIND_GLYPH: Record<"mint" | "element_shift", string> = {
   mint: "✦",
   element_shift: "⟳",
-  quiz_completed: "◌",
-  weather: "☁",
-} as const;
-const KIND_LABEL_ACTOR = {
-  mint: "claimed a stone",
-  element_shift: "drifted",
-  quiz_completed: "archetype emerged",
-  weather: "the world breathes",
-} as const;
+};
+
+function recentVerb(e: MintActivity | ElementShiftActivity): string {
+  if (e.kind === "mint") return "claimed a stone";
+  return `drifted to ${e.element}`;
+}
 
 function timeAgo(iso: string, nowMs: number): string {
   const diff = nowMs - new Date(iso).getTime();
@@ -70,7 +68,7 @@ export function FocusCard({
   const wrapperRef = externalRef ?? localRef;
   const [profile, setProfile] = useState<WalletProfile | null>(null);
   const [signals, setSignals] = useState<WalletSignals | null>(null);
-  const [recent, setRecent] = useState<ActivityEvent[]>([]);
+  const [recent, setRecent] = useState<Array<MintActivity | ElementShiftActivity>>([]);
   const [now, setNow] = useState<number>(0);
   const [stickyIdentity, setStickyIdentity] = useState<PuruhaniIdentity | null>(null);
 
@@ -100,13 +98,17 @@ export function FocusCard({
     });
     const filterRecent = () => {
       const all = activityStream.recent(50);
+      // Only wallet-bound variants can match this puruhani · weather +
+      // quiz_completed are ambient and never reference a specific actor.
+      const isWalletBound = (
+        e: ActivityEvent,
+      ): e is MintActivity | ElementShiftActivity =>
+        e.kind === "mint" || e.kind === "element_shift";
       setRecent(
-        all.filter((e) => {
-          // Only wallet-bound variants can match this puruhani · weather +
-          // quiz_completed are ambient and never reference a specific actor.
-          if (e.kind !== "mint" && e.kind !== "element_shift") return false;
-          return e.actor === identity.trader;
-        }).slice(0, 5),
+        all
+          .filter(isWalletBound)
+          .filter((e) => e.actor === identity.trader)
+          .slice(0, 5),
       );
     };
     filterRecent();
@@ -222,7 +224,7 @@ export function FocusCard({
                   >
                     {KIND_GLYPH[e.kind]}
                   </span>
-                  <span className="truncate text-puru-ink-base">{KIND_LABEL_ACTOR[e.kind]}</span>
+                  <span className="truncate text-puru-ink-base">{recentVerb(e)}</span>
                   <span className="ml-auto whitespace-nowrap font-puru-mono text-2xs uppercase tracking-[0.18em] text-puru-ink-dim">
                     {now ? timeAgo(e.at, now) : ""}
                   </span>
