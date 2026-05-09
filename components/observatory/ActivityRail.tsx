@@ -99,7 +99,7 @@ export function ActivityRail() {
           </span>
         </div>
       </header>
-      <div className="grid shrink-0 grid-cols-3 gap-2 border-b border-puru-surface-border bg-puru-cloud-base/60 px-3 py-3">
+      <div className="grid shrink-0 grid-cols-3 gap-2 border-b border-puru-surface-border bg-puru-cloud-base px-3 py-3">
         <KpiCell
           label="mints"
           value={counts.mint}
@@ -117,13 +117,13 @@ export function ActivityRail() {
         />
       </div>
       {events.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center px-5 py-12">
+        <div className="flex flex-1 items-center justify-center bg-puru-cloud-base px-5 py-12">
           <p className="font-puru-body text-xs uppercase tracking-[0.18em] text-puru-ink-dim">
             awaiting first event
           </p>
         </div>
       ) : (
-        <ul className="flex-1 overflow-y-auto overflow-x-hidden">
+        <ul className="flex-1 overflow-y-auto overflow-x-hidden bg-puru-cloud-base">
           {events.map((e) => {
             const actor = resolve(e.actor);
             const target = e.target ? resolve(e.target) : null;
@@ -132,7 +132,7 @@ export function ActivityRail() {
                 key={e.id}
                 className="puru-row puru-row-fresh relative flex items-center gap-3 px-5 py-3"
                 style={{
-                  backgroundImage: `linear-gradient(to left, color-mix(in oklch, var(--puru-${e.element}-vivid) 12%, transparent) 0%, transparent 55%)`,
+                  backgroundImage: `linear-gradient(to left, color-mix(in oklch, var(--puru-${e.element}-vivid) var(--puru-bleed-mix), transparent) 0%, transparent var(--puru-bleed-stop))`,
                   color: `var(--puru-${e.element}-vivid)`,
                 }}
               >

@@ -69,7 +69,7 @@ export function StatsTile({
           </span>
         </div>
       </header>
-      <div className="grid flex-1 grid-cols-2 gap-2 overflow-y-auto bg-puru-cloud-base/40 px-3 py-3">
+      <div className="grid flex-1 grid-cols-2 gap-2 overflow-y-auto bg-puru-cloud-base px-3 py-3">
         <KpiCell
           label="live presence"
           value={totalActive}

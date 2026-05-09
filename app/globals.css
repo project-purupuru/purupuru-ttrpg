@@ -1,6 +1,39 @@
 @import "tailwindcss";
 
 /* ─────────────────────────────────────────────────────────────────────────────
+   Tailwind dark variant — track our explicit `data-theme` instead of the OS.
+   Without this, `dark:` classes follow `prefers-color-scheme:dark`, which
+   doesn't move when our auto-theme effect flips `<html data-theme>` on local
+   sunrise/sunset. With it, every `dark:` utility in the codebase (logo
+   wordmark variants, IntroAnimation, KpiStrip) tracks the same source of
+   truth as the CSS-variable theme block below.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+@custom-variant dark (&:where([data-theme="old-horai"], [data-theme="old-horai"] *));
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Per-element bleed mix — drives the soft color washes behind activity rows
+   and the WeatherTile content gradient. Higher in light mode (vivid against
+   cream needs more chroma to read), lower in dark (vivid against deep cloud
+   pops at half the strength).
+   ───────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --puru-bleed-mix: 25%;
+  --puru-bleed-stop: 62%;
+}
+[data-theme="old-horai"] {
+  --puru-bleed-mix: 14%;
+  --puru-bleed-stop: 55%;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --puru-bleed-mix: 14%;
+    --puru-bleed-stop: 55%;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
    Local fonts — FOT-Yuruka Std (display brand) and ZCOOL KuaiLe (CN display).
    Inter and Geist Mono are loaded via next/font in app/layout.tsx.
    ───────────────────────────────────────────────────────────────────────────── */
