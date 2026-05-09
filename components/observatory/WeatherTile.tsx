@@ -73,7 +73,7 @@ export function WeatherTile({ state }: { state: WeatherState }) {
         </div>
       </header>
       <div
-        className="grid flex-1 grid-cols-2 gap-2 overflow-y-auto bg-puru-cloud-base px-3 py-3"
+        className="grid flex-1 grid-cols-2 auto-rows-fr gap-3 overflow-y-auto bg-puru-cloud-base px-4 py-4"
         style={{
           backgroundImage: `linear-gradient(to left, color-mix(in oklch, var(--puru-${state.amplifiedElement}-vivid) var(--puru-bleed-mix), transparent) 0%, transparent var(--puru-bleed-stop))`,
         }}
