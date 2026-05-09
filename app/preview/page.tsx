@@ -73,7 +73,10 @@ export default async function PreviewPage({ searchParams }: PageProps) {
           .preview-blink-scope activates ./preview-overrides.css that
           forces equal-width buttons + label wrap (vs Dialect's content-sized
           default which produces overflow on long labels). */}
-      <div className="preview-blink-scope mx-auto max-w-md space-y-6 pb-24">
+      <div
+        data-theme="old-horai"
+        className="preview-blink-scope mx-auto max-w-md space-y-6 pb-24"
+      >
         {/* Header · which endpoint we're previewing */}
         <header className="space-y-3">
           <div className="flex items-baseline justify-between gap-4">
