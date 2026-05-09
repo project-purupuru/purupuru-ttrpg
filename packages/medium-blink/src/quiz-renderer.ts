@@ -51,6 +51,12 @@ const iconUrlForArchetype = (
 // Render the start of the quiz · Q1 with N element-leaning answers (N = config.buttonsPerStep).
 //
 // Pure function · no I/O · returns a valid ActionGetResponse per Solana Actions spec.
+//
+// Title vs description: per Dialect's UI hierarchy the TITLE is the visually
+// prominent element (bold white) and the DESCRIPTION is the dim subhead.
+// We use title=question (the prompt the user actually answers) so the quiz
+// content gets the prominent slot · the step indicator becomes the soft
+// atmospheric subhead.
 export const renderQuizStart = (
   config: RendererConfig = defaultConfig,
 ): ActionGetResponse => {
@@ -65,8 +71,8 @@ export const renderQuizStart = (
 
   return {
     icon: iconUrlForStep(q.step, config),
-    title: QUIZ_STEP_TITLES[q.step] ?? "today's tide reads you",
-    description: q.prompt,
+    title: q.prompt, // question is the visually prominent element
+    description: QUIZ_STEP_TITLES[q.step] ?? "today's tide reads you", // step indicator as subhead
     label: "answer",
     links: { actions: buttons },
   }
@@ -125,8 +131,8 @@ export const renderQuizStep = (params: {
 
   return {
     icon: iconUrlForStep(q.step, config),
-    title: QUIZ_STEP_TITLES[q.step] ?? "today's tide reads you",
-    description: q.prompt,
+    title: q.prompt, // question gets the prominent slot
+    description: QUIZ_STEP_TITLES[q.step] ?? "today's tide reads you", // step indicator → subhead
     label: "answer",
     links: { actions: buttons },
   }
