@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import {
   Application,
   Assets,
+  BlurFilter,
   Container,
   Graphics,
   Sprite,
@@ -45,6 +46,19 @@ const ELEMENT_HEX: Record<Element, number> = {
   metal: 0x7e5ca7,
 };
 
+// Vertex aura colors — sampled from the dominant non-transparent
+// pixels of each /art/elements/ PNG so the glow matches the art's
+// own palette rather than a UI swatch. Metal samples as pure gray
+// (#a7a7a7); nudged toward cool silver so it reads as glow rather
+// than dead pixels.
+const AURA_HEX: Record<Element, number> = {
+  wood:  0xba7349,
+  fire:  0xff8e00,
+  earth: 0xa1a55c,
+  water: 0x9cd7eb,
+  metal: 0xc8ccd6,
+};
+
 const ELEMENT_KANJI: Record<Element, string> = {
   wood: "木",
   fire: "火",
@@ -53,25 +67,22 @@ const ELEMENT_KANJI: Record<Element, string> = {
   metal: "金",
 };
 
-// Element icon PNGs — self-hosted under /public/art/elements/. Pulled
-// from project-purupuru/world-purupuru S3 originally, but Pixi v8's
-// Assets.load runs the bitmap decode in a worker spawned from a blob
-// URL, which can't follow cross-origin redirects even when CORS is
-// permissive. Same-origin paths sidestep the issue entirely.
-// `metal` uses the jani-face placeholder until a symbolic metal icon
-// ships (see /asset-test §03b for candidates).
+// Element icon PNGs — self-hosted under /public/art/elements/.
+// Same-origin paths only — Pixi v8's Assets.load decodes in a
+// blob-URL worker that can't follow cross-origin redirects even
+// when the remote serves permissive CORS.
 const ELEMENT_ICON_URL: Record<Element, string> = {
-  wood:  "/art/elements/wood-sprout.png",
-  fire:  "/art/elements/fire-flame.png",
-  earth: "/art/elements/earth-sun.png",
-  water: "/art/elements/water-drop.png",
-  metal: "/art/elements/metal-jani-face.png",
+  wood:  "/art/elements/wood.png",
+  fire:  "/art/elements/fire.png",
+  earth: "/art/elements/earth.png",
+  water: "/art/elements/water.png",
+  metal: "/art/elements/metal.png",
 };
 
 // Vertex glyph display size — sprites are anchored at center; the
 // halo (radius 38) sits behind so the icon reads as a labeled
 // presence on a soft colored aura.
-const VERTEX_ICON_SIZE = 56;
+const VERTEX_ICON_SIZE = 100;
 
 // Avatar texture sizing — generated bigger than display so retina
 // rendering stays crisp. Display target ≈ 40px on screen.
@@ -127,7 +138,6 @@ function makeAvatarTexture(identity: PuruhaniIdentity, primary: Element, accent:
 // "energy mass" across the 5 vertices is conserved (Flow-Lenia
 // per ref doc 03-observatory-visual-references-dig-2026-05-08.md).
 interface VertexHandle {
-  halo: Graphics;
   icon: Sprite | null;
 }
 
@@ -137,12 +147,21 @@ function drawVertex(
   v: { x: number; y: number },
   iconTextures: Record<Element, Texture> | null,
 ): VertexHandle {
-  const halo = new Graphics();
-  halo.circle(0, 0, 38);
-  halo.fill({ color: ELEMENT_HEX[el], alpha: 0.26 });
-  halo.x = v.x;
-  halo.y = v.y;
-  layer.addChild(halo);
+  // Diffuse aura — blurred circle behind the icon so each vertex
+  // carries an element-keyed energy field. Smaller base radius +
+  // strong blur reads as glow rather than disk.
+  const aura = new Graphics();
+  aura.circle(0, 0, 32);
+  aura.fill({ color: AURA_HEX[el], alpha: 0.38 });
+  // Padding lets the blur tail render past the Graphics bounding box —
+  // without it the soft falloff gets clipped to the source rectangle
+  // and the aura reads as a hard square edge instead of fading out.
+  const auraBlur = new BlurFilter({ strength: 18 });
+  auraBlur.padding = 48;
+  aura.filters = [auraBlur];
+  aura.x = v.x;
+  aura.y = v.y;
+  layer.addChild(aura);
 
   let icon: Sprite | null = null;
   const tex = iconTextures?.[el];
@@ -175,7 +194,7 @@ function drawVertex(
     layer.addChild(label);
   }
 
-  return { halo, icon };
+  return { icon };
 }
 
 function drawPentagon(g: Graphics, geometry: ReturnType<typeof createPentagram>): void {
@@ -197,17 +216,6 @@ function drawStar(g: Graphics, geometry: ReturnType<typeof createPentagram>): vo
   }
   g.stroke({ width: 1, color: 0x9a8b6f, alpha: 0.4 });
 }
-
-// Per-element phase offsets for the amplified-halo breath, so the soft
-// pulse on whichever element is currently amplified by IRL weather has
-// a unique cadence that doesn't lock with the per-sprite breath rates.
-const HALO_BREATH_PHASE: Record<Element, number> = {
-  wood: 0,
-  fire: 1.4,
-  earth: 2.7,
-  water: 4.1,
-  metal: 5.5,
-};
 
 function rng(seed: number): () => number {
   let s = seed | 0;
@@ -313,39 +321,16 @@ export function PentagramCanvas({ onSpriteClick, focusedTrader = null }: Pentagr
       app.stage.addChild(vertexLayer);
 
       // ─── Weather coupling — IRL infuses wuxing ─────────────────────────────
-      // The off-chain weather signal drives two visual channels:
-      //   1. cosmic_intensity → tide-flow amplitude multiplier
-      //      (high-energy days = stronger circulation around 生 cycle)
-      //   2. amplifiedElement + amplificationFactor → that element's halo
-      //      gently pulses brighter (0.18 → ~0.36) while it's amplified
-      //
-      // Subscribed locally so the canvas reacts without prop-driven
-      // re-mounts. Initial state pulled via current() so the first
-      // frame already reflects the weather.
-      const HALO_BASE_ALPHA = 0.26;
-      const HALO_AMP_GAIN = 0.18;
+      // cosmic_intensity → tide-flow amplitude multiplier (high-energy
+      // days = stronger circulation around 生 cycle). The amplifiedElement
+      // signal still tracks but no longer drives a vertex visual now that
+      // the colored halos are gone — per-event amplification reads via
+      // the WeatherTile + sprite tide-flow.
       const initial = weatherFeed.current();
       let cosmicIntensity = Math.max(0, Math.min(1, initial.cosmic_intensity ?? 0));
-      let amplifiedElement: Element = initial.amplifiedElement;
-      let amplificationFactor = initial.amplificationFactor;
       const unsubWeather = weatherFeed.subscribe((s) => {
         cosmicIntensity = Math.max(0, Math.min(1, s.cosmic_intensity ?? 0));
-        amplifiedElement = s.amplifiedElement;
-        amplificationFactor = s.amplificationFactor;
       });
-
-      // ─── Element energy — slow weather-driven equilibrium ──────────────────
-      // Each vertex carries an "energy" scalar pulled toward a target
-      // determined by the weather state: amplified element targets 1.4,
-      // others target 0.9 — sum stays at 5.0 (mass-conserved per
-      // Flow-Lenia, dig 2026-05-08 §6). Exponential approach with 1.5s
-      // timeconstant means amplifiedElement transitions smoothly when
-      // weather shifts. Per-event pulses live in the activity rail; the
-      // canvas reads as ambient world mood only.
-      const energy: Record<Element, number> = {
-        wood: 1, fire: 1, earth: 1, water: 1, metal: 1,
-      };
-      const DECAY_TC_MS = 1500;
 
       // ─── Entities ──────────────────────────────────────────────────────────
       const entities: Puruhani[] = await seedPopulation(
@@ -520,38 +505,6 @@ export function PentagramCanvas({ onSpriteClick, focusedTrader = null }: Pentagr
           }
         }
 
-        // ─── Element-energy decay toward weather equilibrium ──────────────
-        // amplified element pulled toward 1.4, others toward 0.9 — sum
-        // stays at 5.0 (mass-conserved). Exponential approach with
-        // 1.5s timeconstant. ampNorm gates how strongly weather biases
-        // the equilibrium; at amplificationFactor < 0.85 the bias dies
-        // and all five sit at 1.0.
-        const ampNorm = Math.max(0, Math.min(1, (amplificationFactor - 0.85) / 0.30));
-        const targetAmp = 1 + 0.4 * ampNorm;
-        const targetDim = 1 - 0.1 * ampNorm;
-        const decay = Math.exp(-dt / DECAY_TC_MS);
-        for (const el of ELEMENTS) {
-          const target = el === amplifiedElement ? targetAmp : targetDim;
-          energy[el] = energy[el] * decay + target * (1 - decay);
-        }
-
-        // ─── Apply energy to vertex visuals ───────────────────────────────
-        // Halo only — disk and ring stay constant (set once at construction)
-        // so the kanji glyph reads as a stable artifact. The halo carries
-        // both the slow energy bias (amplifiedElement glows brighter) and
-        // the ~7s breath pulse layered on top of the amplified element.
-        for (const el of ELEMENTS) {
-          const v = vertexByElement[el];
-          if (!v) continue;
-          const e = energy[el];
-          let breathBoost = 0;
-          if (el === amplifiedElement && ampNorm > 0) {
-            const breath = 0.5 + 0.5 * Math.sin(tMs / 7000 + HALO_BREATH_PHASE[el]);
-            breathBoost = HALO_AMP_GAIN * ampNorm * (0.7 + 0.3 * breath);
-          }
-          v.halo.alpha = HALO_BASE_ALPHA * e + breathBoost;
-        }
-
         // Tide multiplier from cosmic energy. 0 → 1.0 (baseline),
         // 1 → 1.5 (heavier circulation). Subtle on purpose.
         const energyMul = 1 + 0.5 * cosmicIntensity;
@@ -716,7 +669,10 @@ export function PentagramCanvas({ onSpriteClick, focusedTrader = null }: Pentagr
         geometry = createPentagram({ x: cx, y: cy }, r);
         tideUnits = tideUnitVectorsFor(geometry);
 
-        // Re-build vertex layer
+        // Re-build vertex layer. Re-insert at the original z-position
+        // (just above the inner-star edges) so it stays UNDER shadow,
+        // trails, and sprite layers — addChild() would push it to the
+        // top and occlude sprites on every resize.
         app.stage.removeChild(vertexLayer);
         vertexLayer.destroy({ children: true });
         vertexLayer = new Container();
@@ -728,7 +684,8 @@ export function PentagramCanvas({ onSpriteClick, focusedTrader = null }: Pentagr
             iconTextures,
           );
         }
-        app.stage.addChild(vertexLayer);
+        const starIdx = app.stage.getChildIndex(starG);
+        app.stage.addChildAt(vertexLayer, starIdx + 1);
 
         // Re-anchor sprites at new resting positions; cancel in-flight migrations
         for (let i = 0; i < sprites.length; i++) {
