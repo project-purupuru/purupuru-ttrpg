@@ -1,0 +1,35 @@
+/* Dialect Blink renderer overrides · scoped to /preview only.
+ *
+ * Why these exist:
+ *   Dialect's default button row uses `flex flex-wrap items-center` with
+ *   buttons sized to content width · with our 3 buttons of varying label
+ *   length, this produces inconsistent widths and the long button overflows
+ *   the card on narrow containers.
+ *
+ *   Override forces:
+ *     · button container = column flow (vertical stack always)
+ *     · each button       = full container width (consistent)
+ *     · long labels       = wrap inside the button instead of overflowing
+ *
+ * The .preview-blink-scope class is added to the /preview page wrapper so
+ * these rules don't leak to any other Dialect Blink usage in the app.
+ */
+
+.preview-blink-scope .gap-between-buttons {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.preview-blink-scope .blink-action-button {
+  width: 100%;
+  white-space: normal;
+  word-break: break-word;
+  text-align: center;
+  /* Tighter top/bottom padding for multi-line labels · still tappable */
+  min-height: 44px;
+}
+
+/* Defensive · prevent any descendant from forcing horizontal overflow */
+.preview-blink-scope * {
+  max-width: 100%;
+}
