@@ -19,9 +19,10 @@ import type {
 } from "@/lib/activity/types";
 
 // Anonymous-puruhani seed for quiz_completed rows · neutral expression
-// (empty-archetype face: calm eyes, neutral mouth, no brow tilt). Rendered
-// through PuruhaniAvatar with a grayscale CSS filter so it reads as
-// "a puruhani, but unidentified" rather than introducing a new icon family.
+// (empty-archetype face: calm eyes, neutral mouth, no brow tilt). Wallet
+// is unknown but the archetype IS known (revealed by the quiz), so the
+// face renders in the discovered element color · same family as
+// wallet-bound avatars, distinguished only by the neutral expression.
 const ANON_SEED: AvatarSeed = {
   eyeKind: 0,
   mouthKind: 1,
@@ -64,7 +65,7 @@ function walletBoundVerb(e: MintActivity | ElementShiftActivity): string {
 
 function ambientCopy(e: WeatherActivity | QuizCompletedActivity): string {
   if (e.kind === "weather") return `${e.element} breathes today`;
-  return `${e.element} emerged`;
+  return `${e.element} archetype emerged`;
 }
 
 // Stable per-seed primary used only for identity face/personality.
@@ -187,20 +188,11 @@ export function ActivityRail() {
                   style={rowStyle}
                 >
                   {e.kind === "quiz_completed" ? (
-                    <span
-                      aria-hidden
-                      className="shrink-0"
-                      style={{
-                        filter: "grayscale(1)",
-                        opacity: 0.55,
-                      }}
-                    >
-                      <PuruhaniAvatar
-                        seed={ANON_SEED}
-                        primary={e.element}
-                        size={ICON_SIZE}
-                      />
-                    </span>
+                    <PuruhaniAvatar
+                      seed={ANON_SEED}
+                      primary={e.element}
+                      size={ICON_SIZE}
+                    />
                   ) : (
                     <Image
                       src={`/art/elements/${e.element}.png`}
