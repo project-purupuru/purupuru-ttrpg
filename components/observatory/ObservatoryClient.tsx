@@ -68,6 +68,19 @@ export function ObservatoryClient() {
     setSfxEnabled((prev) => !prev);
   }, []);
 
+  // Auto theme — flip <html data-theme> on the user's local sunrise/sunset.
+  // "old-horai" is the existing dark token block; "day-horai" is a sentinel
+  // value that defeats the prefers-color-scheme:dark mirror (which only
+  // applies to :root:not([data-theme])) so system-dark users still get
+  // light during their local daytime. is_night stays undefined until the
+  // live feed lands its first fetch — we leave the attribute alone in that
+  // window so initial paint follows system preference.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    if (weather.is_night === undefined) return;
+    document.documentElement.dataset.theme = weather.is_night ? "old-horai" : "day-horai";
+  }, [weather.is_night]);
+
   // Sonifier lifecycle — runs only while BOTH music is playing AND sfx
   // is enabled. Cleanup unsubscribes and suspends the AudioContext, so
   // toggling either flag off silences the chimes without affecting the

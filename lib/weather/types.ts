@@ -18,6 +18,14 @@ export interface WeatherState {
   location: string;
   /** Adapter / data origin label (e.g. "@puruhpuruweather", "synthetic · demo"). */
   source: string;
+  /** Local sunrise (ISO) — present when the live adapter has data. */
+  sunrise?: string;
+  /** Local sunset (ISO). */
+  sunset?: string;
+  /** True when local clock is past sunset or before sunrise. Drives theme. */
+  is_night?: boolean;
+  /** "C" or "F" — drives the on-screen suffix. Inferred from the resolved country code. */
+  temperature_unit?: "C" | "F";
 }
 
 export interface WeatherFeed {

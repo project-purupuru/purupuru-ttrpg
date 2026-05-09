@@ -10,6 +10,7 @@ import {
   CloudSnow,
   CloudLightning,
   MapPin,
+  Thermometer,
   type Icon,
 } from "@phosphor-icons/react";
 
@@ -51,14 +52,11 @@ export function WeatherTile({ state }: { state: WeatherState }) {
   }, []);
 
   return (
-    <section className="border-t border-l border-puru-surface-border bg-puru-cloud-bright shadow-puru-tile">
-      <header className="relative bg-puru-cloud-bright px-6 py-4 shadow-[0_1px_0_0_var(--puru-surface-border),0_2px_4px_var(--puru-surface-shadow-sm)]">
+    <section className="flex h-full min-h-0 flex-col overflow-hidden border-t border-l border-puru-surface-border bg-puru-cloud-bright shadow-puru-tile">
+      <header className="relative shrink-0 bg-puru-cloud-bright px-6 py-4 shadow-[0_1px_0_0_var(--puru-surface-border),0_2px_4px_var(--puru-surface-shadow-sm)]">
         <div className="flex items-center justify-between gap-4">
           <div className="flex min-w-0 flex-col">
-            <span className="font-puru-mono text-2xs uppercase tracking-[0.22em] text-puru-ink-dim">
-              irl
-            </span>
-            <h3 className="mt-1 font-puru-display text-xl text-puru-ink-rich">
+            <h3 className="font-puru-display text-xl text-puru-ink-rich">
               Weather
             </h3>
           </div>
@@ -75,17 +73,22 @@ export function WeatherTile({ state }: { state: WeatherState }) {
         </div>
       </header>
       <div
-        className="grid grid-cols-3 gap-2 px-3 py-3"
+        className="grid flex-1 grid-cols-2 gap-2 overflow-y-auto bg-puru-cloud-base px-3 py-3"
         style={{
-          backgroundImage: `linear-gradient(to left, color-mix(in oklch, var(--puru-${state.amplifiedElement}-vivid) 10%, transparent) 0%, transparent 60%)`,
+          backgroundImage: `linear-gradient(to left, color-mix(in oklch, var(--puru-${state.amplifiedElement}-vivid) var(--puru-bleed-mix), transparent) 0%, transparent var(--puru-bleed-stop))`,
         }}
       >
+        <KpiCell
+          label="temperature"
+          value={`${state.temperature_c}°${state.temperature_unit ?? ""}`}
+          aside={<Thermometer weight="fill" />}
+        />
         {(() => {
           const PrecipIcon = PRECIP_ICON[state.precipitation];
           return (
             <KpiCell
-              label="temperature"
-              value={`${state.temperature_c}°`}
+              label="sky"
+              value={state.precipitation}
               aside={<PrecipIcon weight="fill" />}
             />
           );
