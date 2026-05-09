@@ -31,11 +31,6 @@ const ELEMENT_KANJI: Record<Element, string> = {
 // Per-puruhani recent-activity list shows ONLY wallet-bound variants — weather
 // + quiz_completed are wallet-agnostic on the canonical schema and never
 // reference a specific actor, so they're filtered out at the source.
-const KIND_GLYPH: Record<"mint" | "element_shift", string> = {
-  mint: "✦",
-  element_shift: "⟳",
-};
-
 function recentVerb(e: MintActivity | ElementShiftActivity): string {
   if (e.kind === "mint") return "claimed a stone";
   return `drifted to ${e.element}`;
@@ -218,13 +213,11 @@ export function FocusCard({
               {recent.map((e) => (
                 <li key={e.id} className="flex items-center gap-2 font-puru-mono text-xs">
                   <span
-                    aria-hidden
-                    className="text-base leading-none"
+                    className="truncate text-puru-ink-base"
                     style={{ color: `var(--puru-${e.element}-vivid)` }}
                   >
-                    {KIND_GLYPH[e.kind]}
+                    {recentVerb(e)}
                   </span>
-                  <span className="truncate text-puru-ink-base">{recentVerb(e)}</span>
                   <span className="ml-auto whitespace-nowrap font-puru-mono text-2xs uppercase tracking-[0.18em] text-puru-ink-dim">
                     {now ? timeAgo(e.at, now) : ""}
                   </span>

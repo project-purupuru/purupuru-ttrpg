@@ -27,10 +27,14 @@ function timeAgo(iso: string, now: number): string {
   return `${Math.floor(diff / MINUTE)}m ago`;
 }
 
-// Wallet-bound rows get a 2-line treatment (identity / verb) with a leading
-// glyph; ambient rows collapse to a single line of dynamic copy (no glyph,
-// the icon column already carries kind identity). Register stays metaphorical
-// per memory · grounded reveal copy lives in awareness-branch ARCHETYPE_REVEALS.
+// Element-led copy for both row classes · the element is the subject of
+// every line. Wallet-bound rows pair this with an identity line above;
+// ambient rows stand alone as a single concise beat. Register stays in the
+// gumi/canvas register (metaphorical) — the grounded reveal copy lives in
+// awareness-branch ARCHETYPE_REVEALS.
+//
+// Fallback glyphs only render when an actor wallet has no registry entry
+// (defensive; rarely hits). Removed from the verb line per clean-text pass.
 const WALLET_BOUND_GLYPH: Record<"mint" | "element_shift", string> = {
   mint: "✦",
   element_shift: "⟳",
@@ -42,8 +46,8 @@ function walletBoundVerb(e: MintActivity | ElementShiftActivity): string {
 }
 
 function ambientCopy(e: WeatherActivity | QuizCompletedActivity): string {
-  if (e.kind === "weather") return `the world breathes ${e.element}`;
-  return `someone read ${e.element}`;
+  if (e.kind === "weather") return `${e.element} breathes today`;
+  return `${e.element} emerged`;
 }
 
 // Stable per-seed primary used only for identity face/personality.
@@ -223,7 +227,6 @@ export function ActivityRail() {
                     </span>
                   </p>
                   <p className="mt-0.5 truncate font-puru-body text-xs leading-tight text-puru-ink-soft">
-                    <span aria-hidden className="mr-1">{WALLET_BOUND_GLYPH[e.kind]}</span>
                     {walletBoundVerb(e)}
                   </p>
                 </div>
