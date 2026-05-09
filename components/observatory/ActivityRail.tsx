@@ -45,14 +45,13 @@ function timeAgo(iso: string, now: number): string {
   return `${Math.floor(diff / MINUTE)}m ago`;
 }
 
-// Element-led copy for both row classes · the element is the subject of
-// every line. Wallet-bound rows pair this with an identity line above;
-// ambient rows stand alone as a single concise beat. Register stays in the
-// gumi/canvas register (metaphorical) — the grounded reveal copy lives in
-// awareness-branch ARCHETYPE_REVEALS.
+// Uniform 2-line treatment across all four variants · line 1 is the subject
+// (identity for wallet-bound · element name for ambient), line 2 is the
+// verb/event. Keeps a consistent visual rhythm across the rail regardless
+// of whether the event has a known wallet behind it.
 //
 // Fallback glyphs only render when an actor wallet has no registry entry
-// (defensive; rarely hits). Removed from the verb line per clean-text pass.
+// (defensive; rarely hits).
 const WALLET_BOUND_GLYPH: Record<"mint" | "element_shift", string> = {
   mint: "✦",
   element_shift: "⟳",
@@ -63,10 +62,12 @@ function walletBoundVerb(e: MintActivity | ElementShiftActivity): string {
   return `drifted to ${e.element}`;
 }
 
-function ambientCopy(e: WeatherActivity | QuizCompletedActivity): string {
-  if (e.kind === "weather") return `${e.element} breathes today`;
-  return `${e.element} archetype emerged`;
+function ambientVerb(e: WeatherActivity | QuizCompletedActivity): string {
+  if (e.kind === "weather") return "weather shift";
+  return "archetype emerged";
 }
+
+const titleCase = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 
 // Stable per-seed primary used only for identity face/personality.
 // Different from sim's distribution-based bucketing on purpose: this
@@ -175,11 +176,10 @@ export function ActivityRail() {
               color: `var(--puru-${e.element}-vivid)`,
             };
 
-            // Ambient: single concise line · weather (element art) or
-            // quiz_completed (greyed puruhani avatar · the user is anonymous,
-            // pre-wallet, pre-mint per canonical schema). Same icon slot
-            // size as wallet-bound rows so text-start aligns across all
-            // activity kinds.
+            // Ambient (weather, quiz_completed): same 2-line layout · line 1
+            // is the title-cased element name (the subject), line 2 is the
+            // verb. Quiz uses the anonymous puruhani avatar (wallet unknown,
+            // archetype known); weather uses the pentagram element art.
             if (e.kind === "weather" || e.kind === "quiz_completed") {
               return (
                 <li
@@ -203,10 +203,17 @@ export function ActivityRail() {
                       aria-hidden
                     />
                   )}
-                  <p className="min-w-0 flex-1 truncate font-puru-body text-sm leading-tight text-puru-ink-base">
-                    {ambientCopy(e)}
-                  </p>
-                  <span className="shrink-0 font-puru-body text-2xs uppercase tracking-[0.18em] tabular-nums text-puru-ink-dim">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-puru-body text-sm leading-tight text-puru-ink-base">
+                      <span className="font-puru-display text-xs text-puru-ink-rich">
+                        {titleCase(e.element)}
+                      </span>
+                    </p>
+                    <p className="mt-0.5 truncate font-puru-body text-xs leading-tight text-puru-ink-soft">
+                      {ambientVerb(e)}
+                    </p>
+                  </div>
+                  <span className="shrink-0 self-start font-puru-body text-2xs uppercase tracking-[0.18em] tabular-nums text-puru-ink-dim">
                     {timeAgo(e.at, now)}
                   </span>
                 </li>
