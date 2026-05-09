@@ -59,7 +59,15 @@
  * dominant element · add `.purupuru-theme--wood/fire/earth/metal/water` class
  * variants and toggle from the renderer based on step.
  */
-.preview-blink-scope {
+/* Target the EXACT element Dialect emits its preset class on · CSS variables
+ * resolve to the closest ancestor's value, so setting vars on the outer
+ * .preview-blink-scope wrapper is overridden by Dialect's inner `.x-dark` /
+ * `.x-light` / `.dial-light` div which sets the same vars. We need to set
+ * our vars on those same classes (still scoped to .preview-blink-scope so
+ * we don't pollute other Dialect uses). */
+.preview-blink-scope .x-dark,
+.preview-blink-scope .x-light,
+.preview-blink-scope .dial-light {
   /* card surfaces */
   --blink-bg-primary: var(--puru-cloud-deep);
   --blink-bg-secondary: var(--puru-cloud-shadow);
