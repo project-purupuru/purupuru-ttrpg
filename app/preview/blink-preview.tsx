@@ -50,7 +50,20 @@ function BlinkInner({ url, stylePreset = "default" }: BlinkPreviewProps) {
       </div>
     )
   }
-  return <Blink blink={blink} adapter={adapter} stylePreset={stylePreset} />
+  // securityLevel="all" allows unregistered actions to execute · default
+  // "only-trusted" gates everything behind Dialect's BlinksRegistry which is
+  // for verified production providers only · we trust our own /api/actions/*
+  // URLs · the warning banner ("This Action has not yet been registered") is
+  // about RUNTIME EXECUTION blocking, not display. Without "all" the buttons
+  // appear but click does nothing because executeFn refuses to run.
+  return (
+    <Blink
+      blink={blink}
+      adapter={adapter}
+      stylePreset={stylePreset}
+      securityLevel="all"
+    />
+  )
 }
 
 // Outer · provides wallet/connection context.
