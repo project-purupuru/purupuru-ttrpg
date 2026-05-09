@@ -57,8 +57,10 @@ export default async function PreviewPage({ searchParams }: PageProps) {
   const params = await searchParams
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000"
   const targetUrl = params.url ?? `${baseUrl}/api/actions/quiz/start`
+  // Default x-light · matches the world repo's cream-surface landing.
+  // x-dark + default still selectable via the header tabs for comparison.
   const stylePreset: StylePreset =
-    STYLE_PRESETS.find((p) => p === params.style) ?? "x-dark"
+    STYLE_PRESETS.find((p) => p === params.style) ?? "x-light"
 
   const { data, status, raw } = await fetchAction(targetUrl)
 
@@ -73,10 +75,11 @@ export default async function PreviewPage({ searchParams }: PageProps) {
           .preview-blink-scope activates ./preview-overrides.css that
           forces equal-width buttons + label wrap (vs Dialect's content-sized
           default which produces overflow on long labels). */}
-      <div
-        data-theme="old-horai"
-        className="preview-blink-scope mx-auto max-w-md space-y-6 pb-24"
-      >
+      {/* No data-theme · we want LIGHT mode (cream bg + honey CTA) to match
+          the world repo's landing-page aesthetic. The Blink card inherits
+          the same caliber as @purupuru landing · Saarinen-style complication
+          of the shared design system rather than a Blink-specific reinvention. */}
+      <div className="preview-blink-scope mx-auto max-w-md space-y-6 pb-24">
         {/* Header · which endpoint we're previewing */}
         <header className="space-y-3">
           <div className="flex items-baseline justify-between gap-4">
