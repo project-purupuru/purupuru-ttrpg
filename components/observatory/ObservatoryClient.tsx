@@ -9,6 +9,7 @@ import type { PuruhaniIdentity } from "@/lib/sim/types";
 import { activityStream, type ActivityEvent } from "@/lib/activity";
 import { OBSERVATORY_SPRITE_COUNT } from "@/lib/sim/entities";
 import { getSonifier } from "@/lib/audio/sonify";
+import Image from "next/image";
 import { KpiStrip } from "./KpiStrip";
 import { ActivityRail } from "./ActivityRail";
 import { WeatherTile } from "./WeatherTile";
@@ -16,6 +17,7 @@ import { IntroAnimation } from "./IntroAnimation";
 import { PentagramCanvas } from "./PentagramCanvas";
 import { FocusCard } from "./FocusCard";
 import { MusicPlayer } from "./MusicPlayer";
+import { MobileBottomPanel } from "./MobileBottomPanel";
 
 const ZERO_DISTRIBUTION: Record<Element, number> = {
   wood: 0, fire: 0, earth: 0, water: 0, metal: 0,
@@ -148,12 +150,45 @@ export function ObservatoryClient() {
   return (
     <div className="flex h-dvh flex-col bg-puru-cloud-deep text-puru-ink-base">
       {!introDone && <IntroAnimation onDone={() => setIntroDone(true)} />}
-      <KpiStrip
-        totalActive={OBSERVATORY_SPRITE_COUNT}
-        distribution={distribution}
-        cosmicIntensity={weather.cosmic_intensity}
-        cycleBalance={cycleBalance}
-      />
+      {/* Mobile-only compact header — brand wordmark + a tiny live pulse.
+          The world stats live in the Stats tab below. Desktop's full
+          KpiStrip takes over above lg via its own breakpoint. */}
+      <div className="flex shrink-0 items-center justify-between border-b border-puru-surface-border bg-puru-cloud-bright px-4 py-2.5 lg:hidden">
+        <span className="puru-wordmark-drift inline-flex">
+          <Image
+            src="/brand/purupuru-wordmark.svg"
+            alt="purupuru"
+            width={76}
+            height={24}
+            priority
+            className="dark:hidden"
+          />
+          <Image
+            src="/brand/purupuru-wordmark-white.svg"
+            alt="purupuru"
+            width={76}
+            height={24}
+            priority
+            className="hidden dark:block"
+          />
+        </span>
+        <span className="inline-flex items-center gap-2 font-puru-mono text-2xs uppercase tracking-[0.22em] text-puru-ink-dim">
+          <span
+            className="puru-live-dot inline-block h-1.5 w-1.5 rounded-full"
+            style={{ backgroundColor: "var(--puru-wood-vivid)" }}
+            aria-hidden
+          />
+          <span>live</span>
+        </span>
+      </div>
+      <div className="hidden lg:block">
+        <KpiStrip
+          totalActive={OBSERVATORY_SPRITE_COUNT}
+          distribution={distribution}
+          cosmicIntensity={weather.cosmic_intensity}
+          cycleBalance={cycleBalance}
+        />
+      </div>
       <main className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[1fr_440px]">
         <div className="relative min-h-0">
           <PentagramCanvas
@@ -176,7 +211,7 @@ export function ObservatoryClient() {
             wrapperRef={focusCardRef}
           />
         </div>
-        <aside className="grid min-h-0 grid-rows-[1fr_auto] overflow-hidden">
+        <aside className="hidden min-h-0 grid-rows-[1fr_auto] overflow-hidden lg:grid">
           <div className="min-h-0 overflow-hidden">
             <ActivityRail />
           </div>
@@ -185,6 +220,13 @@ export function ObservatoryClient() {
           </div>
         </aside>
       </main>
+      <MobileBottomPanel
+        totalActive={OBSERVATORY_SPRITE_COUNT}
+        distribution={distribution}
+        cosmicIntensity={weather.cosmic_intensity}
+        cycleBalance={cycleBalance}
+        weather={weather}
+      />
     </div>
   );
 }

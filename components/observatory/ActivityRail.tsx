@@ -83,10 +83,7 @@ export function ActivityRail() {
       <header className="relative shrink-0 bg-puru-cloud-bright px-6 py-4 shadow-[0_1px_0_0_var(--puru-surface-border),0_2px_4px_var(--puru-surface-shadow-sm)]">
         <div className="flex items-center justify-between gap-4">
           <div className="flex min-w-0 flex-col">
-            <span className="font-puru-body text-2xs uppercase tracking-[0.22em] text-puru-ink-dim">
-              on-chain
-            </span>
-            <h3 className="mt-1 font-puru-display text-xl text-puru-ink-rich">
+            <h3 className="font-puru-display text-xl text-puru-ink-rich">
               Activity
             </h3>
           </div>
