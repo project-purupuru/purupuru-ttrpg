@@ -132,14 +132,9 @@ export function MusicPlayer({
           />
         </div>
 
-        {/* Title column — tiny "cassette" mono label over a display-font
-            track name. Mirrors the project's KpiStrip label/value
-            hierarchy. min-w-0 + truncate keep long titles from pushing
-            the controls off the right edge. */}
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="font-puru-mono text-[9px] uppercase leading-none tracking-[0.2em] text-puru-ink-soft">
-            cassette
-          </span>
+        {/* Title column — display-font track name. min-w-0 + truncate
+            keep long titles from pushing the controls off the right edge. */}
+        <div className="flex min-w-0 flex-1 flex-col">
           <span className="truncate font-puru-display text-sm leading-tight text-puru-ink-rich">
             {track.title}
           </span>
