@@ -1,20 +1,29 @@
 {
-  "name": "Genesis Stone · Wood",
+  "name": "Genesis Stone \u00b7 Wood",
   "symbol": "PGS",
-  "description": "A Wood-element imprint of the awareness layer · the day's tide read green when this stone was claimed · purupuru world.",
-  "image": "https://raw.githubusercontent.com/project-purupuru/purupuru-ttrpg/feat/awareness-layer-spine/public/art/puruhani/puruhani-wood.png",
+  "description": "A Wood-element imprint of the awareness layer \u00b7 the day's tide read green when this stone was claimed \u00b7 purupuru world.",
+  "image": "https://purupuru-blink.vercel.app/art/stones/wood.png",
   "external_url": "https://purupuru.world",
   "attributes": [
-    { "trait_type": "Element", "value": "Wood" },
-    { "trait_type": "Generation", "value": "Genesis" },
-    { "trait_type": "Path", "value": "Spring" }
+    {
+      "trait_type": "Element",
+      "value": "Wood"
+    },
+    {
+      "trait_type": "Generation",
+      "value": "Genesis"
+    },
+    {
+      "trait_type": "Path",
+      "value": "Spring"
+    }
   ],
   "properties": {
     "category": "image",
     "creators": [],
     "files": [
       {
-        "uri": "https://raw.githubusercontent.com/project-purupuru/purupuru-ttrpg/feat/awareness-layer-spine/public/art/puruhani/puruhani-wood.png",
+        "uri": "https://purupuru-blink.vercel.app/art/stones/wood.png",
         "type": "image/png"
       }
     ]

@@ -1,20 +1,29 @@
 {
-  "name": "Genesis Stone · Water",
+  "name": "Genesis Stone \u00b7 Water",
   "symbol": "PGS",
-  "description": "A Water-element imprint of the awareness layer · the day's tide read deep when this stone was claimed · purupuru world.",
-  "image": "https://raw.githubusercontent.com/project-purupuru/purupuru-ttrpg/feat/awareness-layer-spine/public/art/puruhani/puruhani-water.png",
+  "description": "A Water-element imprint of the awareness layer \u00b7 the day's tide read deep when this stone was claimed \u00b7 purupuru world.",
+  "image": "https://purupuru-blink.vercel.app/art/stones/water.png",
   "external_url": "https://purupuru.world",
   "attributes": [
-    { "trait_type": "Element", "value": "Water" },
-    { "trait_type": "Generation", "value": "Genesis" },
-    { "trait_type": "Path", "value": "Winter" }
+    {
+      "trait_type": "Element",
+      "value": "Water"
+    },
+    {
+      "trait_type": "Generation",
+      "value": "Genesis"
+    },
+    {
+      "trait_type": "Path",
+      "value": "Winter"
+    }
   ],
   "properties": {
     "category": "image",
     "creators": [],
     "files": [
       {
-        "uri": "https://raw.githubusercontent.com/project-purupuru/purupuru-ttrpg/feat/awareness-layer-spine/public/art/puruhani/puruhani-water.png",
+        "uri": "https://purupuru-blink.vercel.app/art/stones/water.png",
         "type": "image/png"
       }
     ]

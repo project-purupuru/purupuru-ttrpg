@@ -1,20 +1,29 @@
 {
-  "name": "Genesis Stone · Fire",
+  "name": "Genesis Stone \u00b7 Fire",
   "symbol": "PGS",
-  "description": "A Fire-element imprint of the awareness layer · the day's tide read warmth when this stone was claimed · purupuru world.",
-  "image": "https://raw.githubusercontent.com/project-purupuru/purupuru-ttrpg/feat/awareness-layer-spine/public/art/puruhani/puruhani-fire.png",
+  "description": "A Fire-element imprint of the awareness layer \u00b7 the day's tide read warmth when this stone was claimed \u00b7 purupuru world.",
+  "image": "https://purupuru-blink.vercel.app/art/stones/fire.png",
   "external_url": "https://purupuru.world",
   "attributes": [
-    { "trait_type": "Element", "value": "Fire" },
-    { "trait_type": "Generation", "value": "Genesis" },
-    { "trait_type": "Path", "value": "Summer" }
+    {
+      "trait_type": "Element",
+      "value": "Fire"
+    },
+    {
+      "trait_type": "Generation",
+      "value": "Genesis"
+    },
+    {
+      "trait_type": "Path",
+      "value": "Summer"
+    }
   ],
   "properties": {
     "category": "image",
     "creators": [],
     "files": [
       {
-        "uri": "https://raw.githubusercontent.com/project-purupuru/purupuru-ttrpg/feat/awareness-layer-spine/public/art/puruhani/puruhani-fire.png",
+        "uri": "https://purupuru-blink.vercel.app/art/stones/fire.png",
         "type": "image/png"
       }
     ]

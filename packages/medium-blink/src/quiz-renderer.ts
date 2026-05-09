@@ -44,8 +44,14 @@ const iconUrlForArchetype = (
   archetype: Element,
   config: RendererConfig,
 ): string => {
-  const base = config.iconBaseUrl ?? `${config.baseUrl}/api/og`
-  return `${base}?archetype=${archetype}`
+  // Reveal card · serve the ACTUAL stone PNG from /public/art/stones/.
+  // This is the same artifact the user is about to mint · visual continuity
+  // from "the tide reads · WOOD" reveal → claim button → wallet receives
+  // exactly what's shown. Bypasses /api/og's SVG generator (which is for
+  // mid-quiz step icons that should stay element-agnostic per operator's
+  // design intent · the stones DO carry element identity by construction
+  // since they're the artifact of a specific element claim).
+  return `${config.baseUrl}/art/stones/${archetype.toLowerCase()}.png`
 }
 
 // Render the start of the quiz · Q1 with N element-leaning answers (N = config.buttonsPerStep).
