@@ -1,0 +1,39 @@
+# Vercel-specific upload exclusions.
+#
+# Vercel reads .gitignore at the workspace root only · it does NOT walk into
+# nested .gitignore files. Our monorepo has a Rust anchor program at
+# programs/purupuru-anchor/ with its own .gitignore that excludes target/
+# (8000+ build-artifact files · 100s of MB). Without a top-level rule,
+# vercel tries to upload all of them and the chunked-upload aborts.
+#
+# Same logic for the other nested artifact dirs we don't need at deploy time.
+
+# Rust build artifacts (anchor program · we deploy the .so to Solana, NOT to Vercel)
+**/target/
+
+# Loa framework state (state-zone · session memory · not part of the deployed app)
+.beads/
+.run/
+.ck/
+grimoires/loa/a2a/
+grimoires/loa/analytics/
+grimoires/loa/audit-archive/
+grimoires/loa/proposals/
+grimoires/loa/feedback/
+grimoires/loa/memory/
+
+# Eval fixtures (intentional bug fixtures · don't ship to runtime)
+evals/
+
+# Local secrets (gitignored · belt-and-suspenders for vercel too)
+.env.local
+.env.*.local
+
+# Local IDE / OS noise
+.DS_Store
+.idea/
+.vscode/
+
+# Test snapshots + coverage reports
+coverage/
+**/__snapshots__/
