@@ -40,8 +40,8 @@ function parseStepQuery(url: URL):
       response: NextResponse.json(
         {
           icon: `${baseUrl}/api/og?step=1`,
-          title: "tide unread",
-          description: "the path is unclear · please begin again",
+          title: "Something's off",
+          description: "We lost your place · start again to read you fresh.",
           label: "begin",
           links: {
             actions: [

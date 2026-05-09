@@ -65,14 +65,15 @@ export async function GET(request: Request) {
     return NextResponse.json(
       {
         icon: `${baseUrl}/api/og?ambient=fallback`,
-        title: "today in the world · the tide moves",
+        title: "Today in the World",
         description:
-          "the ambient feed is gathering its breath · the world continues",
+          "The live feed is catching its breath · check back in a moment.",
         label: "the world",
         links: {
           actions: [
             {
-              label: "what's my element?",
+              type: "post",
+              label: "What's My Element?",
               href: `${baseUrl}/api/actions/quiz/start`,
             },
           ],

@@ -134,10 +134,12 @@ export async function GET(request: Request) {
   let body: string
 
   if (archetype && (archetype as Element) in ELEMENTS) {
-    // Archetype reveal icon · large element symbol + element name
+    // Archetype reveal icon · large element symbol + element name.
+    // (Reveal cards now serve the actual stone PNG via quiz-renderer.ts ·
+    // this route stays as a fallback for any direct /api/og?archetype=X hit.)
     body = svg({
       element: archetype as Element,
-      primary: "your tide",
+      primary: "Your Element",
       secondary: ELEMENTS[archetype as Element].ja,
     })
   } else if (step) {
@@ -146,14 +148,14 @@ export async function GET(request: Request) {
       const element = STEP_TO_ELEMENT[n - 1]
       body = svg({
         element,
-        primary: `${n} of 8`,
-        secondary: "today's tide",
+        primary: `Question ${n}`,
+        secondary: "of 8",
       })
     } else {
       // Unknown step · fall through to default
       body = svg({
         element: "WOOD",
-        primary: "tide reads",
+        primary: "purupuru",
         secondary: "",
       })
     }

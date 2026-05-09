@@ -121,17 +121,19 @@ export const QUIZ_CORPUS: ReadonlyArray<QuizQuestion> = [
   },
 ] as const
 
-// Archetype reveals · short + intimate · used as the description (subhead) on
-// the reveal card. The title slot now carries the element-locating phrase
-// ("Your Tide is Wood.") · this slot carries the poetic kicker only.
-// Stripped: "the tide reads · ELEMENT ·" prefix (now in the title) +
-// "claim the stone of X" suffix (the button IS the claim · don't double-text it).
+// Archetype reveals · plain personality-test language · used as the
+// description (subhead) on the reveal card. Grounded · no metaphor ·
+// reads like a Buzzfeed result the user can immediately understand and
+// recognize themselves in. Wuxing element name lives in the TITLE
+// (operator-confirmed: element vocab is the inevitable specialized
+// language · "tide" wrapped around it was extra metaphor that didn't land
+// for users who haven't been initiated into the world's voice yet).
 export const ARCHETYPE_REVEALS: Record<Element, string> = {
-  WOOD: "You hold the green that is becoming.",
-  FIRE: "You carry the burning that does not consume.",
-  EARTH: "You are the still center.",
-  METAL: "You are the bell that listens.",
-  WATER: "You move with what moves.",
+  WOOD: "You start things. You grow into what's next.",
+  FIRE: "You move quick. You light up the room.",
+  EARTH: "You stay steady. People find their ground with you.",
+  METAL: "You see clearly. You cut through noise.",
+  WATER: "You flow with what moves. You feel before you think.",
 }
 
 // Step indicator · plain "Question X of Y" · rendered as the description

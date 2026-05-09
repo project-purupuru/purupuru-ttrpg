@@ -46,7 +46,7 @@ const iconUrlForArchetype = (
 ): string => {
   // Reveal card · serve the ACTUAL stone PNG from /public/art/stones/.
   // This is the same artifact the user is about to mint · visual continuity
-  // from "the tide reads · WOOD" reveal → claim button → wallet receives
+  // from "You are Wood." reveal → claim button → wallet receives
   // exactly what's shown. Bypasses /api/og's SVG generator (which is for
   // mid-quiz step icons that should stay element-agnostic per operator's
   // design intent · the stones DO carry element identity by construction
@@ -78,7 +78,7 @@ export const renderQuizStart = (
   return {
     icon: iconUrlForStep(q.step, config),
     title: q.prompt, // question is the visually prominent element
-    description: QUIZ_STEP_TITLES[q.step] ?? "today's tide reads you", // step indicator as subhead
+    description: QUIZ_STEP_TITLES[q.step] ?? `Question ${q.step}`, // step indicator as subhead
     label: "answer",
     links: { actions: buttons },
   }
@@ -99,8 +99,8 @@ export const renderQuizStep = (params: {
   if (params.step < 1 || params.step > QUIZ_CONFIG.totalSteps) {
     return {
       icon: iconUrlForStep(1, config),
-      title: "tide unread",
-      description: "the path is unclear · please begin again",
+      title: "Something's off",
+      description: "We lost your place · start again to read you fresh.",
       label: "begin",
       links: {
         actions: [{ type: "post", label: "Begin Again", href: `${config.baseUrl}/api/actions/quiz/start` }],
@@ -116,8 +116,8 @@ export const renderQuizStep = (params: {
   if (params.priorAnswers.length !== params.step - 1) {
     return {
       icon: iconUrlForStep(params.step, config),
-      title: "tide unread",
-      description: "the path was lost · please begin again",
+      title: "Something's off",
+      description: "Your answers got out of sync · start over to read you fresh.",
       label: "begin",
       links: {
         actions: [{ type: "post", label: "Begin Again", href: `${config.baseUrl}/api/actions/quiz/start` }],
@@ -138,7 +138,7 @@ export const renderQuizStep = (params: {
   return {
     icon: iconUrlForStep(q.step, config),
     title: q.prompt, // question gets the prominent slot
-    description: QUIZ_STEP_TITLES[q.step] ?? "today's tide reads you", // step indicator → subhead
+    description: QUIZ_STEP_TITLES[q.step] ?? `Question ${q.step}`, // step indicator → subhead
     label: "answer",
     links: { actions: buttons },
   }
@@ -155,7 +155,7 @@ export const renderQuizResult = (params: {
   const config = params.config ?? defaultConfig
   const reveal =
     ARCHETYPE_REVEALS[params.archetype] ??
-    "the tide reads you · claim the stone of your weather"
+    "Claim the stone that's been reading you back."
 
   // Title-case the element name · "Wood" · "Fire" · etc · for the
   // identity-locating phrase. Title Case for CTAs throughout.
@@ -164,7 +164,7 @@ export const renderQuizResult = (params: {
 
   return {
     icon: iconUrlForArchetype(params.archetype, config),
-    title: `Your Tide is ${elementName}.`,
+    title: `You are ${elementName}.`,
     description: reveal,
     label: "Claim Your Stone",
     links: {
@@ -179,7 +179,7 @@ export const renderQuizResult = (params: {
         {
           // ambient → chains to next inline action (no wallet needed)
           type: "post",
-          label: "See Today's Tide",
+          label: "See Today's World",
           href: `${config.baseUrl}/api/actions/today`,
         },
       ],

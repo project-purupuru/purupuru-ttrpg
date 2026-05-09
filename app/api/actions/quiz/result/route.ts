@@ -43,8 +43,8 @@ function parseResultQuery(url: URL):
         response: NextResponse.json(
           {
             icon: `${baseUrl}/api/og?step=1`,
-            title: "tide unread",
-            description: "the path was lost · please begin again",
+            title: "Something's off",
+            description: "Your answers got out of sync · start over to read you fresh.",
             label: "begin",
             links: {
               actions: [

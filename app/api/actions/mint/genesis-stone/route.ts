@@ -78,7 +78,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         transaction: "",
-        message: "the tide was unclear · please begin the quiz again",
+        message: "We couldn't read your answers · please take the quiz again.",
         error: { message: error },
       },
       { headers: ACTION_CORS_HEADERS, status: 400 },
@@ -109,7 +109,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         transaction: "",
-        message: "the cosmic ledger is briefly out of reach · try again",
+        message: "Network's briefly out of reach · please try again.",
         error: { message: `Tx build failed: ${reason}` },
       },
       { headers: ACTION_CORS_HEADERS, status: 503 },
@@ -119,7 +119,7 @@ export async function POST(request: Request) {
   // 5. Compose daemon-voiced acknowledgment · presentation-translated.
   const reveal =
     ARCHETYPE_REVEALS[archetype] ??
-    "the tide carries your name forward · the stone is yours"
+    "Your stone is yours."
 
   return NextResponse.json(
     {
@@ -136,14 +136,15 @@ export async function GET(request: Request) {
   return NextResponse.json(
     {
       icon: `${baseUrl}/api/og?action=mint`,
-      title: "claim your genesis stone",
+      title: "Claim Your Genesis Stone",
       description:
-        "complete the quiz · the tide will read you · claim the stone that carries your weather forward",
+        "Take the 8-question quiz · find your element · claim the stone that reads you back.",
       label: "claim",
       links: {
         actions: [
           {
-            label: "begin the tide",
+            type: "post",
+            label: "Take the Quiz",
             href: `${baseUrl}/api/actions/quiz/start`,
           },
         ],
