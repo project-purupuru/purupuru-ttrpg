@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { activityStream, type ActivityEvent } from "@/lib/activity";
 import { ELEMENTS, type Element } from "@/lib/score";
@@ -162,12 +163,17 @@ export function ActivityRail() {
                     size={40}
                   />
                 ) : (
-                  <span
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-puru-card text-lg text-puru-cloud-bright"
-                    style={{ backgroundColor: `var(--puru-${e.element}-vivid)` }}
-                  >
-                    {KIND_GLYPH[e.kind]}
-                  </span>
+                  // Ambient rows use the same element art as the pentagram
+                  // vertices · ties the rail visually to the canvas and lets
+                  // the icon itself carry element identity (no solid bg).
+                  <Image
+                    src={`/art/elements/${e.element}.png`}
+                    alt={e.element}
+                    width={40}
+                    height={40}
+                    className="shrink-0"
+                    aria-hidden
+                  />
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-puru-body text-sm leading-tight text-puru-ink-base">
