@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync, openSync, fstatSync, closeSync, constants as fsConstants, } from "node:fs";
 import { resolve } from "node:path";
 import path from "node:path";
 // --- Security Patterns Registry (Task 1.1 — SDD Section 3.6) ---
@@ -206,19 +206,92 @@ export const LOA_EXCLUDE_PATTERNS = [
  * @throws Error when `.reviewignore` exists but cannot be read or parsed.
  */
 function parseReviewignoreFile(repoRoot) {
-    const reviewignorePath = resolve(repoRoot, ".reviewignore");
-    let content;
+    // BB-801-002-gpt (iter-1 MEDIUM): validate repoRoot resolves to a
+    // directory BEFORE proceeding.
+    //
+    // BB801-REVIEW-001 (iter-2 MEDIUM, conf 0.88): use statSync (NOT lstatSync)
+    // for repoRoot — lstat would reject valid symlinked repo roots (macOS
+    // /tmp → /private/tmp, CI checkout caches, monorepo worktrees). repoRoot
+    // is a CONTAINER check; symlink-as-convenience is normal here.
+    let rootStat;
     try {
-        content = readFileSync(reviewignorePath, "utf-8");
+        rootStat = statSync(repoRoot);
     }
     catch (err) {
-        // Errno-explicit: ONLY genuine absence collapses to "no rules".
-        // Any other error (EACCES, EISDIR, ELOOP, ENOTDIR, etc.) propagates.
+        const code = err.code;
+        const enriched = new Error(`repoRoot does not exist or is unreadable: ${repoRoot} (code=${code ?? "unknown"})`);
+        enriched.code = "EBADREPOROOT";
+        throw enriched;
+    }
+    if (!rootStat.isDirectory()) {
+        const enriched = new Error(`repoRoot is not a directory: ${repoRoot}`);
+        enriched.code = "EBADREPOROOT";
+        throw enriched;
+    }
+    const reviewignorePath = resolve(repoRoot, ".reviewignore");
+    // BB801-002 (iter-3 MEDIUM, conf 0.82): TOCTOU-resistant validation +
+    // read. Previously: lstatSync, then readFileSync(path). Path-based
+    // validation followed by path-based read is provably racy on every
+    // POSIX system (CWE-367). OpenSSH's authorized_keys loader is the
+    // canonical reference: openSync with O_NOFOLLOW, fstatSync the
+    // descriptor, validate, readFileSync(fd) on the SAME descriptor.
+    //
+    // BB801-REVIEW-002 (iter-2 HIGH, closed iter-2): O_NOFOLLOW on the
+    // leaf file rejects symlinks at the kernel layer — the open syscall
+    // itself fails with ELOOP if `.reviewignore` is a symlink. Same Linux
+    // kernel discipline that hardened path-based file ops in 2.6.
+    //
+    // Windows: O_NOFOLLOW is a Linux/POSIX flag. Node accepts the constant
+    // on Windows but it's a no-op (Windows symlinks behave differently and
+    // this codebase targets Linux/macOS — `bridgebuilder-review` package
+    // doesn't support Windows CI).
+    // BB801-REVIEW-001 (PR #801 iter-4 MEDIUM, conf 0.7): O_NONBLOCK in
+    // the open flags. openSync on a FIFO without O_NONBLOCK blocks until a
+    // writer connects — fstatSync never runs. An adversarial or accidental
+    // FIFO at `.reviewignore` would wedge the review forever. Same class
+    // Borglet config readers caught early at Google. After fstat confirms
+    // regular file, the flag is harmless for read(2).
+    let fd;
+    try {
+        fd = openSync(reviewignorePath, fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW | fsConstants.O_NONBLOCK);
+    }
+    catch (err) {
         const code = err.code;
         if (code === "ENOENT") {
+            // O_NOFOLLOW: ENOENT only on genuine absence (broken symlink → ELOOP)
             return [];
         }
+        if (code === "ELOOP") {
+            // BB801-R8 (iter-4 LOW): ESYMLINKREJECTED — the policy is "we reject
+            // symlinks at .reviewignore", not "we detect dangling links". ELOOP
+            // under O_NOFOLLOW fires for ANY symlink (intact or dangling), so
+            // the error code MUST reflect the policy, not the substrate.
+            const enriched = new Error(`.reviewignore is a symbolic link — rejected to prevent symlink-follow-on-read TOCTOU (BB801-REVIEW-002 + BB801-R8): ${reviewignorePath}`);
+            enriched.code = "ESYMLINKREJECTED";
+            throw enriched;
+        }
+        // EACCES, EISDIR, etc. propagate so caller fail-closes.
         throw err;
+    }
+    let content;
+    try {
+        // fstatSync on the SAME descriptor — no path is re-evaluated.
+        const fdStat = fstatSync(fd);
+        if (!fdStat.isFile()) {
+            const enriched = new Error(`.reviewignore is not a regular file (BB801-REVIEW-002 fail-closed): ${reviewignorePath}`);
+            enriched.code = "ENOTAFILE";
+            throw enriched;
+        }
+        // Read from the validated fd — no path re-evaluation, no TOCTOU window.
+        content = readFileSync(fd, "utf-8");
+    }
+    finally {
+        try {
+            closeSync(fd);
+        }
+        catch {
+            // Best-effort close
+        }
     }
     const patterns = [];
     for (const rawLine of content.split("\n")) {
@@ -256,31 +329,33 @@ export function loadReviewIgnoreUserPatterns(repoRoot) {
     return parseReviewignoreFile(root);
 }
 /**
- * Load .reviewignore patterns from repo root and merge with LOA_EXCLUDE_PATTERNS.
- * Returns combined patterns array.
+ * @deprecated PR #801 iter-4 BB801-R4 (MEDIUM): this is the legacy
+ *   merged-list API that retains pre-fix fail-soft semantics — exactly
+ *   the trust-origin bug #800 fixed for the default-mode path. Mixing
+ *   user `.reviewignore` patterns with LOA_EXCLUDE_PATTERNS routes
+ *   operator-authored denies through the framework tier classifier
+ *   (which has security-pattern "exception" branches), and the catch
+ *   block silently swallows non-ENOENT errors that should fail-closed.
  *
- * BB-797-003-duplication (iter-4): single source of truth for parsing.
+ *   Internal callers MUST use the two-phase flow in `truncateFiles`
+ *   (loadReviewIgnoreUserPatterns → matchesExcludePattern STRICT →
+ *   applyLoaTierExclusion(LOA_EXCLUDE_PATTERNS)). This function
+ *   remains exported only for backward-compat with external callers;
+ *   removal is planned in the next minor.
  *
- * BB-797-RV-014 (iter-6): default-mode is fail-LOUD on read errors — emits a
- * structured operator warning to stderr but returns LOA defaults. The
- * asymmetry with self-review's fail-CLOSED is intentional and now documented:
- *
- *   - Default-mode path: framework files are filtered by LOA defaults;
- *     missing `.reviewignore` user patterns is degraded (operator-curated
- *     exclusions skip) but the dominant safety floor (framework filtering)
- *     remains in place. Hard fail-closing would break every code-PR review
- *     in the org when an unrelated `.reviewignore` permission glitch
- *     occurs — disproportionate response to a non-framework-axis fault.
- *
- *   - Self-review path: framework filtering is BYPASSED by design, so
- *     `.reviewignore` is the SOLE remaining gate. Halt-uncertainty is
- *     correct here; partial fail-closed leaks the user-gate (iter-5 HIGH).
- *
- * Operators MUST attend to the stderr warning — it surfaces the degraded
- * state. Future polish: stand up a dedicated structured-emit channel
- * (NDJSON) so monitoring can alert without grepping stderr.
+ * Emits a one-time stderr deprecation notice on first call (Meta Hack
+ * @@Deprecated discipline — runtime breadcrumbs drive migration; pure
+ * JSDoc gets ignored).
  */
+let _loadReviewIgnoreDeprecationWarned = false;
 export function loadReviewIgnore(repoRoot) {
+    if (!_loadReviewIgnoreDeprecationWarned) {
+        _loadReviewIgnoreDeprecationWarned = true;
+        process.stderr.write("[bridgebuilder] DEPRECATED: loadReviewIgnore(repoRoot) is deprecated — " +
+            "use the two-phase flow in truncateFiles (loadReviewIgnoreUserPatterns + " +
+            "matchesExcludePattern strict-deny + applyLoaTierExclusion(LOA_EXCLUDE_PATTERNS)). " +
+            "Removal planned in the next minor (BB801-R4).\n");
+    }
     const root = repoRoot ?? process.cwd();
     const basePatterns = [...LOA_EXCLUDE_PATTERNS];
     try {
@@ -292,11 +367,10 @@ export function loadReviewIgnore(repoRoot) {
         }
     }
     catch (err) {
-        // Fail-LOUD on read errors: surface to operator stderr so degradation
-        // is observable. LOA framework filter still applies — code-PR review
-        // doesn't break wholesale on an unrelated `.reviewignore` glitch, but
-        // the operator sees they need to fix the file.
-        process.stderr.write(`[bridgebuilder] WARN: .reviewignore unreadable in default-mode path — operator-curated user patterns SKIPPED for this run; LOA framework filter still active. Fix the file to restore user-pattern exclusions. Detail: ${err.message} (BB-797-RV-014)\n`);
+        // Legacy fail-soft retained for backward-compat. New code MUST NOT
+        // rely on this path — see @deprecated note above. The two-phase flow
+        // in truncateFiles is fail-CLOSED on the same conditions.
+        process.stderr.write(`[bridgebuilder] WARN: legacy loadReviewIgnore swallowed .reviewignore error — see deprecation. Detail: ${err.message}\n`);
     }
     return basePatterns;
 }
@@ -966,10 +1040,103 @@ export function truncateFiles(files, config) {
             }
         }
         else {
-            const effectivePatterns = loadReviewIgnore(config.repoRoot);
-            const tierResult = applyLoaTierExclusion(files, effectivePatterns);
+            // BB801-001 (PR #801 iter-3 HIGH_CONSENSUS, conf 0.9, 3-model agreement):
+            // default-mode MUST fail-closed on .reviewignore load anomalies. The
+            // iter-1 fail-loud rationale assumed the LOA framework filter was the
+            // safety floor for ALL files — but it's not: user patterns govern paths
+            // (secrets/, vendor/, private docs) that LOA defaults DON'T cover.
+            // Silent skip on non-ENOENT errors admits files the operator excluded.
+            //
+            // AWS IAM analogue: malformed bucket policy = deny-all, not allow-all.
+            // cycle-098 L2 fail-closed cost gate principle: when the policy oracle
+            // is uncertain, the safe default is the most restrictive interpretation.
+            //
+            // ENOENT (genuine absence) → user patterns simply []
+            // EBADREPOROOT, EBROKENSYMLINK, ENOTAFILE, EACCES, ELOOP, etc. → fail-closed.
+            // Operator-authored `.reviewignore` patterns are STRICT denies; they
+            // MUST short-circuit framework tier classification. The previous
+            // implementation merged user patterns into LOA_EXCLUDE_PATTERNS and
+            // passed the union to `applyLoaTierExclusion` — but that function has
+            // tier-classification logic for FRAMEWORK files (security-pattern
+            // detection, "exception" tier passthrough). A user-authored
+            // `secrets/**` pattern matching `secrets/api-keys.env` could be routed
+            // through the security-tier exception branch and admitted despite
+            // explicit operator deny. AWS-IAM analogue: explicit-deny beats
+            // allow; same shape Netflix learned in 2017 with mixed allowlists.
+            //
+            // Fix: two-phase filter. Phase 1 applies user patterns as strict
+            // denies (matchesExcludePattern, no tiering). Phase 2 applies LOA
+            // defaults to whatever survived phase 1.
+            let userPatterns = [];
+            try {
+                userPatterns = loadReviewIgnoreUserPatterns(config.repoRoot);
+            }
+            catch (err) {
+                // Fail-CLOSED. ENOENT was handled inside parseReviewignoreFile
+                // (returns [] for genuine absence), so any error reaching here is
+                // an anomaly: bad repoRoot, symlink, EACCES, etc.
+                //
+                // BB801-REVIEW-002 (iter-4 MEDIUM): preserve upstream selfReview
+                // bindings — do NOT hardcode "inactive". This branch IS the default-
+                // mode arm (else of `if (selfReviewActive)`), so selfReviewState is
+                // already "inactive" by the outer initialization — but the principle
+                // matters: fail-closed guards halt action, not classifications.
+                // Reading the live binding makes future restructures safe.
+                //
+                // BB801-REVIEW-003 (iter-4 LOW): bytesSaved should reflect the
+                // bytes we actually withheld (sum of patch byte-lengths) so
+                // operator dashboards aren't internally inconsistent.
+                const code = err.code ?? "unknown";
+                const bytesSaved = files.reduce((sum, f) => sum + (f.patch ? new TextEncoder().encode(f.patch).byteLength : 0), 0);
+                process.stderr.write(`[bridgebuilder] ERROR: .reviewignore anomaly in default-mode path — fail-closed (allExcluded=true). Fix the file to restore review. Code: ${code}, Detail: ${err.message} (BB801-001 iter-3 HIGH_CONSENSUS)\n`);
+                return {
+                    included: [],
+                    excluded: files.map((f) => ({
+                        filename: f.filename,
+                        stats: `+${f.additions} -${f.deletions} (.reviewignore anomaly: ${code}, fail-closed)`,
+                    })),
+                    totalBytes: 0,
+                    allExcluded: true,
+                    loaBanner: `[Loa-aware: default-mode fail-closed — .reviewignore anomaly (${code}); ` +
+                        `ALL files excluded until .reviewignore is valid (BB801-001 iter-3)]`,
+                    loaStats: { filesExcluded: files.length, bytesSaved },
+                    selfReviewActive,
+                    selfReviewState,
+                };
+            }
+            // Phase 1: user .reviewignore patterns as strict denies. Trust-origin
+            // preservation: operator intent never gets tier-routed.
+            //
+            // BB-801-003-opus (PR #801 iter-1 MEDIUM): capture per-phase counts
+            // as named const scalars at phase end, NEVER derive them from
+            // loaExcludedEntries.length-at-time-T. Future code that pushes
+            // between phases must not silently corrupt the merged stats.
+            let phase1Survivors = files;
+            let userExcludedCount = 0;
+            let userBytesSaved = 0;
+            if (userPatterns.length > 0) {
+                const survivors = [];
+                for (const f of files) {
+                    if (matchesExcludePattern(f.filename, userPatterns)) {
+                        loaExcludedEntries.push({
+                            filename: f.filename,
+                            stats: `+${f.additions} -${f.deletions} (.reviewignore user pattern, strict deny)`,
+                        });
+                        userExcludedCount++;
+                        userBytesSaved += f.patch ? new TextEncoder().encode(f.patch).byteLength : 0;
+                    }
+                    else {
+                        survivors.push(f);
+                    }
+                }
+                phase1Survivors = survivors;
+            }
+            // Phase 2: LOA framework filter (tier-classified) on phase-1 survivors.
+            const tierResult = applyLoaTierExclusion(phase1Survivors, [...LOA_EXCLUDE_PATTERNS]);
             afterLoa = tierResult.passthrough;
-            // Collect Loa excluded entries
+            // Collect Loa-tier excluded entries (separate from user-pattern entries
+            // so the per-line stats stay accurate to the trust-origin that excluded
+            // each file).
             for (const entry of tierResult.tier1Excluded) {
                 loaExcludedEntries.push(entry);
             }
@@ -980,15 +1147,24 @@ export function truncateFiles(files, config) {
                 });
             }
             const totalLoaExcluded = tierResult.tier1Excluded.length + tierResult.tier2Summary.length;
-            const kbSaved = Math.round(tierResult.bytesSaved / 1024);
-            if (totalLoaExcluded > 0) {
-                loaBanner = `[Loa-aware: ${totalLoaExcluded} framework files excluded (${kbSaved} KB saved)]`;
+            const kbSavedFramework = Math.round(tierResult.bytesSaved / 1024);
+            if (totalLoaExcluded > 0 || userExcludedCount > 0) {
+                const parts = [];
+                if (totalLoaExcluded > 0) {
+                    parts.push(`${totalLoaExcluded} framework files excluded (${kbSavedFramework} KB saved)`);
+                }
+                if (userExcludedCount > 0) {
+                    parts.push(`${userExcludedCount} files excluded by .reviewignore (strict deny)`);
+                }
+                loaBanner = `[Loa-aware: ${parts.join("; ")}]`;
+                // Sum user-pattern + framework counts/bytes — both are scalars
+                // captured at their respective phase boundaries; no array re-read.
                 loaStats = {
-                    filesExcluded: totalLoaExcluded,
-                    bytesSaved: tierResult.bytesSaved,
+                    filesExcluded: userExcludedCount + totalLoaExcluded,
+                    bytesSaved: userBytesSaved + tierResult.bytesSaved,
                 };
             }
-            // IMP-004: all files excluded by Loa filtering
+            // IMP-004: all files excluded by Loa filtering (or user phase)
             if (afterLoa.length === 0) {
                 allExcluded = true;
                 return {

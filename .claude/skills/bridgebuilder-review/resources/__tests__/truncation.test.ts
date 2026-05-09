@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { writeFileSync, mkdirSync, rmSync } from "node:fs";
+import { writeFileSync, mkdirSync, rmSync, symlinkSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import {
@@ -502,9 +502,17 @@ describe("truncateFiles", () => {
   // BB-001-security (PR #797 iter-2): self-review must NOT bypass operator-curated
   // .reviewignore patterns. Only LOA framework defaults are bypassed.
   describe(".reviewignore honored under self-review (BB-001-security)", () => {
-    it("loadReviewIgnoreUserPatterns returns empty when file missing", () => {
-      const patterns = loadReviewIgnoreUserPatterns("/nonexistent/dir");
-      assert.deepEqual(patterns, []);
+    it("loadReviewIgnoreUserPatterns returns empty when file missing in valid repoRoot", () => {
+      // BB-801-002-gpt: bogus repoRoot now throws EBADREPOROOT, so we
+      // need a real (empty) directory to test the genuine-absence path.
+      const tmpDir = join(tmpdir(), `loa-test-no-reviewignore-${Date.now()}`);
+      mkdirSync(tmpDir, { recursive: true });
+      try {
+        const patterns = loadReviewIgnoreUserPatterns(tmpDir);
+        assert.deepEqual(patterns, []);
+      } finally {
+        rmSync(tmpDir, { recursive: true, force: true });
+      }
     });
 
     it("loadReviewIgnoreUserPatterns returns ONLY user patterns (not LOA defaults)", () => {
@@ -732,6 +740,142 @@ describe("truncateFiles", () => {
       }
     });
 
+    // BB-801-002-gpt (PR #801 iter-1 MEDIUM, conf 0.82): bogus repoRoot
+    // MUST throw a config error, NOT silently collapse to "no rules".
+    it("bogus repoRoot throws EBADREPOROOT (NOT silent empty)", () => {
+      const bogusPath = join(tmpdir(), `loa-test-bogus-root-${Date.now()}-does-not-exist`);
+      let thrown: NodeJS.ErrnoException | null = null;
+      try {
+        loadReviewIgnoreUserPatterns(bogusPath);
+      } catch (err) {
+        thrown = err as NodeJS.ErrnoException;
+      }
+      assert.ok(thrown, "bogus repoRoot MUST throw");
+      assert.equal(thrown!.code, "EBADREPOROOT");
+    });
+
+    it("repoRoot pointing at a regular file throws EBADREPOROOT", () => {
+      const tmpDir = join(tmpdir(), `loa-test-root-as-file-${Date.now()}`);
+      mkdirSync(tmpDir, { recursive: true });
+      const filePath = join(tmpDir, "not-a-dir");
+      writeFileSync(filePath, "x");
+      try {
+        let thrown: NodeJS.ErrnoException | null = null;
+        try {
+          loadReviewIgnoreUserPatterns(filePath);
+        } catch (err) {
+          thrown = err as NodeJS.ErrnoException;
+        }
+        assert.ok(thrown);
+        assert.equal(thrown!.code, "EBADREPOROOT");
+      } finally {
+        rmSync(tmpDir, { recursive: true, force: true });
+      }
+    });
+
+    // BB801-REVIEW-002 (PR #801 iter-2 HIGH, conf 0.76): TOCTOU on symlink-
+    // follow. .reviewignore-as-symlink MUST be rejected BEFORE readFileSync
+    // (which follows symlinks transparently). Same CVE class as
+    // Git CVE-2022-39253.
+    it("rejects .reviewignore that is a symlink to ANOTHER existing file (BB801-REVIEW-002 HIGH)", () => {
+      const tmpDir = join(tmpdir(), `loa-test-symlink-attack-${Date.now()}`);
+      mkdirSync(tmpDir, { recursive: true });
+      const reviewignorePath = join(tmpDir, ".reviewignore");
+      const realFile = join(tmpDir, "real-target.txt");
+      // Target file exists with content. Without the lstat-before-read
+      // policy, readFileSync would silently slurp it into the policy parser.
+      writeFileSync(realFile, "secrets/\nvendor/\n");
+      symlinkSync(realFile, reviewignorePath);
+      try {
+        let thrown: NodeJS.ErrnoException | null = null;
+        try {
+          loadReviewIgnoreUserPatterns(tmpDir);
+        } catch (err) {
+          thrown = err as NodeJS.ErrnoException;
+        }
+        assert.ok(thrown, "symlink-to-existing-file MUST throw, not be silently followed");
+        assert.equal(thrown!.code, "ESYMLINKREJECTED");
+        // Closes the TOCTOU class — even if the target is innocuous,
+        // the policy is fail-closed because we can't validate ahead of read
+      } finally {
+        rmSync(tmpDir, { recursive: true, force: true });
+      }
+    });
+
+    it("rejects .reviewignore that is a directory (ENOTAFILE)", () => {
+      const tmpDir = join(tmpdir(), `loa-test-dir-as-reviewignore-${Date.now()}`);
+      mkdirSync(join(tmpDir, ".reviewignore"), { recursive: true });
+      try {
+        let thrown: NodeJS.ErrnoException | null = null;
+        try {
+          loadReviewIgnoreUserPatterns(tmpDir);
+        } catch (err) {
+          thrown = err as NodeJS.ErrnoException;
+        }
+        assert.ok(thrown);
+        // Either EISDIR (lstat... no wait, lstat works on dirs) or
+        // ENOTAFILE (our explicit non-regular-file rejection)
+        assert.ok(
+          thrown!.code === "ENOTAFILE" || thrown!.code === "EISDIR",
+          `expected ENOTAFILE or EISDIR; got: ${thrown!.code}`,
+        );
+      } finally {
+        rmSync(tmpDir, { recursive: true, force: true });
+      }
+    });
+
+    // BB801-REVIEW-001 (PR #801 iter-2 MEDIUM, conf 0.88): symlinked
+    // repoRoot MUST be accepted (macOS /tmp → /private/tmp pattern, CI
+    // checkout caches). Use statSync for container, lstatSync for leaf.
+    it("accepts a symlinked repoRoot (statSync, not lstatSync, for container)", () => {
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const tmpDir = join(tmpdir(), `loa-test-symlink-repo-${id}`);
+      mkdirSync(tmpDir, { recursive: true });
+      const symlinkRoot = join(tmpdir(), `loa-test-symlink-link-${id}`);
+      symlinkSync(tmpDir, symlinkRoot);
+      try {
+        // No .reviewignore in the underlying dir — should return [] gracefully
+        const patterns = loadReviewIgnoreUserPatterns(symlinkRoot);
+        assert.deepEqual(patterns, []);
+      } finally {
+        // Node 24's rmSync errors on symlinks-to-directories — use unlinkSync
+        // for the symlink itself (removes the link, not its target).
+        try { unlinkSync(symlinkRoot); } catch { /* best-effort */ }
+        rmSync(tmpDir, { recursive: true, force: true });
+      }
+    });
+
+    // #799 (iter-7 HIGH, conf 0.87): broken symlink ENOENT MUST be distinguished
+    // from genuine absence. lstat-before-collapse-to-empty.
+    it("broken symlink at .reviewignore throws (NOT silent absence) — #799", () => {
+      const tmpDir = join(tmpdir(), `loa-test-broken-symlink-${Date.now()}`);
+      mkdirSync(tmpDir, { recursive: true });
+      const reviewignorePath = join(tmpDir, ".reviewignore");
+      const missingTarget = join(tmpDir, "non-existent-target");
+      symlinkSync(missingTarget, reviewignorePath);
+      try {
+        let thrown: NodeJS.ErrnoException | null = null;
+        try {
+          loadReviewIgnoreUserPatterns(tmpDir);
+        } catch (err) {
+          thrown = err as NodeJS.ErrnoException;
+        }
+        assert.ok(thrown, "broken symlink MUST throw, not silently collapse to []");
+        assert.equal(
+          thrown!.code, "ESYMLINKREJECTED",
+          "errno code MUST distinguish broken symlink from genuine absence (#799 + BB-801-002-opus rename)",
+        );
+        // BB-801-002-opus: the code MUST NOT start with "ENOENT" — downstream
+        // `err.code.startsWith("ENOENT")` checks would misclassify otherwise.
+        assert.equal(
+          thrown!.code!.startsWith("ENOENT"), false,
+          "errno code MUST NOT begin with ENOENT prefix (string-startsWith hazard)",
+        );
+      } finally {
+        rmSync(tmpDir, { recursive: true, force: true });
+      }
+    });
+
     it("ENOTDIR / EISDIR / non-ENOENT errors propagate (BB-797-SEC-002)", () => {
       // Repo root that doesn't exist as a directory — resolving
       // `.reviewignore` underneath it produces ENOTDIR / ENOENT-cascade
@@ -852,6 +996,165 @@ describe("truncateFiles", () => {
       } finally {
         rmSync(tmpDir, { recursive: true, force: true });
       }
+    });
+
+    // #800 (iter-7 HIGH, conf 0.68): default-mode trust-origin preservation.
+    // User .reviewignore patterns MUST be strict denies, not tier-routed
+    // through framework-classifier exception branches.
+    describe("default-mode user pattern strict-deny (#800)", () => {
+      it("user .reviewignore secrets/ pattern excludes high-risk file STRICTLY (not tier-exception)", () => {
+        const tmpDir = join(tmpdir(), `loa-test-default-secrets-${Date.now()}`);
+        mkdirSync(tmpDir, { recursive: true });
+        try {
+          // Operator-curated: secrets/ excluded
+          writeFileSync(join(tmpDir, ".reviewignore"), "secrets/\n");
+          // High-risk file (security-pattern match: .env extension) under
+          // user-pattern-matched directory. The previous merged-list
+          // behavior would route this through `applyLoaTierExclusion`'s
+          // "exception" tier and admit it. Strict-deny phase 1 catches it
+          // BEFORE tier classification.
+          const files = [
+            file("secrets/api-keys.env", 5, 0, "x".repeat(50)),
+            file("src/handler.ts", 10, 0, "x".repeat(50)),
+          ];
+          const config = {
+            ...defaultConfig,
+            loaAware: true,
+            selfReview: false, // default-mode path, NOT self-review
+            repoRoot: tmpDir,
+          };
+          const result = truncateFiles(files, config);
+
+          const includedNames = result.included.map((f) => f.filename);
+          // CRITICAL: high-risk file MUST be excluded by user pattern even
+          // in default mode. Closes #800 trust-origin leakage.
+          assert.equal(
+            includedNames.includes("secrets/api-keys.env"),
+            false,
+            "user .reviewignore pattern MUST strict-deny — even high-risk files (closes #800)",
+          );
+          // Innocent app file admitted as expected
+          assert.ok(
+            includedNames.includes("src/handler.ts"),
+            "non-matched files admitted normally",
+          );
+          // Banner cites the strict-deny phase
+          assert.ok(result.loaBanner);
+          assert.ok(
+            result.loaBanner!.includes(".reviewignore (strict deny)"),
+            `banner should cite strict deny; got: ${result.loaBanner}`,
+          );
+        } finally {
+          rmSync(tmpDir, { recursive: true, force: true });
+        }
+      });
+
+      // BB801-001 (PR #801 iter-3 HIGH_CONSENSUS, conf 0.9, 3-model): default-
+      // mode fail-CLOSES on .reviewignore anomalies. ENOENT (genuine absence)
+      // is fine; everything else (ESYMLINKREJECTED, ENOTAFILE, EBADREPOROOT,
+      // EACCES) MUST halt the review with allExcluded=true.
+      it("default-mode fail-closes on .reviewignore anomaly (BB801-001 iter-3 HIGH_CONSENSUS)", () => {
+        const tmpDir = join(tmpdir(), `loa-test-default-failclosed-${Date.now()}`);
+        mkdirSync(tmpDir, { recursive: true });
+        // .reviewignore as directory → ENOTAFILE on readFileSync
+        mkdirSync(join(tmpDir, ".reviewignore"), { recursive: true });
+        try {
+          const files = [
+            file("secrets/api-keys.env", 5, 0, "x".repeat(50)),
+            file("src/handler.ts", 10, 0, "x".repeat(50)),
+            file(".claude/x.ts", 3, 0, "x".repeat(50)),
+          ];
+          const config = {
+            ...defaultConfig,
+            loaAware: true,
+            selfReview: false, // default-mode
+            repoRoot: tmpDir,
+          };
+          const result = truncateFiles(files, config);
+
+          // BB801-001 invariant: ALL files excluded — silent skip would have
+          // admitted secrets/ and src/handler.ts.
+          assert.equal(result.allExcluded, true);
+          assert.equal(result.included.length, 0);
+          assert.ok(result.loaBanner);
+          assert.ok(
+            result.loaBanner!.includes("default-mode fail-closed"),
+            `banner cites fail-closed; got: ${result.loaBanner}`,
+          );
+          assert.ok(
+            result.loaBanner!.includes("BB801-001"),
+            `banner cites finding ID; got: ${result.loaBanner}`,
+          );
+        } finally {
+          rmSync(tmpDir, { recursive: true, force: true });
+        }
+      });
+
+      it("default-mode genuine ENOENT remains permissive (no fail-closed on absent file)", () => {
+        // BB801-001 boundary: ENOENT (no .reviewignore at all) is NOT an
+        // anomaly — it means "no user patterns", which is the common case.
+        // Default-mode proceeds normally with LOA framework filter only.
+        const tmpDir = join(tmpdir(), `loa-test-default-no-ri-${Date.now()}`);
+        mkdirSync(tmpDir, { recursive: true });
+        try {
+          const files = [
+            file("src/handler.ts", 10, 0, "x".repeat(50)),
+            file(".claude/x.ts", 3, 0, "x".repeat(50)),
+          ];
+          const config = {
+            ...defaultConfig,
+            loaAware: true,
+            selfReview: false,
+            repoRoot: tmpDir,
+          };
+          const result = truncateFiles(files, config);
+
+          // App file admitted, framework file excluded by LOA filter
+          const includedNames = result.included.map((f) => f.filename);
+          assert.ok(includedNames.includes("src/handler.ts"));
+          assert.equal(includedNames.includes(".claude/x.ts"), false);
+          assert.equal(result.allExcluded, false);
+        } finally {
+          rmSync(tmpDir, { recursive: true, force: true });
+        }
+      });
+
+      it("framework filter still applies after user-pattern phase-1 (LOA defaults preserved)", () => {
+        const tmpDir = join(tmpdir(), `loa-test-default-twophase-${Date.now()}`);
+        mkdirSync(tmpDir, { recursive: true });
+        try {
+          writeFileSync(join(tmpDir, ".reviewignore"), "secrets/\n");
+          const files = [
+            file("secrets/api-keys.env", 5, 0, "x".repeat(50)),
+            file(".claude/skills/bb/x.ts", 3, 0, "x".repeat(50)),
+            file("src/handler.ts", 10, 0, "x".repeat(50)),
+          ];
+          const config = {
+            ...defaultConfig,
+            loaAware: true,
+            selfReview: false,
+            repoRoot: tmpDir,
+          };
+          const result = truncateFiles(files, config);
+
+          const includedNames = result.included.map((f) => f.filename);
+          // User-pattern phase: secrets/ excluded
+          assert.equal(includedNames.includes("secrets/api-keys.env"), false);
+          // LOA default phase: .claude/ excluded by framework filter
+          assert.equal(includedNames.includes(".claude/skills/bb/x.ts"), false);
+          // App file admitted
+          assert.ok(includedNames.includes("src/handler.ts"));
+          // Banner cites BOTH phases
+          assert.ok(result.loaBanner);
+          assert.ok(
+            result.loaBanner!.includes("framework files excluded") &&
+              result.loaBanner!.includes(".reviewignore (strict deny)"),
+            `banner should cite both phases; got: ${result.loaBanner}`,
+          );
+        } finally {
+          rmSync(tmpDir, { recursive: true, force: true });
+        }
+      });
     });
 
     it("'inactive' and 'rejected' produce DIFFERENT cache keys (no collision)", async () => {
