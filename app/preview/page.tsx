@@ -75,11 +75,14 @@ export default async function PreviewPage({ searchParams }: PageProps) {
           .preview-blink-scope activates ./preview-overrides.css that
           forces equal-width buttons + label wrap (vs Dialect's content-sized
           default which produces overflow on long labels). */}
-      {/* No data-theme · we want LIGHT mode (cream bg + honey CTA) to match
-          the world repo's landing-page aesthetic. The Blink card inherits
-          the same caliber as @purupuru landing · Saarinen-style complication
-          of the shared design system rather than a Blink-specific reinvention. */}
-      <div className="preview-blink-scope mx-auto max-w-md space-y-6 pb-24">
+      {/* data-theme bound to stylePreset · x-dark triggers our old-horai
+          dark caliber (same tokens, dark values cascade automatically) ·
+          x-light/default stays in default light caliber (cream + honey).
+          ONE source of truth for theme · driven from one query param. */}
+      <div
+        data-theme={stylePreset === "x-dark" ? "old-horai" : undefined}
+        className="preview-blink-scope mx-auto max-w-md space-y-6 pb-24"
+      >
         {/* Header · which endpoint we're previewing */}
         <header className="space-y-3">
           <div className="flex items-baseline justify-between gap-4">

@@ -95,12 +95,16 @@
   --blink-text-link-hover: var(--puru-ink-rich);
 
   /* buttons · honey CTA recipe from world landing */
-  --blink-button: var(--puru-honey-base);          /* honey yellow */
+  --blink-button: var(--puru-honey-base);          /* honey yellow · stays warm in both modes */
   --blink-button-hover: var(--puru-honey-bright);  /* brighter honey on hover */
   --blink-button-disabled: var(--puru-honey-tint); /* paler honey when disabled */
   --blink-button-success: var(--puru-wood-pastel);
-  --blink-text-button: var(--puru-ink-rich);       /* dark text on honey */
-  --blink-text-button-disabled: var(--puru-ink-soft);
+  /* text-button is HARDCODED dark · DOES NOT flip with theme · honey stays
+   * yellow in both modes so its readable text must stay dark always · this
+   * is the one override that bypasses the cascade by design (operator's
+   * landing page ships the same canonical contrast: dark ink on honey). */
+  --blink-text-button: oklch(0.18 0.025 80);
+  --blink-text-button-disabled: oklch(0.40 0.020 80);
   --blink-text-button-success: var(--puru-wood-dim);
 
   /* brand accent · honey · echoes the CTA */
@@ -117,7 +121,11 @@
   --blink-stroke-primary: var(--puru-cloud-shadow);
   --blink-stroke-secondary: var(--puru-cloud-dim);
 
-  /* container shadow · honey-tinted depth · matches world CTA shadow recipe */
+  /* container shadow · honey-tinted depth · matches world CTA shadow recipe.
+   * Opacity stays the same in both modes · against dark cloud-bright (0.24)
+   * the honey glow at 22% reads as soft warmth · against light cream-bright
+   * (0.96) the same opacity reads as paper-shadow. The token resolves to
+   * slightly brighter honey in old-horai which compensates. */
   --blink-shadow-container: 0 8px 32px -4px oklch(0.82 0.140 85 / 0.22);
 }
 
