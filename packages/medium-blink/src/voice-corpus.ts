@@ -131,16 +131,17 @@ export const ARCHETYPE_REVEALS: Record<Element, string> = {
   WATER: "the tide reads · WATER · you move with what moves. your weather is depth. claim the stone of currents.",
 }
 
-// Quiz titles per step · used as Blink title (≤ 80 chars).
+// Step indicator · plain "Question X of Y" · rendered as the description
+// subhead (under the question prompt). Operator-preferred over poetic variants.
 export const QUIZ_STEP_TITLES: Record<number, string> = {
-  1: "today's tide reads you · 1 of 8",
-  2: "the tide continues · 2 of 8",
-  3: "the tide listens · 3 of 8",
-  4: "the tide turns · 4 of 8",
-  5: "the tide deepens · 5 of 8",
-  6: "the tide presses · 6 of 8",
-  7: "the tide settles · 7 of 8",
-  8: "the tide reads · 8 of 8",
+  1: "Question 1 of 8",
+  2: "Question 2 of 8",
+  3: "Question 3 of 8",
+  4: "Question 4 of 8",
+  5: "Question 5 of 8",
+  6: "Question 6 of 8",
+  7: "Question 7 of 8",
+  8: "Question 8 of 8",
 }
 
 // Default ambient prompt for `/api/actions/today` (S1-T8 ambient endpoint).
