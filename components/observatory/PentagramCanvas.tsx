@@ -36,6 +36,11 @@ interface PentagramCanvasProps {
   onSpriteClick?: (identity: PuruhaniIdentity) => void;
   /** Wallet of the currently-focused puruhani; non-focused sprites dim. */
   focusedTrader?: string | null;
+  /** Local night state from weather feed — flips the wrapper texture to cosmos-stars. */
+  isNight?: boolean;
+  /** Element amplified by the user's location weather — biases wrapper tint
+   *  + boosts the matching vertex aura. */
+  amplifiedElement?: Element;
 }
 
 const ELEMENT_HEX: Record<Element, number> = {
@@ -185,7 +190,15 @@ function makeAvatarTexture(identity: PuruhaniIdentity, primary: Element, accent:
 // per ref doc 03-observatory-visual-references-dig-2026-05-08.md).
 interface VertexHandle {
   icon: Sprite | null;
+  aura: Graphics;
 }
+
+// Aura fill is baked at the boost-max alpha; the Graphics' display alpha
+// modulates between rest (matches historical 0.38 effective) and 1.0 when
+// the vertex's element is amplified by the live weather feed.
+const AURA_BOOST_MAX_ALPHA = 0.62;
+const AURA_REST_DISPLAY_ALPHA = 0.61; // 0.62 × 0.61 ≈ 0.378 effective at rest
+const AURA_LERP_TC_MS = 420;
 
 function drawVertex(
   layer: Container,
@@ -199,7 +212,11 @@ function drawVertex(
   // strong blur reads as glow rather than disk.
   const aura = new Graphics();
   aura.circle(0, 0, sizes.auraRadius);
-  aura.fill({ color: AURA_HEX[el], alpha: 0.38 });
+  aura.fill({ color: AURA_HEX[el], alpha: AURA_BOOST_MAX_ALPHA });
+  // Display alpha is the modulation channel — fill is baked at the boosted
+  // max so the ticker can smoothly lerp display alpha between rest and 1.0
+  // depending on whether this vertex's element is currently amplified.
+  aura.alpha = AURA_REST_DISPLAY_ALPHA;
   // Padding lets the blur tail render past the Graphics bounding box —
   // without it the soft falloff gets clipped to the source rectangle
   // and the aura reads as a hard square edge instead of fading out.
@@ -241,7 +258,7 @@ function drawVertex(
     layer.addChild(label);
   }
 
-  return { icon };
+  return { icon, aura };
 }
 
 function drawPentagon(g: Graphics, geometry: ReturnType<typeof createPentagram>): void {
@@ -283,7 +300,12 @@ function lerpHex(a: number, b: number, t: number): number {
   return (r << 16) | (g << 8) | bl;
 }
 
-export function PentagramCanvas({ onSpriteClick, focusedTrader = null }: PentagramCanvasProps) {
+export function PentagramCanvas({
+  onSpriteClick,
+  focusedTrader = null,
+  isNight,
+  amplifiedElement,
+}: PentagramCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const appRef = useRef<Application | null>(null);
   // Read-by-Pixi-ticker mirror of the focusedTrader prop — keeps the
@@ -293,6 +315,13 @@ export function PentagramCanvas({ onSpriteClick, focusedTrader = null }: Pentagr
   useEffect(() => {
     focusedTraderRef.current = focusedTrader;
   }, [focusedTrader]);
+  // Same ref-mirror pattern for amplifiedElement so the aura ticker
+  // smoothly chases the latest weather state without re-initializing
+  // the Pixi stage on every weather poll.
+  const amplifiedElementRef = useRef<Element | undefined>(undefined);
+  useEffect(() => {
+    amplifiedElementRef.current = amplifiedElement;
+  }, [amplifiedElement]);
 
   useEffect(() => {
     let cancelled = false;
@@ -660,6 +689,21 @@ export function PentagramCanvas({ onSpriteClick, focusedTrader = null }: Pentagr
           s.shadow.alpha = SHADOW_BASE_ALPHA * (0.55 + 0.45 * s.focusAlpha);
         }
 
+        // ─── Vertex aura amplification — boost the matching element ────────
+        // Each aura's display alpha smoothly chases its target: 1.0 when
+        // that vertex's element is currently amplified by the user's local
+        // weather, AURA_REST_DISPLAY_ALPHA otherwise. Fill is baked at
+        // AURA_BOOST_MAX_ALPHA so display-alpha modulation produces an
+        // effective 0.38 → 0.62 alpha sweep on the boosted vertex.
+        const amplifiedEl = amplifiedElementRef.current;
+        const auraLerp = 1 - Math.exp(-dt / AURA_LERP_TC_MS);
+        for (const el of ELEMENTS) {
+          const handle = vertexByElement[el];
+          if (!handle) continue;
+          const target = el === amplifiedEl ? 1 : AURA_REST_DISPLAY_ALPHA;
+          handle.aura.alpha += (target - handle.aura.alpha) * auraLerp;
+        }
+
         // ─── Migration trails — age + soft-edged render ─────────────────────
         // Each dot drawn as 3 concentric alpha-stacked circles so the
         // edge feels watercolor rather than flat-disk. Always clear+
@@ -804,6 +848,21 @@ export function PentagramCanvas({ onSpriteClick, focusedTrader = null }: Pentagr
     };
   }, [onSpriteClick]);
 
+  // ─── Wrapper background — day/night texture + amplified-element tint ───
+  // Texture flips on isNight: warm grain by day, cosmos starfield by night.
+  // The translucent overlay carries a subtle hint of the user's currently-
+  // amplified element (~12%) so a fire day reads warm, water day reads cool,
+  // etc. — without ever competing with the Pixi stage. is_night undefined
+  // (initial paint, before first weather fetch) falls back to the day
+  // texture; amplifiedElement undefined falls back to plain cloud-base.
+  const textureUrl = isNight
+    ? "/art/patterns/cosmos-stars.webp"
+    : "/art/patterns/grain-warm.webp";
+  const overlayColor = amplifiedElement
+    ? `color-mix(in oklch, var(--puru-cloud-base) 88%, var(--puru-${amplifiedElement}-vivid) 12%)`
+    : "var(--puru-cloud-base)";
+  const tintedOverlay = `color-mix(in oklch, ${overlayColor} 50%, transparent)`;
+
   return (
     <div
       className="relative h-full w-full overflow-hidden"
@@ -812,12 +871,12 @@ export function PentagramCanvas({ onSpriteClick, focusedTrader = null }: Pentagr
         perspectiveOrigin: "center 60%",
         // Background lives on the OUTER wrapper (no tilt) so the inner
         // rotateX(6deg) on the canvas mount can't reveal page-void along
-        // the top edge. Grain texture tints through at ~50% via a
-        // translucent base-color overlay — no blend mode (which warps
+        // the top edge. Texture tints through at ~50% via a translucent
+        // overlay biased by amplifiedElement — no blend mode (which warps
         // unevenly under the perspective).
         background: [
-          "linear-gradient(color-mix(in oklch, var(--puru-cloud-base) 50%, transparent), color-mix(in oklch, var(--puru-cloud-base) 50%, transparent))",
-          "url('/art/patterns/grain-warm.webp') center / 120px 120px repeat",
+          `linear-gradient(${tintedOverlay}, ${tintedOverlay})`,
+          `url('${textureUrl}') center / 120px 120px repeat`,
           "var(--puru-cloud-base)",
         ].join(", "),
       }}
