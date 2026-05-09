@@ -9,13 +9,30 @@ import { buildIdentityRegistry } from "@/lib/sim/identity";
 import type { PuruhaniIdentity } from "@/lib/sim/types";
 import { PuruhaniAvatar } from "./PuruhaniAvatar";
 import { KpiCell } from "./KpiCell";
-import { Sparkle, ArrowsClockwise, Compass, UserCircle } from "@phosphor-icons/react";
+import { Sparkle, ArrowsClockwise, Compass } from "@phosphor-icons/react";
+import type { AvatarSeed } from "@/lib/sim/types";
 import type {
   ElementShiftActivity,
   MintActivity,
   QuizCompletedActivity,
   WeatherActivity,
 } from "@/lib/activity/types";
+
+// Anonymous-puruhani seed for quiz_completed rows · neutral expression
+// (empty-archetype face: calm eyes, neutral mouth, no brow tilt). Rendered
+// through PuruhaniAvatar with a grayscale CSS filter so it reads as
+// "a puruhani, but unidentified" rather than introducing a new icon family.
+const ANON_SEED: AvatarSeed = {
+  eyeKind: 0,
+  mouthKind: 1,
+  browTilt: 0,
+  dropletPos: 0,
+  bodyTilt: 0,
+};
+
+// Uniform icon slot · all four row variants render their leading icon at
+// this size so text starts at the same x-coordinate regardless of activity.
+const ICON_SIZE = 40;
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
@@ -158,28 +175,38 @@ export function ActivityRail() {
             };
 
             // Ambient: single concise line · weather (element art) or
-            // quiz_completed (greyed user-circle · the user is anonymous,
-            // pre-wallet, pre-mint per canonical schema).
+            // quiz_completed (greyed puruhani avatar · the user is anonymous,
+            // pre-wallet, pre-mint per canonical schema). Same icon slot
+            // size as wallet-bound rows so text-start aligns across all
+            // activity kinds.
             if (e.kind === "weather" || e.kind === "quiz_completed") {
               return (
                 <li
                   key={e.id}
-                  className="puru-row puru-row-fresh relative flex items-center gap-3 px-5 py-2.5"
+                  className="puru-row puru-row-fresh relative flex items-center gap-3 px-5 py-3"
                   style={rowStyle}
                 >
                   {e.kind === "quiz_completed" ? (
                     <span
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-puru-cloud-dim/60 text-puru-ink-soft"
                       aria-hidden
+                      className="shrink-0"
+                      style={{
+                        filter: "grayscale(1)",
+                        opacity: 0.55,
+                      }}
                     >
-                      <UserCircle weight="regular" size={20} />
+                      <PuruhaniAvatar
+                        seed={ANON_SEED}
+                        primary={e.element}
+                        size={ICON_SIZE}
+                      />
                     </span>
                   ) : (
                     <Image
                       src={`/art/elements/${e.element}.png`}
                       alt={e.element}
-                      width={32}
-                      height={32}
+                      width={ICON_SIZE}
+                      height={ICON_SIZE}
                       className="shrink-0"
                       aria-hidden
                     />
@@ -207,12 +234,16 @@ export function ActivityRail() {
                     seed={actor.pfp}
                     primary={e.element}
                     affinity={e.element}
-                    size={40}
+                    size={ICON_SIZE}
                   />
                 ) : (
                   <span
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-puru-card text-lg text-puru-cloud-bright"
-                    style={{ backgroundColor: `var(--puru-${e.element}-vivid)` }}
+                    className="flex shrink-0 items-center justify-center rounded-full font-puru-card text-lg text-puru-cloud-bright"
+                    style={{
+                      width: ICON_SIZE,
+                      height: ICON_SIZE,
+                      backgroundColor: `var(--puru-${e.element}-vivid)`,
+                    }}
                   >
                     {WALLET_BOUND_GLYPH[e.kind]}
                   </span>
