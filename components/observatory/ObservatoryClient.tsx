@@ -123,7 +123,7 @@ export function ObservatoryClient() {
   // correlates with the canvas:
   //   live presence    → OBSERVATORY_SPRITE_COUNT (matches what the canvas renders)
   //   wuxing dist      → scoreAdapter.getElementDistribution() (same source the canvas seeds from)
-  //   cycle balance    → derived from recentActivity below (mints+gifts vs attacks)
+  //   cycle balance    → derived from recentActivity below (mints vs element_shifts)
   //   cosmic intensity → weather.cosmic_intensity (same source the canvas tide+halo read)
   useEffect(() => {
     let cancelled = false;
@@ -146,18 +146,21 @@ export function ObservatoryClient() {
     };
   }, []);
 
-  // Sheng (生 generation) vs Ke (克 destruction). Mints + gifts are
-  // constructive; attacks are destructive. Ratio drifts as the activity
-  // window rolls — high values read as "the world is building," low as
-  // "the world is contentious." Defaults to 0.5 (neutral) before any
-  // events have arrived.
+  // Sheng (生 generation) vs Ke (克 transformation). Mints carry creation
+  // (a new stone enters the world); element_shifts carry transformation
+  // (an old affinity yielding to a new). Weather + quiz_completed are
+  // ambient and don't tilt the ratio. Defaults to 0.5 (neutral) before
+  // any classified events have arrived.
   const cycleBalance = useMemo(() => {
-    if (recentActivity.length === 0) return 0.5;
-    let constructive = 0;
+    let creative = 0;
+    let transformative = 0;
     for (const e of recentActivity) {
-      if (e.kind === "mint" || e.kind === "gift") constructive++;
+      if (e.kind === "mint") creative++;
+      else if (e.kind === "element_shift") transformative++;
     }
-    return constructive / recentActivity.length;
+    const total = creative + transformative;
+    if (total === 0) return 0.5;
+    return creative / total;
   }, [recentActivity]);
 
   return (
@@ -207,6 +210,8 @@ export function ObservatoryClient() {
           <PentagramCanvas
             onSpriteClick={handleSpriteClick}
             focusedTrader={focused?.trader ?? null}
+            isNight={weather.is_night}
+            amplifiedElement={weather.amplifiedElement}
           />
           {/* MusicPlayer + FocusCard share the canvas pane's stacking
               context so the focus card cleanly slides in over the
@@ -224,11 +229,11 @@ export function ObservatoryClient() {
             wrapperRef={focusCardRef}
           />
         </div>
-        <aside className="hidden min-h-0 grid-rows-[1fr_auto] overflow-hidden lg:grid">
+        <aside className="hidden min-h-0 grid-rows-[minmax(0,1fr)_minmax(280px,auto)] overflow-hidden lg:grid">
           <div className="min-h-0 overflow-hidden">
             <ActivityRail />
           </div>
-          <div className="shrink-0">
+          <div className="min-h-0 overflow-hidden">
             <WeatherTile state={weather} />
           </div>
         </aside>

@@ -26,9 +26,22 @@ const ELEMENT_KANJI: Record<Element, string> = {
   wood: "木", fire: "火", earth: "土", water: "水", metal: "金",
 };
 
-const KIND_GLYPH = { mint: "✦", attack: "⚔", gift: "❀" } as const;
-const KIND_LABEL_ACTOR = { mint: "minted", attack: "attacked", gift: "gifted" } as const;
-const KIND_LABEL_TARGET = { mint: "minted near", attack: "was attacked by", gift: "received gift from" } as const;
+// Kept in sync with ActivityRail · drift-report alignment 2026-05-09.
+// Note: weather + quiz_completed are wallet-agnostic on the canonical schema,
+// so they're filtered out of the recent-activity list below — only mint and
+// element_shift can reference a specific puruhani.
+const KIND_GLYPH = {
+  mint: "✦",
+  element_shift: "⟳",
+  quiz_completed: "◌",
+  weather: "☁",
+} as const;
+const KIND_LABEL_ACTOR = {
+  mint: "claimed a stone",
+  element_shift: "drifted",
+  quiz_completed: "archetype emerged",
+  weather: "the world breathes",
+} as const;
 
 function timeAgo(iso: string, nowMs: number): string {
   const diff = nowMs - new Date(iso).getTime();
@@ -88,9 +101,12 @@ export function FocusCard({
     const filterRecent = () => {
       const all = activityStream.recent(50);
       setRecent(
-        all.filter(
-          (e) => e.actor === identity.trader || e.target === identity.trader,
-        ).slice(0, 5),
+        all.filter((e) => {
+          // Only wallet-bound variants can match this puruhani · weather +
+          // quiz_completed are ambient and never reference a specific actor.
+          if (e.kind !== "mint" && e.kind !== "element_shift") return false;
+          return e.actor === identity.trader;
+        }).slice(0, 5),
       );
     };
     filterRecent();
@@ -197,25 +213,21 @@ export function FocusCard({
             <p className="font-puru-mono text-xs text-puru-ink-dim">no recent activity</p>
           ) : (
             <ul className="flex flex-col gap-1.5">
-              {recent.map((e) => {
-                const asActor = e.actor === id.trader;
-                const verb = asActor ? KIND_LABEL_ACTOR[e.kind] : KIND_LABEL_TARGET[e.kind];
-                return (
-                  <li key={e.id} className="flex items-center gap-2 font-puru-mono text-xs">
-                    <span
-                      aria-hidden
-                      className="text-base leading-none"
-                      style={{ color: `var(--puru-${e.element}-vivid)` }}
-                    >
-                      {KIND_GLYPH[e.kind]}
-                    </span>
-                    <span className="truncate text-puru-ink-base">{verb}</span>
-                    <span className="ml-auto whitespace-nowrap font-puru-mono text-2xs uppercase tracking-[0.18em] text-puru-ink-dim">
-                      {now ? timeAgo(e.at, now) : ""}
-                    </span>
-                  </li>
-                );
-              })}
+              {recent.map((e) => (
+                <li key={e.id} className="flex items-center gap-2 font-puru-mono text-xs">
+                  <span
+                    aria-hidden
+                    className="text-base leading-none"
+                    style={{ color: `var(--puru-${e.element}-vivid)` }}
+                  >
+                    {KIND_GLYPH[e.kind]}
+                  </span>
+                  <span className="truncate text-puru-ink-base">{KIND_LABEL_ACTOR[e.kind]}</span>
+                  <span className="ml-auto whitespace-nowrap font-puru-mono text-2xs uppercase tracking-[0.18em] text-puru-ink-dim">
+                    {now ? timeAgo(e.at, now) : ""}
+                  </span>
+                </li>
+              ))}
             </ul>
           )}
         </div>

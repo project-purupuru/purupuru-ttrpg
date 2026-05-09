@@ -7,9 +7,8 @@ import { OBSERVATORY_SPRITE_COUNT } from "@/lib/sim/entities";
 import { buildIdentityRegistry } from "@/lib/sim/identity";
 import type { PuruhaniIdentity } from "@/lib/sim/types";
 import { PuruhaniAvatar } from "./PuruhaniAvatar";
-import type { ActionKind } from "@/lib/activity/types";
 import { KpiCell } from "./KpiCell";
-import { Sparkle, Sword, Flower } from "@phosphor-icons/react";
+import { Sparkle, ArrowsClockwise, Compass } from "@phosphor-icons/react";
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
@@ -21,16 +20,21 @@ function timeAgo(iso: string, now: number): string {
   return `${Math.floor(diff / MINUTE)}m ago`;
 }
 
+// Verbs read as per-event narrative beats — register stays metaphorical
+// (canvas/rail-side); the grounded reveal copy lives in awareness-branch's
+// ARCHETYPE_REVEALS and would surface elsewhere if/when wired.
 const KIND_LABEL = {
-  mint: "minted",
-  attack: "attacked",
-  gift: "gifted",
+  mint: "claimed a stone",
+  element_shift: "drifted",
+  quiz_completed: "archetype emerged",
+  weather: "the world breathes",
 } as const;
 
 const KIND_GLYPH = {
   mint: "✦",
-  attack: "⚔",
-  gift: "❀",
+  element_shift: "⟳",
+  quiz_completed: "◌",
+  weather: "☁",
 } as const;
 
 // Stable per-seed primary used only for identity face/personality.
@@ -72,10 +76,18 @@ export function ActivityRail() {
   // Live tally over the displayed window — counts only what's in `events`
   // (capped at 50). Reads as "what's happening right now," not lifetime
   // totals; refreshes on every new event without any extra subscription.
+  // Weather is rare (5% emit rate) and already carried by the WeatherTile,
+  // so the 3-cell counter showcases the high-frequency narrative beats.
   const counts = useMemo(() => {
-    const c: Record<ActionKind, number> = { mint: 0, attack: 0, gift: 0 };
-    for (const e of events) c[e.kind]++;
-    return c;
+    let mint = 0;
+    let element_shift = 0;
+    let quiz_completed = 0;
+    for (const e of events) {
+      if (e.kind === "mint") mint++;
+      else if (e.kind === "element_shift") element_shift++;
+      else if (e.kind === "quiz_completed") quiz_completed++;
+    }
+    return { mint, element_shift, quiz_completed };
   }, [events]);
 
   return (
@@ -106,14 +118,14 @@ export function ActivityRail() {
           aside={<Sparkle weight="fill" />}
         />
         <KpiCell
-          label="attacks"
-          value={counts.attack}
-          aside={<Sword weight="fill" />}
+          label="shifts"
+          value={counts.element_shift}
+          aside={<ArrowsClockwise weight="bold" />}
         />
         <KpiCell
-          label="gifts"
-          value={counts.gift}
-          aside={<Flower weight="fill" />}
+          label="quizzes"
+          value={counts.quiz_completed}
+          aside={<Compass weight="fill" />}
         />
       </div>
       {events.length === 0 ? (
@@ -125,8 +137,14 @@ export function ActivityRail() {
       ) : (
         <ul className="flex-1 overflow-y-auto overflow-x-hidden bg-puru-cloud-base">
           {events.map((e) => {
-            const actor = resolve(e.actor);
-            const target = e.target ? resolve(e.target) : null;
+            // Wallet-bound vs ambient: mint + element_shift carry an actor;
+            // weather + quiz_completed are wallet-agnostic per canonical
+            // schema (see lib/activity/types.ts header). Ambient rows get
+            // a glyph circle + element-name subject line instead of avatar
+            // + identity — visually distinguishes peripheral signals from
+            // wallet-attributed action.
+            const hasActor = e.kind === "mint" || e.kind === "element_shift";
+            const actor = hasActor ? resolve(e.actor) : null;
             return (
               <li
                 key={e.id}
@@ -140,7 +158,7 @@ export function ActivityRail() {
                   <PuruhaniAvatar
                     seed={actor.pfp}
                     primary={e.element}
-                    affinity={e.targetElement ?? e.element}
+                    affinity={e.element}
                     size={40}
                   />
                 ) : (
@@ -153,19 +171,28 @@ export function ActivityRail() {
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-puru-body text-sm leading-tight text-puru-ink-base">
-                    <span className="font-puru-display text-xs text-puru-ink-rich">
-                      {actor?.displayName ?? e.actor.slice(0, 6)}
-                    </span>
-                    <span className="ml-1 font-puru-body text-2xs text-puru-ink-dim">
-                      @{actor?.username ?? e.actor.slice(2, 8).toLowerCase()}
-                    </span>
+                    {hasActor && actor ? (
+                      <>
+                        <span className="font-puru-display text-xs text-puru-ink-rich">
+                          {actor.displayName}
+                        </span>
+                        <span className="ml-1 font-puru-body text-2xs text-puru-ink-dim">
+                          @{actor.username}
+                        </span>
+                      </>
+                    ) : hasActor ? (
+                      <span className="font-puru-display text-xs text-puru-ink-rich">
+                        {e.actor.slice(0, 6)}
+                      </span>
+                    ) : (
+                      <span className="font-puru-display text-xs uppercase tracking-[0.18em] text-puru-ink-rich">
+                        {e.element}
+                      </span>
+                    )}
                   </p>
                   <p className="mt-0.5 truncate font-puru-body text-xs leading-tight text-puru-ink-soft">
                     <span aria-hidden className="mr-1">{KIND_GLYPH[e.kind]}</span>
                     {KIND_LABEL[e.kind]}
-                    {target ? (
-                      <span className="ml-1 text-puru-ink-base">{target.displayName}</span>
-                    ) : null}
                   </p>
                 </div>
                 <span className="shrink-0 self-start font-puru-body text-2xs uppercase tracking-[0.18em] tabular-nums text-puru-ink-dim">

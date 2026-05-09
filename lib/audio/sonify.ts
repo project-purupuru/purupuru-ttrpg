@@ -39,7 +39,7 @@ const REVERB_SECONDS = 1.8;
 
 export interface PlayEventOpts {
   element: Element;
-  kind: "mint" | "attack" | "gift";
+  kind: "mint" | "element_shift" | "quiz_completed" | "weather";
   /** 0..1, scales final voice gain. Defaults to 0.6. */
   velocity?: number;
 }
@@ -53,12 +53,14 @@ interface VoiceShape {
 }
 
 const VOICE_BY_KIND: Record<PlayEventOpts["kind"], VoiceShape> = {
-  // Soft bell-like — sine up an octave, gentle attack, long decay.
-  mint:   { type: "sine",     octaveMul: 2, attackS: 0.020, decayS: 0.85, gainPeak: 0.55 },
-  // Sharper pluck — triangle, base octave, fast attack, short decay.
-  attack: { type: "triangle", octaveMul: 1, attackS: 0.005, decayS: 0.45, gainPeak: 0.50 },
-  // Warm chime — sine, base octave, soft attack, longest decay.
-  gift:   { type: "sine",     octaveMul: 1, attackS: 0.030, decayS: 1.00, gainPeak: 0.50 },
+  // Soft bell-like — sine up an octave, gentle attack, long decay. Claim ring.
+  mint:           { type: "sine",     octaveMul: 2, attackS: 0.020, decayS: 0.85, gainPeak: 0.55 },
+  // Sharper pluck — triangle, base octave, fast attack, short decay. Transition tick.
+  element_shift:  { type: "triangle", octaveMul: 1, attackS: 0.005, decayS: 0.45, gainPeak: 0.50 },
+  // Warm chime — sine, base octave, soft attack, longest decay. Discovery glow.
+  quiz_completed: { type: "sine",     octaveMul: 1, attackS: 0.030, decayS: 1.00, gainPeak: 0.50 },
+  // Low pad — sine, octave down, longest attack, slow decay. Ambient breath; rare.
+  weather:        { type: "sine",     octaveMul: 0.5, attackS: 0.080, decayS: 1.40, gainPeak: 0.32 },
 };
 
 export class WuxingSonifier {

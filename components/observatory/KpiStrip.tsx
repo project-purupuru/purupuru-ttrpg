@@ -42,9 +42,9 @@ export function KpiStrip({
   }, [distribution]);
 
   // Cycle balance from activity stream — 0..1 where ≥0.5 reads as
-  // sheng-leaning (constructive: mints + gifts), <0.5 as ke-leaning
-  // (destructive: attacks). Display the dominant side's share so the
-  // value is always positive and meaningful.
+  // sheng-leaning (creative: mints), <0.5 as ke-leaning (transformative:
+  // element_shifts). Display the dominant side's share so the value is
+  // always positive and meaningful.
   const cycleDirection: "sheng" | "ke" = cycleBalance >= 0.5 ? "sheng" : "ke";
   const cyclePct = Math.round(
     cycleBalance >= 0.5 ? cycleBalance * 100 : (1 - cycleBalance) * 100,
