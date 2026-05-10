@@ -24,13 +24,8 @@ import {
   seedPopulation,
 } from "@/lib/sim/entities";
 import type { Puruhani, PuruhaniIdentity } from "@/lib/sim/types";
-import { weatherFeed } from "@/lib/weather";
 import { avatarToCanvas } from "@/lib/sim/avatar";
-import {
-  tideUnitVectorsFor,
-  tideMagnitude,
-  orbitalWobble,
-} from "@/lib/sim/tides";
+import { orbitalWobble } from "@/lib/sim/tides";
 
 interface PentagramCanvasProps {
   onSpriteClick?: (identity: PuruhaniIdentity) => void;
@@ -150,25 +145,12 @@ function computeAssetSizes(radius: number): AssetSizes {
   };
 }
 
-interface Migration {
-  fromX: number;
-  fromY: number;
-  toX: number;
-  toY: number;
-  duration: number;  // ms
-  elapsed: number;   // ms
-  newElement: Element | null;  // null = transient interaction (no rotation)
-  lastTrailAt: number;  // elapsed ms at which we last dropped a trail dot
-}
-
 interface SpriteEntry {
   entity: Puruhani;
   node: Sprite;
   shadow: Graphics;    // soft elliptical contact shadow underneath
   baseScale: number;
-  vx: number;          // wander velocity (px / 16ms-ish frame)
-  vy: number;
-  migration: Migration | null;
+  spawnDelay: number;  // ms · staggered fade-in offset from canvas start
   focusAlpha: number;  // 0..1 — smoothly tracks focus dim/restore target
 }
 
@@ -360,7 +342,6 @@ export function PentagramCanvas({
       const center = { x: app.screen.width / 2, y: app.screen.height / 2 };
       const radius = Math.min(app.screen.width, app.screen.height) * 0.38;
       let geometry = createPentagram(center, radius);
-      let tideUnits = tideUnitVectorsFor(geometry);
       // `let` so the resize handler can swap in fresh sizes when the
       // host element flexes (mobile rotation, mobile-panel-tab swap
       // shrinking the canvas pane). `assetSizes` is the single source
@@ -415,14 +396,6 @@ export function PentagramCanvas({
       // cosmic_intensity → tide-flow amplitude multiplier (high-energy
       // days = stronger circulation around 生 cycle). The amplifiedElement
       // signal still tracks but no longer drives a vertex visual now that
-      // the colored halos are gone — per-event amplification reads via
-      // the WeatherTile + sprite tide-flow.
-      const initial = weatherFeed.current();
-      let cosmicIntensity = Math.max(0, Math.min(1, initial.cosmic_intensity ?? 0));
-      const unsubWeather = weatherFeed.subscribe((s) => {
-        cosmicIntensity = Math.max(0, Math.min(1, s.cosmic_intensity ?? 0));
-      });
-
       // ─── Entities ──────────────────────────────────────────────────────────
       const entities: Puruhani[] = await seedPopulation(
         OBSERVATORY_SPRITE_COUNT,
@@ -466,38 +439,22 @@ export function PentagramCanvas({
         shadow.y = entity.position.y + assetSizes.shadowOffsetY;
         shadowLayer.addChild(shadow);
 
+        // Stagger pop-in over ~700ms so the cluster materializes rather
+        // than appearing in a single frame. Per-sprite delay seeded
+        // deterministically from the entity index for stable demos.
+        const spawnDelay = (sprites.length * 9) % 700;
         const entry: SpriteEntry = {
           entity, node, shadow, baseScale,
-          vx: 0, vy: 0, migration: null,
+          spawnDelay,
           focusAlpha: 1,
         };
+        // Start invisible so the spawn-in fade is visible from frame 0.
+        node.alpha = 0;
+        node.scale.set(0);
+        shadow.alpha = 0;
         sprites.push(entry);
       }
       app.stage.addChild(shadowLayer);
-
-      // ─── Migration trails — fading watercolor breadcrumbs ──────────────
-      // Sprites in flight drop a soft element-tinted blob every 70ms.
-      // Each blob ages out over 2.4s, so a typical 3s migration leaves
-      // a visible arc that decays after the sprite lands. Three concentric
-      // alpha-stacked circles per dot give the watercolor edge feel
-      // without needing a BlurFilter (per dig 2026-05-08 §2 Strava
-      // Global Heatmap — bilinear smoothing of historical paths into
-      // emergent texture rather than hard polylines).
-      interface TrailDot {
-        x: number;
-        y: number;
-        color: number;
-        age: number;
-      }
-      const trails: TrailDot[] = [];
-      const TRAIL_LIFE_MS = 1900;
-      const TRAIL_EMIT_MS = 110;
-      const TRAILS_MAX = 200; // hard cap as a safety net
-
-      const trailsLayer = new Container();
-      const trailsG = new Graphics();
-      trailsLayer.addChild(trailsG);
-      app.stage.addChild(trailsLayer);
 
       app.stage.addChild(spriteLayer);
 
@@ -509,202 +466,69 @@ export function PentagramCanvas({
       focusGlow.alpha = 0;
       app.stage.addChildAt(focusGlow, app.stage.getChildIndex(spriteLayer));
       const FOCUS_LERP_TC_MS = 280;
-      // Peak Graphics.alpha for the shadow container — modulates the
-      // composite of both stacked ellipses (outer ring + contact disk).
-      // Keep separate from the per-fill SHADOW_*_FILL_ALPHA constants:
-      // this one governs focus-dim amplitude, those govern shadow ink
-      // weight. Effective per-shape opacity = SHADOW_BASE_ALPHA × fill.alpha.
       const SHADOW_BASE_ALPHA = 0.22;
-      // When dimmed, tint multiplies the avatar texture toward this hex so
-      // non-selected sprites read as recessed-into-shadow rather than
-      // see-through. 0x4a4a4a ≈ 29% brightness — keeps the silhouette
-      // and avatar features readable while clearly de-emphasised.
       const FOCUS_DIM_TINT = 0x4a4a4a;
 
-      // ─── Migration scheduler ───────────────────────────────────────────────
-      // With 80 sprites we want roughly one migration every 1.5s — frequent
-      // enough that the diagram is visibly mutable, sparse enough that the
-      // motion isn't dominated by transitions.
-      let migrationAccum = 0;
-      const MIGRATION_TICK_MS = 1500;
-
-      function pickDifferent(curr: Element): Element {
-        let other: Element = curr;
-        let tries = 0;
-        while (other === curr && tries < 6) {
-          other = ELEMENTS[Math.floor(Math.random() * ELEMENTS.length)] as Element;
-          tries++;
-        }
-        return other;
-      }
-
-      function startMigration(s: SpriteEntry) {
-        if (s.migration) return;
-        const newEl = pickDifferent(s.entity.primaryElement);
-        const positionRng = () => Math.random();
-        const newPos = restingPositionFor(
-          newEl, s.entity.affinity, geometry, positionRng,
-        );
-        s.migration = {
-          fromX: s.entity.position.x,
-          fromY: s.entity.position.y,
-          toX: newPos.x,
-          toY: newPos.y,
-          duration: 2500 + Math.random() * 1500,
-          elapsed: 0,
-          newElement: newEl,
-          // Negative seed so the very first trail dot drops on the next
-          // tick rather than waiting EMIT_MS — keeps short migrations
-          // from missing the first dot entirely.
-          lastTrailAt: -1000,
-        };
-        s.vx = 0;
-        s.vy = 0;
-      }
-
-      function commitMigration(s: SpriteEntry) {
-        if (!s.migration) return;
-        const m = s.migration;
-        if (m.newElement) {
-          s.entity.primaryElement = m.newElement;
-          s.entity.resting_position = { x: m.toX, y: m.toY };
-          // Regenerate avatar texture with new primary tint — face/personality
-          // (pfp seed) stays the same; body color shifts to the new element.
-          const accent = topAffinity(s.entity.affinity, m.newElement);
-          const oldTex = s.node.texture;
-          s.node.texture = makeAvatarTexture(s.entity.identity, m.newElement, accent);
-          oldTex.destroy(true);
-        }
-        s.migration = null;
-      }
-
-      function easeInOutCubic(t: number): number {
-        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-      }
-
       // ─── Main ticker ───────────────────────────────────────────────────────
+      // No migrations · no tide flow. Sprites stay in the wedge they were
+      // seeded into; idle motion is the orbital wobble + element-paced
+      // breath scale. Stagger pop-in over the first ~1.1s after canvas
+      // start so the cluster materializes rather than appearing in one
+      // frame. The cross-region drift / migration system was pulled per
+      // operator direction (2026-05-10) — game state is "users sit in
+      // their clan's region" until the lifecycle layer ships.
       let tMs = 0;
-      // Tuning notes:
-      //   tide-strength = 0.030 → equilibrium offset ≈ 24px in tide direction
-      //   anchor k = 0.0012  → counters tide so cluster doesn't escape
-      //   With amp ∈ [0.6, 1.4] the offset breathes between ~14px and ~34px,
-      //   producing the visible "circulation" along the 生 generation arc.
-      const TIDE_STRENGTH = 0.030;
+      const SPAWN_FADE_MS = 420;
 
       const ticker = (delta: { deltaMS: number }) => {
         const dt = delta.deltaMS;
         tMs += dt;
 
-        // Migration scheduler — one sprite every MIGRATION_TICK_MS ms
-        if (!reduce) {
-          migrationAccum += dt;
-          while (migrationAccum >= MIGRATION_TICK_MS) {
-            migrationAccum -= MIGRATION_TICK_MS;
-            const idx = Math.floor(Math.random() * sprites.length);
-            startMigration(sprites[idx]);
-          }
-        }
-
-        // Tide multiplier from cosmic energy. 0 → 1.0 (baseline),
-        // 1 → 1.5 (heavier circulation). Subtle on purpose.
-        const energyMul = 1 + 0.5 * cosmicIntensity;
-
         for (const s of sprites) {
           if (!reduce) advanceBreath(s.entity, dt);
 
-          if (s.migration) {
-            // Cross-zone migration — eased lerp from→to
-            s.migration.elapsed += dt;
-            const t = Math.min(1, s.migration.elapsed / s.migration.duration);
-            const eased = easeInOutCubic(t);
-            s.entity.position.x = s.migration.fromX +
-              (s.migration.toX - s.migration.fromX) * eased;
-            s.entity.position.y = s.migration.fromY +
-              (s.migration.toY - s.migration.fromY) * eased;
-            // Drop a trail dot at every TRAIL_EMIT_MS of migration time.
-            // Color is the *origin* element so the trail reads as
-            // "where this puruhani is leaving from" — fading behind it
-            // as it crosses to its new zone.
-            if (
-              !reduce &&
-              s.migration.elapsed - s.migration.lastTrailAt >= TRAIL_EMIT_MS &&
-              trails.length < TRAILS_MAX
-            ) {
-              s.migration.lastTrailAt = s.migration.elapsed;
-              trails.push({
-                x: s.entity.position.x,
-                y: s.entity.position.y,
-                color: ELEMENT_HEX[s.entity.primaryElement],
-                age: 0,
-              });
-            }
-            if (t >= 1) commitMigration(s);
-          } else if (!reduce) {
-            // ─── Wuxing tide-flow ─────────────────────────────────────────
-            const tide = tideUnits[s.entity.primaryElement];
-            const amp = tideMagnitude(s.entity.primaryElement, tMs) * energyMul;
-            s.vx += tide.x * amp * TIDE_STRENGTH * dt;
-            s.vy += tide.y * amp * TIDE_STRENGTH * dt;
+          // Spawn-in: scale + alpha rise from 0 → 1 with easeOutCubic.
+          // Reduce-motion skips the curve and lands at full state on
+          // frame one.
+          const spawnT = reduce
+            ? 1
+            : Math.min(1, Math.max(0, (tMs - s.spawnDelay) / SPAWN_FADE_MS));
+          const spawnEase = 1 - Math.pow(1 - spawnT, 3);
 
-            // Anchor spring (slightly tighter than the 1000-sprite era so
-            // the cluster identity stays clear with fewer members).
-            const dxRest = s.entity.resting_position.x - s.entity.position.x;
-            const dyRest = s.entity.resting_position.y - s.entity.position.y;
-            const k = 0.0012;
-            s.vx += dxRest * k * dt;
-            s.vy += dyRest * k * dt;
-
-            // Damping
-            const damping = 0.94;
-            s.vx *= damping;
-            s.vy *= damping;
-            // Velocity cap
-            const speed = Math.hypot(s.vx, s.vy);
-            const maxSpeed = 4;
-            if (speed > maxSpeed) {
-              s.vx = (s.vx / speed) * maxSpeed;
-              s.vy = (s.vy / speed) * maxSpeed;
-            }
-            s.entity.position.x += s.vx;
-            s.entity.position.y += s.vy;
-          }
-
-          // Per-sprite orbital wobble — applied as a render-time offset on
-          // top of the physics state, so it never accumulates into the
-          // velocity loop. Keeps each individual visibly alive.
-          if (!reduce && !s.migration) {
+          // Position: resting + per-sprite orbital wobble so each
+          // individual reads as visibly alive without drifting between
+          // wedges.
+          if (!reduce) {
             const wob = orbitalWobble(s.entity.breath_phase, tMs);
-            s.node.x = s.entity.position.x + wob.x;
-            s.node.y = s.entity.position.y + wob.y;
+            s.node.x = s.entity.resting_position.x + wob.x;
+            s.node.y = s.entity.resting_position.y + wob.y;
           } else {
-            s.node.x = s.entity.position.x;
-            s.node.y = s.entity.position.y;
+            s.node.x = s.entity.resting_position.x;
+            s.node.y = s.entity.resting_position.y;
           }
+          s.entity.position.x = s.node.x;
+          s.entity.position.y = s.node.y;
 
-          // Shadow tracks the physics anchor (not the wobble) so the
-          // sprite appears to bob over a stationary ground point.
-          s.shadow.x = s.entity.position.x;
-          s.shadow.y = s.entity.position.y + assetSizes.shadowOffsetY;
+          // Shadow tracks the physics anchor (resting), not the wobble,
+          // so the sprite appears to bob over a stationary ground point.
+          s.shadow.x = s.entity.resting_position.x;
+          s.shadow.y = s.entity.resting_position.y + assetSizes.shadowOffsetY;
 
-          // Gentle breath scale — no event-driven pulse here; the
-          // user-action interaction model is being designed separately.
+          // Element-paced breath × spawn-in scale.
           const phase = s.entity.breath_phase;
           const breath = 1 + 0.06 * Math.sin(2 * Math.PI * phase);
-          s.node.scale.set(s.baseScale * (reduce ? 1 : breath));
+          s.node.scale.set(s.baseScale * spawnEase * (reduce ? 1 : breath));
+          s.node.alpha = spawnT;
 
-          // ─── Focus tint — darken non-selected sprites when one is focused ──
-          // focusAlpha smoothly approaches 1 when this sprite is the
-          // focused one (or nothing is focused), otherwise 0. Mapped onto
-          // a tint multiplier so dimmed sprites stay fully opaque (avatars
-          // recognisable, just recessed into shadow) instead of going
-          // see-through. Shadow alpha rides a half-amplitude version so
-          // ground-presence stays partially visible on the dim crowd.
+          // Focus tint — selected sprite stays full color, others dim
+          // toward FOCUS_DIM_TINT. Shadow rides a half-amplitude version
+          // and fades with spawn so ground-presence enters with the avatar.
           const focusedT = focusedTraderRef.current;
           const focusTarget = focusedT === null || s.entity.trader === focusedT ? 1 : 0;
           const focusLerp = 1 - Math.exp(-dt / FOCUS_LERP_TC_MS);
           s.focusAlpha += (focusTarget - s.focusAlpha) * focusLerp;
           s.node.tint = lerpHex(FOCUS_DIM_TINT, 0xffffff, s.focusAlpha);
-          s.shadow.alpha = SHADOW_BASE_ALPHA * (0.55 + 0.45 * s.focusAlpha);
+          s.shadow.alpha = SHADOW_BASE_ALPHA * (0.55 + 0.45 * s.focusAlpha) * spawnT;
         }
 
         // ─── Vertex aura amplification — boost the matching element ────────
@@ -722,37 +546,10 @@ export function PentagramCanvas({
           handle.aura.alpha += (target - handle.aura.alpha) * auraLerp;
         }
 
-        // ─── Migration trails — age + soft-edged render ─────────────────────
-        // Each dot drawn as 3 concentric alpha-stacked circles so the
-        // edge feels watercolor rather than flat-disk. Always clear+
-        // redraw so a single Graphics holds the whole field — under
-        // typical activity (1-3 active migrations) this is ≤90 circles.
-        trailsG.clear();
-        for (let i = trails.length - 1; i >= 0; i--) {
-          const trail = trails[i];
-          trail.age += dt;
-          if (trail.age >= TRAIL_LIFE_MS) {
-            trails.splice(i, 1);
-            continue;
-          }
-          const u = trail.age / TRAIL_LIFE_MS;
-          const fade = 1 - u;
-          // Three soft layers: outer halo (faintest, biggest) → mid-ring →
-          // dense core. The core dims slightly faster than the halo so
-          // older trails read as soft clouds, fresher ones as bright dots.
-          trailsG.circle(trail.x, trail.y, 16);
-          trailsG.fill({ color: trail.color, alpha: fade * 0.06 });
-          trailsG.circle(trail.x, trail.y, 9);
-          trailsG.fill({ color: trail.color, alpha: fade * fade * 0.13 });
-          trailsG.circle(trail.x, trail.y, 4);
-          trailsG.fill({ color: trail.color, alpha: fade * fade * 0.26 });
-        }
-
         // ─── Focus glow — draw soft element-tinted ring under selected ─────
         // Single Graphics, redrawn each frame from scratch. Cheap enough
         // (1 circle + breath) and keeps the position dead-true to the
-        // sprite's render-time offset (wobble + tide + migration all
-        // already baked into s.node.x/y above).
+        // sprite's render-time offset (wobble baked into s.node.x/y above).
         const focusedT = focusedTraderRef.current;
         if (focusedT) {
           const target = sprites.find((s) => s.entity.trader === focusedT);
@@ -782,7 +579,6 @@ export function PentagramCanvas({
         const cy = app.screen.height / 2;
         const r = Math.min(app.screen.width, app.screen.height) * 0.38;
         geometry = createPentagram({ x: cx, y: cy }, r);
-        tideUnits = tideUnitVectorsFor(geometry);
         // Recompute responsive asset sizes for the new pane dimensions.
         // Mutating the same `assetSizes` binding the ticker closes over
         // means focus glow + shadow offsets pick up the new values on
@@ -790,9 +586,9 @@ export function PentagramCanvas({
         assetSizes = computeAssetSizes(r);
 
         // Re-build vertex layer. Re-insert at the original z-position
-        // (just above the inner-star edges) so it stays UNDER shadow,
-        // trails, and sprite layers — addChild() would push it to the
-        // top and occlude sprites on every resize.
+        // (just above the inner-star edges) so it stays UNDER shadow
+        // and sprite layers — addChild() would push it to the top and
+        // occlude sprites on every resize.
         app.stage.removeChild(vertexLayer);
         vertexLayer.destroy({ children: true });
         vertexLayer = new Container();
@@ -808,7 +604,7 @@ export function PentagramCanvas({
         const starIdx = app.stage.getChildIndex(starG);
         app.stage.addChildAt(vertexLayer, starIdx + 1);
 
-        // Re-anchor sprites at new resting positions; cancel in-flight migrations
+        // Re-anchor sprites at new resting positions for the new geometry.
         const newBaseScale = assetSizes.avatarDisplay / AVATAR_TEX_SIZE;
         for (let i = 0; i < sprites.length; i++) {
           const s = sprites[i];
@@ -823,13 +619,9 @@ export function PentagramCanvas({
           s.entity.position = { ...resting };
           s.node.x = resting.x;
           s.node.y = resting.y;
-          s.migration = null;
-          s.vx = 0;
-          s.vy = 0;
           // Apply new responsive avatar scale; ticker's per-tick
-          // breath multiplier rides this baseScale on the next frame.
+          // breath × spawn-in multipliers ride this baseScale on next frame.
           s.baseScale = newBaseScale;
-          s.node.scale.set(newBaseScale);
           // Redraw shadow geometry at the new dimensions — clear()
           // wipes both ellipses, ellipse()+fill() pairs re-issue them
           // (outer ring first, tighter contact disk on top). shadow.y
@@ -848,7 +640,6 @@ export function PentagramCanvas({
 
       rafCleanup = () => {
         app.ticker.remove(ticker);
-        unsubWeather();
         ro.disconnect();
       };
     })();
