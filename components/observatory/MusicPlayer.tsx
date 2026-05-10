@@ -145,10 +145,15 @@ export function MusicPlayer({
           />
         </div>
 
-        {/* Title column — display-font track name. min-w-0 + truncate
-            keep long titles from pushing the controls off the right edge. */}
-        <div className="flex min-w-0 flex-1 flex-col">
-          <span className="truncate font-puru-display text-sm capitalize leading-tight text-puru-ink-rich">
+        {/* Title column — KpiCell-style label/value: tiny mono eyebrow
+            + primary value, matching the WeatherTile vocab. min-w-0 +
+            truncate keep long titles from pushing the controls off the
+            right edge. */}
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="truncate font-puru-mono text-2xs uppercase tracking-[0.22em] text-puru-ink-soft">
+            track
+          </span>
+          <span className="truncate font-puru-mono text-sm capitalize leading-none text-puru-ink-rich">
             {track.title}
           </span>
         </div>

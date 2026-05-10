@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { activityStream, type ActivityEvent } from "@/lib/activity";
 import { ELEMENTS, type Element } from "@/lib/score";
@@ -8,29 +7,9 @@ import { OBSERVATORY_SPRITE_COUNT } from "@/lib/sim/entities";
 import { buildIdentityRegistry } from "@/lib/sim/identity";
 import type { PuruhaniIdentity } from "@/lib/sim/types";
 import { PuruhaniAvatar } from "./PuruhaniAvatar";
-import type { AvatarSeed } from "@/lib/sim/types";
-import type {
-  ElementShiftActivity,
-  MintActivity,
-  QuizCompletedActivity,
-  WeatherActivity,
-} from "@/lib/activity/types";
 
-// Anonymous-puruhani seed for quiz_completed rows · neutral expression
-// (empty-archetype face: calm eyes, neutral mouth, no brow tilt). Wallet
-// is unknown but the archetype IS known (revealed by the quiz), so the
-// face renders in the discovered element color · same family as
-// wallet-bound avatars, distinguished only by the neutral expression.
-const ANON_SEED: AvatarSeed = {
-  eyeKind: 0,
-  mouthKind: 1,
-  browTilt: 0,
-  dropletPos: 0,
-  bodyTilt: 0,
-};
-
-// Uniform icon slot · all four row variants render their leading icon at
-// this size so text starts at the same x-coordinate regardless of activity.
+// Uniform leading icon slot · all rows share this size so text starts
+// at the same x-coordinate.
 const ICON_SIZE = 40;
 
 const SECOND = 1000;
@@ -43,37 +22,14 @@ function timeAgo(iso: string, now: number): string {
   return `${Math.floor(diff / MINUTE)}m ago`;
 }
 
-// Uniform 2-line treatment across all four variants · line 1 is the subject
-// (identity for wallet-bound · element name for ambient), line 2 is the
-// verb/event. Keeps a consistent visual rhythm across the rail regardless
-// of whether the event has a known wallet behind it.
-//
-// Fallback glyphs only render when an actor wallet has no registry entry
-// (defensive; rarely hits).
-const WALLET_BOUND_GLYPH: Record<"mint" | "element_shift", string> = {
-  mint: "✦",
-  element_shift: "⟳",
-};
-
-function walletBoundVerb(e: MintActivity | ElementShiftActivity): string {
-  if (e.kind === "mint") return "claimed a stone";
-  return `drifted to ${e.element}`;
-}
-
-function ambientVerb(e: WeatherActivity | QuizCompletedActivity): string {
-  if (e.kind === "weather") return "weather shift";
-  return "archetype emerged";
-}
-
-const titleCase = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
-
-// Stable per-seed primary used only for identity face/personality.
-// Different from sim's distribution-based bucketing on purpose: this
-// keeps the archetype face fixed per actor, while the row's element
-// (and the avatar body tint) follows the *action*.
+// Stable per-seed primary used only for identity face/personality —
+// keeps each archetype face fixed per actor while the row's element
+// (and the avatar body tint) follows the join event.
 function stablePrimaryForSeed(seedIndex: number): Element {
   return ELEMENTS[(seedIndex - 1 + ELEMENTS.length) % ELEMENTS.length];
 }
+
+const titleCase = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 
 export function ActivityRail() {
   const [events, setEvents] = useState<ActivityEvent[]>(() => activityStream.recent());
@@ -99,8 +55,7 @@ export function ActivityRail() {
     registry.get(wallet) ?? null;
 
   // Empty-state value is a single em-dash so the right-hand indicator
-  // keeps a stable width — the verbose "awaiting first event" copy
-  // lives in the body where width can flex.
+  // keeps a stable width.
   const lastSeen = events.length > 0 ? timeAgo(events[0].at, now) : "—";
 
   return (
@@ -133,58 +88,10 @@ export function ActivityRail() {
       ) : (
         <ul className="flex-1 overflow-y-auto overflow-x-hidden bg-puru-cloud-base">
           {events.map((e) => {
-            // Element-tinted gradient bg shared across both row classes ·
-            // gives the activity its color identity regardless of layout.
             const rowStyle = {
               backgroundImage: `linear-gradient(to left, color-mix(in oklch, var(--puru-${e.element}-vivid) var(--puru-bleed-mix), transparent) 0%, transparent var(--puru-bleed-stop))`,
               color: `var(--puru-${e.element}-vivid)`,
             };
-
-            // Ambient (weather, quiz_completed): same 2-line layout · line 1
-            // is the title-cased element name (the subject), line 2 is the
-            // verb. Quiz uses the anonymous puruhani avatar (wallet unknown,
-            // archetype known); weather uses the pentagram element art.
-            if (e.kind === "weather" || e.kind === "quiz_completed") {
-              return (
-                <li
-                  key={e.id}
-                  className="puru-row puru-row-fresh relative flex items-center gap-3 px-5 py-3"
-                  style={rowStyle}
-                >
-                  {e.kind === "quiz_completed" ? (
-                    <PuruhaniAvatar
-                      seed={ANON_SEED}
-                      primary={e.element}
-                      size={ICON_SIZE}
-                    />
-                  ) : (
-                    <Image
-                      src={`/art/elements/${e.element}.png`}
-                      alt={e.element}
-                      width={ICON_SIZE}
-                      height={ICON_SIZE}
-                      className="shrink-0"
-                      aria-hidden
-                    />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-puru-body text-sm leading-tight text-puru-ink-base">
-                      <span className="font-puru-display text-xs text-puru-ink-rich">
-                        {titleCase(e.element)}
-                      </span>
-                    </p>
-                    <p className="mt-0.5 truncate font-puru-body text-xs leading-tight text-puru-ink-soft">
-                      {ambientVerb(e)}
-                    </p>
-                  </div>
-                  <span className="shrink-0 self-start font-puru-body text-2xs uppercase tracking-[0.18em] tabular-nums text-puru-ink-dim">
-                    {timeAgo(e.at, now)}
-                  </span>
-                </li>
-              );
-            }
-
-            // Wallet-bound: 2-line treatment · avatar + identity + verb.
             const actor = resolve(e.actor);
             return (
               <li
@@ -208,7 +115,7 @@ export function ActivityRail() {
                       backgroundColor: `var(--puru-${e.element}-vivid)`,
                     }}
                   >
-                    {WALLET_BOUND_GLYPH[e.kind]}
+                    ✦
                   </span>
                 )}
                 <div className="min-w-0 flex-1">
@@ -221,7 +128,7 @@ export function ActivityRail() {
                     </span>
                   </p>
                   <p className="mt-0.5 truncate font-puru-body text-xs leading-tight text-puru-ink-soft">
-                    {walletBoundVerb(e)}
+                    joined {titleCase(e.element)}
                   </p>
                 </div>
                 <span className="shrink-0 self-start font-puru-body text-2xs uppercase tracking-[0.18em] tabular-nums text-puru-ink-dim">

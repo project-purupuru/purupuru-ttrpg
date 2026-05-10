@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { ELEMENTS, scoreAdapter, type Element } from "@/lib/score";
 import type { WalletProfile, WalletSignals } from "@/lib/score";
-import { activityStream, type ActivityEvent } from "@/lib/activity";
-import type { ElementShiftActivity, MintActivity } from "@/lib/activity/types";
+import { activityStream } from "@/lib/activity";
+import type { JoinActivity } from "@/lib/activity/types";
 import type { PuruhaniIdentity } from "@/lib/sim/types";
 import { PuruhaniAvatar } from "./PuruhaniAvatar";
 
@@ -27,13 +27,12 @@ const ELEMENT_KANJI: Record<Element, string> = {
   wood: "木", fire: "火", earth: "土", water: "水", metal: "金",
 };
 
-// Kept in sync with ActivityRail · drift-report alignment 2026-05-09.
-// Per-puruhani recent-activity list shows ONLY wallet-bound variants — weather
-// + quiz_completed are wallet-agnostic on the canonical schema and never
-// reference a specific actor, so they're filtered out at the source.
-function recentVerb(e: MintActivity | ElementShiftActivity): string {
-  if (e.kind === "mint") return "claimed a stone";
-  return `drifted to ${e.element}`;
+// v0 demo simplification (2026-05-10): activity stream emits only
+// `join` events. Once the lifecycle layer ships the verb pool will
+// reopen — keep the function shape so the row template doesn't need
+// to change when that happens.
+function recentVerb(e: JoinActivity): string {
+  return `joined ${e.element}`;
 }
 
 function timeAgo(iso: string, nowMs: number): string {
@@ -63,7 +62,7 @@ export function FocusCard({
   const wrapperRef = externalRef ?? localRef;
   const [profile, setProfile] = useState<WalletProfile | null>(null);
   const [signals, setSignals] = useState<WalletSignals | null>(null);
-  const [recent, setRecent] = useState<Array<MintActivity | ElementShiftActivity>>([]);
+  const [recent, setRecent] = useState<JoinActivity[]>([]);
   const [now, setNow] = useState<number>(0);
   const [stickyIdentity, setStickyIdentity] = useState<PuruhaniIdentity | null>(null);
 
@@ -93,15 +92,10 @@ export function FocusCard({
     });
     const filterRecent = () => {
       const all = activityStream.recent(50);
-      // Only wallet-bound variants can match this puruhani · weather +
-      // quiz_completed are ambient and never reference a specific actor.
-      const isWalletBound = (
-        e: ActivityEvent,
-      ): e is MintActivity | ElementShiftActivity =>
-        e.kind === "mint" || e.kind === "element_shift";
+      // All activity events in the v0 simplification are wallet-bound
+      // join events; filter to ones whose actor matches this puruhani.
       setRecent(
         all
-          .filter(isWalletBound)
           .filter((e) => e.actor === identity.trader)
           .slice(0, 5),
       );
