@@ -1,5 +1,64 @@
 # Loa Project Notes
 
+## Decision Log — 2026-05-10 (cycle-102 Sprint 1D — T1.7 redaction-leak emit-path closure)
+
+**Sprint 1D shipped** — feature/feat/cycle-102-sprint-1d branch, commit `44a2f5fe` (impl) on top of `317604c6` (sprint plan). Closes the T1B.1-vs-T1.7 document-vs-enforce distinction first opened 2026-05-09 (Decision Log entry below).
+
+**Two-layer defense in cheval `cmd_invoke()` finally clause:**
+
+1. **Layer 1 (redactor)** — `.claude/scripts/lib/log-redactor.{sh,py}` extended with three bare-shape patterns: AKIA AWS access keys (`AKIA[0-9A-Z]{16}`), PEM private-key blocks (multi-line via sed slurp `:a;N;$!ba;` in bash twin; `[^-]*` body class in Python — base64 PEM body never contains `-`), HTTP Bearer-token shapes (`[Bb]earer[ \t][A-Za-z0-9._~+/=-]+`). Cross-runtime byte-equality across 24 new parity tests (T13/T14/T15/T16) on top of pre-existing 12-stanza corpus.
+2. **Layer 2 (gate)** — `loa_cheval.audit.modelinv.assert_no_secret_shapes_remain` shape-detector. Raises `RedactionFailure` if any AKIA/PEM-BEGIN/Bearer survives the redactor. `audit_emit` is NEVER called on RedactionFailure — chain integrity preserved. Operator signal via `[REDACTION-GATE-FAILURE]` stderr marker without altering user-facing exit code.
+
+**`cmd_invoke()` wrapped in try/finally** that emits `MODELINV model.invoke.complete` envelope on every post-resolution exit (success path + 7 exception branches mapped to existing model-error.schema.json enum: BUDGET_EXHAUSTED / PROVIDER_OUTAGE / PROVIDER_DISCONNECT / FALLBACK_EXHAUSTED / UNKNOWN). Async path opt-out (pending interaction = no emit yet). `kill_switch_active` populated from `LOA_FORCE_LEGACY_MODELS` per SDD §11.
+
+**AC-1D.8 [ACCEPTED-DEFERRED] — full bats corpus regression:** bats binary is not installed in this session's tool environment. The cycle-102 CI workflow `BATS Tests` (`.github/workflows/bats-tests.yml`) is the canonical validation surface; the Sprint 1D PR will surface any regression there. Sprint 1D edits are additive (new files: `cheval-redaction-emit-path.bats`, `loa_cheval/audit/modelinv.py`, runbook; net-new test stanzas in `log-redactor-cross-runtime.bats` T13/T14/T15/T16; surgical `try/finally` wrap in `cheval.py` cmd_invoke without altering exception semantics). Smoke parity check (8 cases — URL/AKIA/Bearer/PEM single-line/PEM RSA-named/Idempotency/Negative control/Query regression) confirmed Python ↔ bash byte-equal output during implementation. End-to-end emit smoke also confirmed: persisted MODELINV envelope contains `[REDACTED-AKIA]` and zero raw `AKIAIOSFODNN7EXAMPLE` bytes. CI is the authoritative regression gate.
+
+**Phase 2.5 adversarial-review.sh outcome:** SUCCESS at ~21K input / 1.4K output (claude-opus-4-7 per T1B.4 swap; status `reviewed`, degraded false, cost $0.14, latency 28s). 1 finding produced; hallucination filter downgraded DISS-001 from BLOCKING to ADVISORY because the dissenter's claim (literal `{{DOCUMENT_CONTENT}}` template tokens in `cheval-redaction-emit-path.bats` setup) is contradicted by the source — `grep -c '{{DOCUMENT_CONTENT}}'` returns 0 across both new bats files. This is exactly the model-artefact-detection vector the cycle-102 sprint-1A hallucination filter was built for; it fired correctly. The filter's audit-trail at `grimoires/loa/a2a/cycle-102-sprint-1D/adversarial-review.json` records the downgrade reason explicitly.
+
+**`models_failed[].error_class` mapping (within today's enum):**
+- `BudgetExceededError` → `BUDGET_EXHAUSTED`
+- `ContextTooLargeError` → `UNKNOWN` (T1.5 carry will refine to typed CONTEXT_OVERFLOW once enum is extended)
+- `RateLimitError` / `ProviderUnavailableError` → `PROVIDER_OUTAGE`
+- `RetriesExhaustedError` (with `last_error_class == ConnectionLostError`) → `PROVIDER_DISCONNECT`; otherwise → `FALLBACK_EXHAUSTED`
+- `ChevalError` / generic `Exception` → `UNKNOWN`
+
+**Sprint 1D out-of-scope (deferred per session-7 pacing rule "T1.7 alone is one sprint"):**
+- T1.5 — cheval `_error_json` typed `error_class` per SDD §4.1 taxonomy
+- T1.6 — operator-visible header protocol (populates `operator_visible_warn` correctly)
+- T1.10 — `LOA_DEBUG_MODEL_RESOLUTION` trace decorator
+- T1.8 — `red-team-model-adapter.sh --role attacker` routing fix (#780)
+- T1.3 carry — `model-probe-cache.ts` via Jinja2 codegen
+- T1B.3 — live ≥10K-prompt fixture for T1.9 M5 verification
+
+**Pattern this exemplifies:** vision-025 "The Substrate Becomes the Answer" — Sprint 1C built the curl-mock harness substrate; Sprint 1D consumes it. The redaction-leak vector that visions 019-024 traced through is closed at the emit-path layer. Future sprints can use the same direct-drive bats pattern (`emit_model_invoke_complete` driven via Python heredoc with per-test `LOA_MODELINV_LOG_PATH`) to test additional MODELINV envelope shapes without going through cheval CLI integration.
+
+**Open redaction-leak vector status:** **CLOSED** — T1B.1 contract DOCUMENTED + T1.7 contract ENFORCED. The audit chain no longer accepts unredacted bearer tokens / API keys / PEM private keys via `original_exception` or `message_redacted` (or any of the 4 untrusted-content fields in `_REDACT_FIELDS`). Defense-in-depth gate catches any future redactor-coverage gap before it reaches the chain. Operator runbook at `grimoires/loa/runbooks/redaction-leak-closure.md` documents extension workflow.
+
+**Bridgebuilder outcome (sprint-1D) — API-UNAVAILABILITY DEGRADATION (not a true cross-model plateau):**
+
+⚠ **CORRECTION 2026-05-10 post-operator-suspicion:** my initial framing called this a "REFRAME plateau" per the substrate-speaks-twice pattern from vision-024. The operator's interjection ("i am suspicious when there are a low number of findings") forced re-reading: the headline numbers were single-model gpt-5.5-pro output, NOT cross-model consensus. The "consensus" / "disputed" classification ran through BB's scorer with only ONE model's findings as input. This is the demotion-by-relabel pattern at the BB layer itself — the consensus scoring carries authority the substrate (single-model output) doesn't support. Both iters ran in degraded-1-of-3 mode.
+
+| Iter | Provider success | gpt-5.5-pro findings | Anthropic | Google | Enrichment writer |
+|------|-------|----------------------|-----------|--------|-------------------|
+| iter-1 | 1 of 3 | 9 (2 HIGH + 2 MEDIUM + 3 LOW + 2 PRAISE) | ❌ `TypeError: fetch failed; cause=AggregateError` (3/3 attempts) | ❌ `TypeError: fetch failed; cause=SocketError: other side closed` (3/3 attempts) | ❌ same Anthropic error → stats-only summary |
+| iter-2 | 1 of 3 (same providers errored) | 6 (1 HIGH + 1 MEDIUM + 2 LOW + 2 PRAISE) | ❌ same | ❌ same | ❌ same |
+
+**Iter-1 mitigations applied (commit `6bfcae21`):** F-006 Bearer ≥16 char floor (excludes natural-language false positives); F-005 AKIA test fixture corrected to 15-char suffix; F-007 test setup explicitly unsets bypass env vars; F-003 + F-004 verified defense-in-depth with new R7f / R7g gate-catches-partial-PEM tests.
+
+**iter-2 F-001 (HIGH Security) — single-model finding, NOT cross-model REFRAME:** generalizes iter-1's F-003 + F-004 to "Layer 1 redactor remains fail-open for partial / encrypted-headered PEM blocks; non-cheval callers of `log-redactor.{sh,py}` are not protected by the gate." This is a substrate-class concern from gpt-5.5-pro alone — the substrate-speaks-twice pattern from vision-024 requires ≥2 models to name the seam at successively wider zoom levels for the pattern to hold. With only one model running, the finding has full single-model-true-positive-in-DISPUTED weight (per Sprint 1A iter-5 lore + `feedback_zero_blocker_demotion_pattern.md`), but does NOT meet the cross-model REFRAME bar that triggers a true plateau call.
+
+**Iter-2 F-001 routing:** queued as **Sprint 1E backlog** under elevated-single-model-Security-finding scrutiny. Extend `log-redactor.{sh,py}` to fail-closed on partial PEM (BEGIN without END) AND DEK-Info-headered PEM blocks regardless of caller. Cross-runtime parity tests for both variants. The Sprint 1D closure remains valid because the gate IS the safety net for cheval emit; Sprint 1E generalizes the protection to non-cheval callers.
+
+**Iter-2 F-002 + F-004 routing:** documented as known limitations in engineer-feedback.md (Concern 7 + Alt3). Add CLI/cmd_invoke end-to-end test with stub-adapter raising secret-shaped exception. Sprint 1E or post-T1.5 carry.
+
+**Cross-model BB on this PR is DEFERRED** until Anthropic + Google recover. Both providers failed with persistent `fetch failed` / `SocketError: other side closed` errors across 3 retry attempts in BOTH iters spanning ~17 minutes wall-clock. Likely transient (network partition, provider-side rate limit, or the upstream issue #823 manifesting again at scale — gpt-5.5-pro's iter-1 output was 7.6K-in / 21K-out, which is well within Anthropic's documented context but the request_size was 28KB+; iter-2 enrichment writer at 35KB also failed). The cross-model dissent the operator authorized in the resume command did NOT actually run — the trajectory captured is single-model evolution under mitigation, not cross-model convergence.
+
+**Pattern noted (recursive-dogfood, third manifestation in cycle-102):** the BB infrastructure that vision-024 named the "substrate that articulates the bug class" itself failed to articulate at the cross-model level on Sprint 1D — exactly the same fractal pattern as cycle-102 sprint-1A's adversarial-review.sh empty-content failure on its own audit (vision-023). Sprint 1A's response was to swap the model (T1B.4); Sprint 1D's response is to defer cross-model BB to post-merge and document the degradation honestly.
+
+**Sprint 1D Status:** **SHIPPED** (PR #826 ready for HITL merge) WITH ASTERISK — the implementation passed implement + review + audit + single-model BB trajectory; cross-model BB dissent on this PR is deferred until provider network recovers. Per the operator's standing "i am suspicious when there are 0" pattern (now also "low"), the headline `9 → 6 findings PLATEAU` was misleading; the corrected framing is `1-of-3 single-model trajectory, cross-model deferred`. Sprint 1E backlog inputs captured: F-001 Layer 1 PEM fail-open generalization (under elevated-single-model-Security scrutiny per Sprint 1A iter-5 lore); F-002/F-004 CLI integration test (multiple-iters-confirmed concern).
+
+Implementation commits: 317604c6 (sprint plan) + 44a2f5fe (impl) + 799a4a95 (sprint.md/NOTES.md updates) + 54db59f2 (LOW-1 audit fix) + 6bfcae21 (BB iter-1 mitigation) + d3f89d2c (BB iter-2 F-003 fix + initial-but-corrected plateau call) + (this commit, framing correction).
+
 ## Decision Log — 2026-05-09 (cycle-102 Sprint 1B kickoff — T1B.4 ROOT-CAUSE REFRAME, run HALTED)
 
 **Sprint 1B autonomous run HALTED on first task** because the T1B.4 framing was wrong. Recording the corrected root-cause analysis below.
