@@ -86,10 +86,14 @@ export function ActivityRail() {
           </p>
         </div>
       ) : (
-        <ul className="flex-1 overflow-y-auto overflow-x-hidden bg-puru-cloud-base">
+        <ul className="flex-1 divide-y divide-puru-surface-border overflow-y-auto overflow-x-hidden bg-puru-cloud-base">
           {events.map((e) => {
+            // Element color is kept (drives `currentColor` for the
+            // .puru-row-fresh new-row arrival pulse — left-edge accent
+            // + 8% bg flash for 1.6s when a row mounts) but the
+            // persistent right-side bleed gradient was reading as
+            // continuous noise across the rail; dropped 2026-05-10.
             const rowStyle = {
-              backgroundImage: `linear-gradient(to left, color-mix(in oklch, var(--puru-${e.element}-vivid) var(--puru-bleed-mix), transparent) 0%, transparent var(--puru-bleed-stop))`,
               color: `var(--puru-${e.element}-vivid)`,
             };
             const actor = resolve(e.actor);
