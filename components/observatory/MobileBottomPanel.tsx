@@ -35,14 +35,14 @@ const TABS: { key: TabKey; label: string }[] = [
 export function MobileBottomPanel({
   totalActive,
   distribution,
-  cosmicIntensity,
-  cycleBalance,
+  stones,
+  quizzes,
   weather,
 }: {
   totalActive: number;
   distribution: Record<Element, number>;
-  cosmicIntensity: number;
-  cycleBalance: number;
+  stones: number;
+  quizzes: number;
   weather: WeatherState;
 }) {
   const [active, setActive] = useState<TabKey>("activity");
@@ -63,8 +63,8 @@ export function MobileBottomPanel({
             <StatsTile
               totalActive={totalActive}
               distribution={distribution}
-              cosmicIntensity={cosmicIntensity}
-              cycleBalance={cycleBalance}
+              stones={stones}
+              quizzes={quizzes}
             />
           </MobilePanelShell>
         ) : active === "activity" ? (

@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { ELEMENTS, type Element } from "@/lib/score";
 import { KpiCell } from "./KpiCell";
-import { Users, Lightning, Scales } from "@phosphor-icons/react";
+import { Users, Sparkle, Compass } from "@phosphor-icons/react";
 
 const ELEMENT_KANJI: Record<Element, string> = {
   wood: "木",
@@ -22,13 +22,13 @@ const ELEMENT_KANJI: Record<Element, string> = {
 export function StatsTile({
   totalActive,
   distribution,
-  cosmicIntensity,
-  cycleBalance,
+  stones,
+  quizzes,
 }: {
   totalActive: number;
   distribution: Record<Element, number>;
-  cosmicIntensity: number;
-  cycleBalance: number;
+  stones: number;
+  quizzes: number;
 }) {
   const dominantElement = useMemo(() => {
     let best: Element = "wood";
@@ -41,12 +41,6 @@ export function StatsTile({
     }
     return best;
   }, [distribution]);
-
-  const cycleDirection: "sheng" | "ke" = cycleBalance >= 0.5 ? "sheng" : "ke";
-  const cyclePct = Math.round(
-    cycleBalance >= 0.5 ? cycleBalance * 100 : (1 - cycleBalance) * 100,
-  );
-  const cycleKanji = cycleDirection === "sheng" ? "生" : "克";
 
   return (
     <section className="relative z-10 flex h-full min-h-0 flex-col overflow-hidden bg-puru-cloud-bright shadow-puru-rim-left">
@@ -74,20 +68,20 @@ export function StatsTile({
           aside={<Users weight="fill" />}
         />
         <KpiCell
+          label="stones claimed"
+          value={stones}
+          aside={<Sparkle weight="fill" />}
+        />
+        <KpiCell
+          label="quizzes taken"
+          value={quizzes}
+          aside={<Compass weight="fill" />}
+        />
+        <KpiCell
           label="dominant element"
           value={<span className="capitalize">{dominantElement}</span>}
           aside={ELEMENT_KANJI[dominantElement]}
           asideStyle={{ color: `var(--puru-${dominantElement}-vivid)` }}
-        />
-        <KpiCell
-          label="cycle balance"
-          value={`${cyclePct}% ${cycleKanji}`}
-          aside={<Scales weight="fill" />}
-        />
-        <KpiCell
-          label="cosmic intensity"
-          value={cosmicIntensity.toFixed(2)}
-          aside={<Lightning weight="fill" />}
         />
       </div>
     </section>

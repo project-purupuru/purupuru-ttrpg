@@ -8,8 +8,6 @@ import { OBSERVATORY_SPRITE_COUNT } from "@/lib/sim/entities";
 import { buildIdentityRegistry } from "@/lib/sim/identity";
 import type { PuruhaniIdentity } from "@/lib/sim/types";
 import { PuruhaniAvatar } from "./PuruhaniAvatar";
-import { KpiCell } from "./KpiCell";
-import { Sparkle, ArrowsClockwise, Compass } from "@phosphor-icons/react";
 import type { AvatarSeed } from "@/lib/sim/types";
 import type {
   ElementShiftActivity,
@@ -105,23 +103,6 @@ export function ActivityRail() {
   // lives in the body where width can flex.
   const lastSeen = events.length > 0 ? timeAgo(events[0].at, now) : "—";
 
-  // Live tally over the displayed window — counts only what's in `events`
-  // (capped at 50). Reads as "what's happening right now," not lifetime
-  // totals; refreshes on every new event without any extra subscription.
-  // Weather is rare (5% emit rate) and already carried by the WeatherTile,
-  // so the 3-cell counter showcases the high-frequency narrative beats.
-  const counts = useMemo(() => {
-    let mint = 0;
-    let element_shift = 0;
-    let quiz_completed = 0;
-    for (const e of events) {
-      if (e.kind === "mint") mint++;
-      else if (e.kind === "element_shift") element_shift++;
-      else if (e.kind === "quiz_completed") quiz_completed++;
-    }
-    return { mint, element_shift, quiz_completed };
-  }, [events]);
-
   return (
     <aside className="relative z-10 flex h-full min-h-0 flex-col overflow-hidden border-l border-puru-surface-border bg-puru-cloud-bright shadow-puru-rim-left">
       <header className="relative shrink-0 bg-puru-cloud-bright px-6 py-4 shadow-[0_1px_0_0_var(--puru-surface-border),0_2px_4px_var(--puru-surface-shadow-sm)]">
@@ -143,23 +124,6 @@ export function ActivityRail() {
           </span>
         </div>
       </header>
-      <div className="grid shrink-0 grid-cols-3 gap-2 border-b border-puru-surface-border bg-puru-cloud-base px-3 py-3">
-        <KpiCell
-          label="mints"
-          value={counts.mint}
-          aside={<Sparkle weight="fill" />}
-        />
-        <KpiCell
-          label="shifts"
-          value={counts.element_shift}
-          aside={<ArrowsClockwise weight="bold" />}
-        />
-        <KpiCell
-          label="quizzes"
-          value={counts.quiz_completed}
-          aside={<Compass weight="fill" />}
-        />
-      </div>
       {events.length === 0 ? (
         <div className="flex flex-1 items-center justify-center bg-puru-cloud-base px-5 py-12">
           <p className="font-puru-body text-xs uppercase tracking-[0.18em] text-puru-ink-dim">
