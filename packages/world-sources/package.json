@@ -1,0 +1,23 @@
+{
+  "name": "@purupuru/world-sources",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Source adapters · Score · Sonar · weather fixture · per SDD r2 §1 · hybrid score adapter (mock-default + env-flag flips to real API for stretch aliveness)",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@purupuru/peripheral-events": "workspace:*"
+  },
+  "peerDependencies": {
+    "effect": "^3.10.0"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "vitest": "^2"
+  }
+}

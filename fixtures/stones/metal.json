@@ -1,0 +1,31 @@
+{
+  "name": "Genesis Stone \u00b7 Metal",
+  "symbol": "PGS",
+  "description": "A Metal-element imprint of the awareness layer \u00b7 the day's tide read precise when this stone was claimed \u00b7 purupuru world.",
+  "image": "https://purupuru-blink.vercel.app/art/stones/metal.png",
+  "external_url": "https://purupuru.world",
+  "attributes": [
+    {
+      "trait_type": "Element",
+      "value": "Metal"
+    },
+    {
+      "trait_type": "Generation",
+      "value": "Genesis"
+    },
+    {
+      "trait_type": "Path",
+      "value": "Autumn"
+    }
+  ],
+  "properties": {
+    "category": "image",
+    "creators": [],
+    "files": [
+      {
+        "uri": "https://purupuru-blink.vercel.app/art/stones/metal.png",
+        "type": "image/png"
+      }
+    ]
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "Genesis Stone · Fire",
+  "symbol": "PGS",
+  "description": "Sp1 spike · the tide read FIRE · one stone of warmth · purupuru awareness layer · Solana Frontier hackathon 2026-05-08",
+  "image": "https://raw.githubusercontent.com/project-purupuru/purupuru-ttrpg/feat/awareness-layer-spine/public/art/puruhani/puruhani-fire.png",
+  "external_url": "https://purupuru.world",
+  "attributes": [
+    { "trait_type": "Element", "value": "Fire" },
+    { "trait_type": "Weather at mint", "value": "Water" },
+    { "trait_type": "Spike", "value": "Sp1 · Phantom Metaplex devnet visibility" },
+    { "trait_type": "Genesis", "value": "true" }
+  ],
+  "properties": {
+    "category": "image",
+    "creators": [],
+    "files": [
+      {
+        "uri": "https://raw.githubusercontent.com/project-purupuru/purupuru-ttrpg/feat/awareness-layer-spine/public/art/puruhani/puruhani-fire.png",
+        "type": "image/png"
+      }
+    ]
+  }
+}

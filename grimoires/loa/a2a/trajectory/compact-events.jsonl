@@ -1,0 +1,30 @@
+{"event":"compact_recovery","timestamp":"2026-05-09T15:54:40Z","context":{
+  "timestamp": "2026-05-09T15:52:56Z",
+  "project_root": "/Users/zksoju/bonfire/constructs",
+  "run_mode": {
+    "active": true,
+    "state": "JACKED_OUT"
+  },
+  "simstim": {
+    "active": true,
+    "phase": "implementation"
+  },
+  "current_skill": "unknown",
+  "current_phase": "unknown",
+  "current_task": "unknown"
+}}
+{"event":"compact_recovery","timestamp":"2026-05-09T20:07:00Z","context":{
+  "timestamp": "2026-05-09T19:54:00Z",
+  "project_root": "/Users/zksoju/bonfire/purupuru-ttrpg",
+  "run_mode": {
+    "active": true,
+    "state": "HALTED"
+  },
+  "simstim": {
+    "active": true,
+    "phase": "implementation"
+  },
+  "current_skill": "unknown",
+  "current_phase": "unknown",
+  "current_task": "unknown"
+}}

@@ -1,0 +1,24 @@
+{
+  "name": "@purupuru/peripheral-events",
+  "version": "0.0.1",
+  "private": true,
+  "description": "L2 sealed substrate · WorldEvent + BaziQuizState + ClaimMessage Effect Schemas · canonical eventId hash · the truth layer per SDD r2 §1+§3",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "effect": "^3.10.0"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "vitest": "^2"
+  },
+  "dependencies": {
+    "bs58": "^6.0.0",
+    "tweetnacl": "^1.0.3"
+  }
+}
