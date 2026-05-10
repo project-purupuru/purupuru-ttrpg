@@ -60,7 +60,7 @@ export function ActivityRail() {
 
   return (
     <aside className="relative z-10 flex h-full min-h-0 flex-col overflow-hidden border-l border-puru-surface-border bg-puru-cloud-bright shadow-puru-rim-left">
-      <header className="relative shrink-0 bg-puru-cloud-bright px-6 py-4 shadow-[0_1px_0_0_var(--puru-surface-border),0_2px_4px_var(--puru-surface-shadow-sm)]">
+      <header className="relative z-10 shrink-0 bg-puru-cloud-bright px-6 py-4 shadow-[0_1px_0_0_var(--puru-surface-border),0_2px_4px_var(--puru-surface-shadow-sm)]">
         <div className="flex items-center justify-between gap-4">
           <div className="flex min-w-0 flex-col">
             <h3 className="font-puru-display text-xl text-puru-ink-rich">

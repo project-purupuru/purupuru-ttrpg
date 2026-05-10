@@ -40,7 +40,7 @@ export function StatsTile({
 
   return (
     <section className="relative z-10 flex h-full min-h-0 flex-col overflow-hidden bg-puru-cloud-bright shadow-puru-rim-left">
-      <header className="relative shrink-0 bg-puru-cloud-bright px-6 py-4 shadow-[0_1px_0_0_var(--puru-surface-border),0_2px_4px_var(--puru-surface-shadow-sm)]">
+      <header className="relative z-10 shrink-0 bg-puru-cloud-bright px-6 py-4 shadow-[0_1px_0_0_var(--puru-surface-border),0_2px_4px_var(--puru-surface-shadow-sm)]">
         <div className="flex items-center justify-between gap-4">
           <div className="flex min-w-0 flex-col">
             <h3 className="font-puru-display text-xl text-puru-ink-rich">
@@ -57,7 +57,7 @@ export function StatsTile({
           </span>
         </div>
       </header>
-      <div className="grid flex-1 grid-cols-2 gap-px overflow-y-auto bg-puru-surface-border">
+      <div className="grid flex-1 grid-cols-2 auto-rows-fr gap-px overflow-y-auto bg-puru-surface-border">
         {DISPLAY_ORDER.map((el, idx) => {
           const isLeader = el === leader;
           // Last cell (water) spans both columns so the 5-element
@@ -71,7 +71,7 @@ export function StatsTile({
           return (
             <div
               key={el}
-              className={`${dimClass} transition-opacity duration-700 ${
+              className={`${dimClass} h-full transition-opacity duration-700 ${
                 spanFull ? "col-span-2" : ""
               }`}
             >
