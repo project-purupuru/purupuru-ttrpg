@@ -20,6 +20,7 @@ export function KpiCell({
   aside,
   sub,
   asideStyle,
+  cellStyle,
 }: {
   label: string;
   value: ReactNode;
@@ -29,9 +30,14 @@ export function KpiCell({
   sub?: ReactNode;
   /** Inline style applied to the aside slot — typically used for element color. */
   asideStyle?: CSSProperties;
+  /** Inline style applied to the cell wrapper — for element-tinted bleed gradients. */
+  cellStyle?: CSSProperties;
 }) {
   return (
-    <div className="relative flex min-w-0 flex-col gap-1 overflow-hidden rounded-puru-sm bg-puru-cloud-bright px-3 py-2 shadow-puru-tile">
+    <div
+      className="relative flex min-w-0 flex-col gap-1 overflow-hidden rounded-puru-sm bg-puru-cloud-bright px-3 py-2 shadow-puru-tile transition-[background-image] duration-700 ease-out"
+      style={cellStyle}
+    >
       <span className="relative z-10 truncate font-puru-mono text-2xs uppercase tracking-[0.22em] text-puru-ink-soft">
         {label}
       </span>

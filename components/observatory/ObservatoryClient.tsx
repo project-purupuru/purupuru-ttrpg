@@ -7,7 +7,6 @@ import type { WeatherState } from "@/lib/weather";
 import type { Element } from "@/lib/score";
 import type { PuruhaniIdentity } from "@/lib/sim/types";
 import { activityStream } from "@/lib/activity";
-import { OBSERVATORY_SPRITE_COUNT } from "@/lib/sim/entities";
 import { getSonifier } from "@/lib/audio/sonify";
 import Image from "next/image";
 import { KpiStrip } from "./KpiStrip";
@@ -23,20 +22,10 @@ const ZERO_DISTRIBUTION: Record<Element, number> = {
   wood: 0, fire: 0, earth: 0, water: 0, metal: 0,
 };
 
-// Session-monotonic tallies for the top-strip headline counters. Seeded
-// from whatever's already in the activity stream's buffer at mount
-// (3 backdated events from start()) so the strip doesn't read as 0/0
-// during the first second; climbs from there as new events fire.
-function seedCount(kind: "mint" | "quiz_completed"): number {
-  return activityStream.recent(100).filter((e) => e.kind === kind).length;
-}
-
 export function ObservatoryClient() {
   const [introDone, setIntroDone] = useState(false);
   const [distribution, setDistribution] = useState<Record<Element, number>>(ZERO_DISTRIBUTION);
   const [weather, setWeather] = useState<WeatherState>(weatherFeed.current());
-  const [stones, setStones] = useState<number>(() => seedCount("mint"));
-  const [quizzes, setQuizzes] = useState<number>(() => seedCount("quiz_completed"));
   const [focused, setFocused] = useState<PuruhaniIdentity | null>(null);
   // `playing` drives the MusicPlayer's <audio> element. `sfxEnabled`
   // independently toggles the pentatonic sonifier — both must be true
@@ -120,12 +109,9 @@ export function ObservatoryClient() {
     return () => document.removeEventListener("click", onDocClick);
   }, [focused]);
 
-  // KPI sources — every metric derives from an observable signal that
-  // correlates with the canvas:
-  //   live presence  → OBSERVATORY_SPRITE_COUNT (matches what the canvas renders)
-  //   wuxing dist    → scoreAdapter.getElementDistribution() (same source the canvas seeds from)
-  //   stones claimed → monotonic count of mint events from activityStream
-  //   quizzes taken  → monotonic count of quiz_completed events from activityStream
+  // KPI sources — the strip reads the score adapter's element
+  // distribution as 5 wuxing clan counts, refreshed every 3s. Weather
+  // drives the canvas + theme.
   useEffect(() => {
     let cancelled = false;
     const refetch = async () => {
@@ -136,15 +122,10 @@ export function ObservatoryClient() {
     refetch();
     const id = setInterval(refetch, 3000);
     const unsubWeather = weatherFeed.subscribe(setWeather);
-    const unsubActivity = activityStream.subscribe((e) => {
-      if (e.kind === "mint") setStones((n) => n + 1);
-      else if (e.kind === "quiz_completed") setQuizzes((n) => n + 1);
-    });
     return () => {
       cancelled = true;
       clearInterval(id);
       unsubWeather();
-      unsubActivity();
     };
   }, []);
 
@@ -183,12 +164,7 @@ export function ObservatoryClient() {
         </span>
       </div>
       <div className="hidden lg:block">
-        <KpiStrip
-          totalActive={OBSERVATORY_SPRITE_COUNT}
-          distribution={distribution}
-          stones={stones}
-          quizzes={quizzes}
-        />
+        <KpiStrip distribution={distribution} />
       </div>
       <main className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[1fr_440px]">
         <div className="relative min-h-0">
@@ -224,10 +200,7 @@ export function ObservatoryClient() {
         </aside>
       </main>
       <MobileBottomPanel
-        totalActive={OBSERVATORY_SPRITE_COUNT}
         distribution={distribution}
-        stones={stones}
-        quizzes={quizzes}
         weather={weather}
       />
     </div>

@@ -33,16 +33,10 @@ const TABS: { key: TabKey; label: string }[] = [
  * the same eyebrow used by every label in the observatory UI.
  */
 export function MobileBottomPanel({
-  totalActive,
   distribution,
-  stones,
-  quizzes,
   weather,
 }: {
-  totalActive: number;
   distribution: Record<Element, number>;
-  stones: number;
-  quizzes: number;
   weather: WeatherState;
 }) {
   const [active, setActive] = useState<TabKey>("activity");
@@ -60,12 +54,7 @@ export function MobileBottomPanel({
       >
         {active === "stats" ? (
           <MobilePanelShell>
-            <StatsTile
-              totalActive={totalActive}
-              distribution={distribution}
-              stones={stones}
-              quizzes={quizzes}
-            />
+            <StatsTile distribution={distribution} />
           </MobilePanelShell>
         ) : active === "activity" ? (
           <MobilePanelShell>

@@ -1,9 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { ELEMENTS, type Element } from "@/lib/score";
+import type { Element } from "@/lib/score";
 import { KpiCell } from "./KpiCell";
-import { Users, Sparkle, Compass } from "@phosphor-icons/react";
 
 const ELEMENT_KANJI: Record<Element, string> = {
   wood: "木",
@@ -13,27 +12,24 @@ const ELEMENT_KANJI: Record<Element, string> = {
   metal: "金",
 };
 
+const DISPLAY_ORDER: readonly Element[] = ["wood", "fire", "earth", "metal", "water"] as const;
+
 /**
- * Mobile-only stats panel — same four world signals as the desktop
- * KpiStrip, restacked into a 2×2 grid that reads at a glance under the
- * pentagram canvas. The KpiStrip itself stays horizontal on desktop;
- * this component is what the mobile "Stats" tab renders.
+ * Mobile mirror of the desktop KpiStrip — five wuxing clan cells in
+ * sheng-cycle order. The leading clan's kanji lifts to its element's
+ * vivid color; the others stay at the ambient ink-base wash. Layout:
+ * two rows of two + a wider "water" cell spanning row 3 so all five
+ * fit in the 2-column grid without orphaning a half-empty cell.
  */
 export function StatsTile({
-  totalActive,
   distribution,
-  stones,
-  quizzes,
 }: {
-  totalActive: number;
   distribution: Record<Element, number>;
-  stones: number;
-  quizzes: number;
 }) {
-  const dominantElement = useMemo(() => {
+  const leader = useMemo(() => {
     let best: Element = "wood";
     let bestVal = -Infinity;
-    for (const el of ELEMENTS) {
+    for (const el of DISPLAY_ORDER) {
       if (distribution[el] > bestVal) {
         bestVal = distribution[el];
         best = el;
@@ -62,27 +58,43 @@ export function StatsTile({
         </div>
       </header>
       <div className="grid flex-1 grid-cols-2 gap-2 overflow-y-auto bg-puru-cloud-base px-3 py-3">
-        <KpiCell
-          label="live presence"
-          value={totalActive}
-          aside={<Users weight="fill" />}
-        />
-        <KpiCell
-          label="stones claimed"
-          value={stones}
-          aside={<Sparkle weight="fill" />}
-        />
-        <KpiCell
-          label="quizzes taken"
-          value={quizzes}
-          aside={<Compass weight="fill" />}
-        />
-        <KpiCell
-          label="dominant element"
-          value={<span className="capitalize">{dominantElement}</span>}
-          aside={ELEMENT_KANJI[dominantElement]}
-          asideStyle={{ color: `var(--puru-${dominantElement}-vivid)` }}
-        />
+        {DISPLAY_ORDER.map((el, idx) => {
+          const isLeader = el === leader;
+          // Last cell (water) spans both columns so the 5-element
+          // sequence fits cleanly in a 2-col grid without an empty slot.
+          const spanFull = idx === DISPLAY_ORDER.length - 1;
+          // Non-leader cells dim to ~50% so the leading clan visibly
+          // owns the panel — same treatment as the desktop KpiStrip.
+          const dimClass = isLeader
+            ? "opacity-100"
+            : "opacity-60";
+          return (
+            <div
+              key={el}
+              className={`${dimClass} transition-opacity duration-700 ${
+                spanFull ? "col-span-2" : ""
+              }`}
+            >
+              <KpiCell
+                label={el}
+                value={distribution[el] ?? 0}
+                aside={ELEMENT_KANJI[el]}
+                cellStyle={
+                  isLeader
+                    ? {
+                        backgroundImage: `linear-gradient(to left, color-mix(in oklch, var(--puru-${el}-vivid) var(--puru-bleed-mix), transparent) 0%, transparent var(--puru-bleed-stop))`,
+                      }
+                    : undefined
+                }
+                asideStyle={
+                  isLeader
+                    ? { color: `var(--puru-${el}-vivid)`, opacity: 0.42 }
+                    : undefined
+                }
+              />
+            </div>
+          );
+        })}
       </div>
     </section>
   );
