@@ -58,46 +58,61 @@ The wallet bridges the two surfaces. Twitter takes you in; the wallet records yo
 
 ## The whole user journey · what to emphasize
 
-> **For Eileen**: depth = atmospheric altitude. Twitter is the street; the reveal is upstairs in a private chamber; the observatory is the building's public square.
+> **Reading guide**: four narrative beats from top to bottom — *discover · take the quiz · cross trust · land in the world*. Yellow = the emotional payoff. Purple = the moment commitment changes (wallet signature). Blue = the destination. Dashed lines = where the loop doesn't close yet (amber = v0 gap we'd ship if we had another sprint · grey = future room).
 
+```mermaid
+flowchart TD
+    classDef live fill:#e8f4ea,stroke:#2d6a4f,stroke-width:2px,color:#1b4332
+    classDef payoff fill:#fff3cd,stroke:#a07a00,stroke-width:3px,color:#3d2c00
+    classDef trust fill:#e7e3f7,stroke:#5a4fcf,stroke-width:2px,color:#2a1f6b
+    classDef destination fill:#dbeafe,stroke:#1e40af,stroke-width:2px,color:#0b2545
+    classDef openWound fill:#fff7e6,stroke:#c2410c,stroke-width:1.5px,stroke-dasharray:6 4,color:#7c2d12
+    classDef futureRoom fill:#fafafa,stroke:#999,stroke-width:1.5px,stroke-dasharray:6 4,color:#555
+
+    subgraph DISCOVERY["Discovery · in-feed (any platform)"]
+        feed["Twitter feed<br/><i>also: Telegram · base app · ...</i>"]
+        ambient["Live world tile<br/>(today's element · activity pulse)"]
+    end
+
+    subgraph QUIZ["Quiz · Twitter Blink"]
+        cta["Tap: What's my element?"]
+        quiz["8-question quiz"]
+        reveal["Quiz reveal<br/><b>You are Wood</b> · stone PNG"]
+    end
+
+    subgraph MINT["Mint moment · trust crossing"]
+        sign["Mint stone<br/>(Phantom signature)"]
+        confirmed["Mint confirmed"]
+    end
+
+    subgraph WORLD["Community surface · Observatory (web)"]
+        plaza["Observatory<br/>live pentagram · activity rail · weather"]
+        focus["Tap a sprite · peek detail"]
+        profile["Your element · your stones<br/><i>(future room)</i>"]
+    end
+
+    feed --> ambient
+    feed --> cta
+    ambient -->|see today, then take quiz| cta
+    cta --> quiz
+    quiz --> reveal
+    reveal -->|Claim your stone| sign
+    sign --> confirmed
+    confirmed -.->|no bridge yet · v0 gap| plaza
+    plaza --> focus
+    plaza -.->|login + wallet-link not built| profile
+
+    class feed,ambient,cta,quiz live
+    class reveal payoff
+    class sign,confirmed trust
+    class plaza,focus destination
+    class profile futureRoom
+
+    linkStyle 7 stroke:#c2410c,stroke-width:2px,stroke-dasharray:6 4
+    linkStyle 9 stroke:#999,stroke-width:1.5px,stroke-dasharray:6 4
 ```
-                              ┌──────────────────────────┐
-                              │     Z0 · THE STREET      │  0F · outdoors
-                              │   (Twitter / Telegram)   │
-                              └────────────┬─────────────┘
-                                           │
-                          ┌────────────────┴────────────────┐
-                          │                                 │
-                          ▼                                 ▼
-              ┌─────────────────────┐             ┌─────────────────────┐
-              │  Z1a · AMBIENT      │  0.5F       │  Z1b · QUIZ         │  1F
-              │  WINDOW (today)     │ ──────────► │  THRESHOLD (start)  │
-              │  weather-vane       │             │  one prompt         │
-              └──────────┬──────────┘             └──────────┬──────────┘
-                         │  (CTA: what's my element?)        │
-                         └────────────────┬──────────────────┘
-                                          ▼
-                       ┌──────────────────────────────────────┐
-                       │  Z2 · QUIZ HALLWAY · Q1→Q8           │  1F · long corridor
-                       │  per-step illustrations · HMAC-sealed│
-                       └──────────────────┬───────────────────┘
-                                          ▼
-                       ┌──────────────────────────────────────┐
-                       │  Z3 · REVEAL CHAMBER                 │  2F · private alcove
-                       │  "You are Wood." · stone PNG         │  ★ emotional payoff
-                       └──────────────────┬───────────────────┘
-                                          │  TRUST CROSSING (wallet sig)
-                                          ▼
-                       ┌──────────────────────────────────────┐
-                       │  Z4 · TREASURY (mint)                │  3F · vault
-                       │  Phantom · sponsored-payer           │
-                       └──────────────────┬───────────────────┘
-                                          ▼
-                       ┌──────────────────────────────────────┐
-                       │  Z6 · OBSERVATORY PLAZA              │  1F · public square
-                       │  pentagram · activity rail · weather │  inside the building
-                       └──────────────────────────────────────┘
-```
+
+> **Twitter is the v0 instance.** Same Action endpoints unfurl in Telegram and base app — one journey, many doorways. The chain layer (Solana for v0) and substrate (HMAC-sealed quiz state · Anchor program · Metaplex mint) stay constant; the presentation layer adapts per distribution.
 
 **Demo emphasis** (3-min recording target):
 - **Linger 45s · Z3 Reveal** — the emotional payoff. The room where recognition + reflection land · *"this is me · this gives me a way to navigate."*
