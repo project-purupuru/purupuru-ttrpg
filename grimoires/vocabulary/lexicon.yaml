@@ -1,0 +1,204 @@
+# purupuru lexicon · canonical product terms across surfaces
+#
+# Origin: vocab-bank construct audit 2026-05-10 · ambient-card vocab drift
+# discovered when /bridgebuilder-review surfaced PR #4 then operator asked
+# the artisan + observer + vocab-bank trio to align ambient with zerker's
+# observatory. Bootstrapped per vocab-bank's "Y · prevents next surface split"
+# recommendation.
+#
+# Schema (per term):
+#   canonical · the one term to use everywhere
+#   surfaces · where this term currently appears (file refs)
+#   forbidden · synonyms NOT to use (with reason)
+#   register · Title Case · sentence-case · lowercase-mono · etc
+#   last_confirmed · commit SHA where canonical was validated
+#
+# Update protocol:
+#   - When a new surface introduces a competing term: STOP · open this file
+#   - Add the term as canonical OR add the new surface to existing term's surfaces[]
+#   - If two surfaces use different terms for same thing: file an issue · don't pick silently
+
+version: 1
+project: purupuru
+last_updated: 2026-05-10
+
+terms:
+
+  # === Surfaces ===
+
+  observatory:
+    canonical: Observatory
+    register: Title Case
+    surfaces:
+      - main:components/observatory/KpiStrip.tsx
+      - main:components/observatory/ActivityRail.tsx
+      - main:components/observatory/WeatherTile.tsx
+      - main:app/page.tsx (metadata title "purupuru observatory · the world, breathing")
+      - feat/awareness-layer-spine:packages/medium-blink/src/quiz-renderer.ts (renderAmbient)
+    forbidden:
+      - "the world": "Was used in ambient renderer pre-2026-05-10 · zerker's observatory canon won (40+ commits) · unified per ambient-card audit"
+      - "world view": "Never canon · do not use"
+      - "live feed": "OK as descriptive phrase · NOT a surface name"
+    last_confirmed: 062538b
+
+  quiz:
+    canonical: Quiz
+    register: Title Case
+    surfaces:
+      - feat/awareness-layer-spine:packages/medium-blink/src/voice-corpus.ts (QUIZ_STEP_TITLES "Question 1 of 8" etc)
+      - feat/awareness-layer-spine:app/api/actions/quiz/* (3 routes)
+    forbidden:
+      - "questionnaire": "Too clinical for the personality-test feel"
+      - "test": "Implies pass/fail · this is identity discovery"
+    last_confirmed: 6ce7f1e
+
+  blink:
+    canonical: Blink
+    register: Title Case
+    surfaces:
+      - feat/awareness-layer-spine:packages/medium-blink/* (entire package)
+    forbidden:
+      - "card": "Generic · 'card' refers to any UI rectangle"
+      - "action": "Solana Actions spec uses 'action' as the JSON shape · don't conflate with the user-facing surface"
+    notes: "Solana Actions spec · the user-facing rendered Action card produced by Dialect Blinks renderer"
+    last_confirmed: 6ce7f1e
+
+  # === KPIs (observatory canon · KEEPER verified on origin/main) ===
+
+  dominant_element:
+    canonical: dominant element
+    register: lowercase-mono (KPI label)
+    surfaces:
+      - main:components/observatory/KpiStrip.tsx
+    forbidden:
+      - "rising element": "Implies delta · observatory has no per-element delta KPI · SUBSTRATE-BROKEN if used"
+      - "winning element": "Wrong register · observatory is observational not competitive"
+    notes: "KEEPER drift report 2026-05-10 D2 · using delta phrasing for this KPI broke click-through promise · ambient card now matches"
+    last_confirmed: 757803f
+
+  live_presence:
+    canonical: live presence
+    register: lowercase-mono (KPI label)
+    surfaces:
+      - main:components/observatory/KpiStrip.tsx
+    forbidden:
+      - "online users": "Too web2 · purupuru voice is observational"
+      - "active wallets": "Reveals substrate detail at presentation layer · violates cmp-boundary"
+    last_confirmed: 062538b
+
+  cycle_balance:
+    canonical: cycle balance
+    register: lowercase-mono (KPI label)
+    surfaces:
+      - main:components/observatory/KpiStrip.tsx (e.g. "64% 生" or "58% 克")
+    notes: "References sheng/ke (生/克) · the wuxing creation/destruction cycle · do NOT translate"
+    last_confirmed: 062538b
+
+  cosmic_intensity:
+    canonical: cosmic intensity
+    register: lowercase-mono (KPI label)
+    surfaces:
+      - main:components/observatory/KpiStrip.tsx (decimal · 2 places)
+    last_confirmed: 062538b
+
+  # === Activity rail event copy (observatory canon · KEEPER verified) ===
+
+  rail_mint_event:
+    canonical: claimed a stone
+    register: sentence-case (rail event verb)
+    surfaces:
+      - main:components/observatory/ActivityRail.tsx (mint variant)
+    forbidden:
+      - "minted a stone": "Substrate verb · presentation should hide the on-chain mechanism"
+      - "got a stone": "Too casual · loses the ceremonial weight"
+    last_confirmed: ec15b37
+
+  rail_quiz_event:
+    canonical: archetype emerged
+    register: sentence-case (rail event verb)
+    surfaces:
+      - main:components/observatory/ActivityRail.tsx (quiz_completed variant)
+    forbidden:
+      - "took the quiz": "Doesn't carry the identity-locating weight"
+      - "got their element": "Loses the world-noticing register"
+    last_confirmed: ec15b37
+
+  rail_weather_event:
+    canonical: weather shift
+    register: sentence-case (rail event verb)
+    surfaces:
+      - main:components/observatory/ActivityRail.tsx (weather variant)
+    last_confirmed: ec15b37
+
+  rail_element_shift:
+    canonical: drifted to {element}
+    register: sentence-case (rail event verb · template)
+    surfaces:
+      - main:components/observatory/ActivityRail.tsx (element_shift variant)
+    last_confirmed: ec15b37
+
+  # === Counters ===
+
+  stones_claimed:
+    canonical: stones claimed
+    register: sentence-case (running count phrasing)
+    surfaces:
+      - feat/awareness-layer-spine:packages/medium-blink/src/quiz-renderer.ts (renderAmbient description)
+    related: rail_mint_event
+    forbidden:
+      - "stones minted": "Substrate verb · hide the chain"
+      - "NFTs created": "Cmp-boundary violation · never mention NFTs in presentation"
+    notes: "Aligns with observatory's mint counter on rail · counts events not artifacts (KEEPER D4)"
+    last_confirmed: bb52cf2
+
+  # === Identity / archetype ===
+
+  element:
+    canonical: Element (proper noun · specific) / element (generic)
+    register: Title Case for naming an instance ("You are Wood.") · lowercase generic
+    surfaces:
+      - feat/awareness-layer-spine:packages/medium-blink/src/voice-corpus.ts (ARCHETYPE_REVEALS)
+      - feat/awareness-layer-spine:packages/medium-blink/src/quiz-renderer.ts (renderQuizResult)
+    notes: "Five elements: Wood · Fire · Earth · Metal · Water. Always Title Case when named. Lowercase only in generic phrasing ('find your element')."
+    last_confirmed: b56deb8
+
+  archetype:
+    canonical: archetype
+    register: lowercase generic / sentence-case in rail copy
+    surfaces:
+      - main:components/observatory/ActivityRail.tsx ("archetype emerged")
+      - feat/awareness-layer-spine:packages/peripheral-events/src/bazi-resolver.ts (archetypeFromAnswers)
+    related: element
+    notes: "An archetype is the lived expression of an Element · used interchangeably with Element in user-facing copy except where the lived/expressed distinction matters"
+
+  # === Voice register guardrails ===
+
+  voice_substrate:
+    canonical: clinical-dashboard
+    register: meta
+    notes: "Observatory KPI strip + activity rail · lowercase mono labels · tabular nums · no second-person · no metaphor. KEEPER's drift report D3."
+    surfaces:
+      - main:components/observatory/*
+
+  voice_presentation:
+    canonical: grounded plain-language
+    register: meta
+    notes: "Quiz reveal + button copy · second-person · sentence-case · plain personality-test register. Operator-validated 2026-05-09 (stripped 'tide' metaphor)."
+    surfaces:
+      - feat/awareness-layer-spine:packages/medium-blink/src/voice-corpus.ts (ARCHETYPE_REVEALS)
+      - feat/awareness-layer-spine:packages/medium-blink/src/quiz-renderer.ts (renderQuizResult)
+
+# === Forbidden across all surfaces ===
+
+forbidden_global:
+  - term: tide
+    reason: Operator removed 2026-05-09 · meaningless to users · grounded copy won
+    enforced_at: b56deb8
+  - term: NFT
+    reason: cmp-boundary · presentation layer never reveals on-chain primitives
+  - term: minted
+    reason: Substrate verb · use "claimed" in presentation
+  - term: token
+    reason: cmp-boundary
+  - term: wallet
+    reason: cmp-boundary · except in transactional contexts where wallet UX is the user-facing surface

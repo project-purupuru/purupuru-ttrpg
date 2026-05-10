@@ -149,5 +149,6 @@ export const QUIZ_STEP_TITLES: Record<number, string> = {
   8: "Question 8 of 8",
 }
 
-// Default ambient prompt for `/api/actions/today` (S1-T8 ambient endpoint).
-export const AMBIENT_PROMPT = "the world breathes. take a moment with it."
+// (Removed 2026-05-10) AMBIENT_PROMPT used to read "the world breathes. take a
+// moment with it." — replaced by observatory-aligned data subhead in
+// renderAmbient (KEEPER drift report D3 + vocab-bank canonical naming).

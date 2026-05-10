@@ -21,7 +21,6 @@ import { QUIZ_CONFIG, selectAnswers, shouldButtonsPost } from "./quiz-config"
 import type { ActionGetResponse, LinkedAction } from "./solana-actions-types"
 import { BLINK_DESCRIPTOR } from "./solana-actions-types"
 import {
-  AMBIENT_PROMPT,
   ARCHETYPE_REVEALS,
   QUIZ_CORPUS,
   QUIZ_STEP_TITLES,
@@ -225,21 +224,34 @@ export const renderQuizResult = (params: {
   }
 }
 
-// Render the ambient `/api/actions/today` Blink (S1-T8 will use this).
-// Per bridgebuilder REFRAME-1 fix · awareness-layer thesis demo · NO interaction.
+// Render the ambient `/api/actions/today` Blink · the on-ramp card that
+// previews zerker's observatory and pulls users into the quiz.
+//
+// Vocabulary aligned with observatory canon (zerker's main branch):
+//   - Surface name: "Observatory" (was "the world" · 40+ commits use observatory)
+//   - KPI shape: "dominant element" + "stones claimed" (matches KpiStrip.tsx +
+//     ActivityRail mint counter on origin/main · NOT a fabricated per-element
+//     delta · prior `fireSurgeDelta` had no substrate referent)
+//
+// Title rhythm matches renderQuizResult (`"You are Wood."`) — title is a
+// stable identity-locating phrase · description carries the live data subhead.
 export const renderAmbient = (params: {
   todayElement: Element
   mintCount: number
-  fireSurgeDelta: number // percent · positive = up
   config?: RendererConfig
 }): ActionGetResponse => {
   const config = params.config ?? defaultConfig
 
+  // Title-case the dominant element · "Wood" · matches result-reveal convention.
+  const elementName =
+    params.todayElement.charAt(0) +
+    params.todayElement.slice(1).toLowerCase()
+
   return {
     icon: iconUrlForArchetype(params.todayElement, config),
-    title: `today in the world · ${params.mintCount} stones · ${params.todayElement.toLowerCase()} rises ${params.fireSurgeDelta >= 0 ? "+" : ""}${params.fireSurgeDelta}%`,
-    description: AMBIENT_PROMPT,
-    label: "the world",
+    title: "The Observatory",
+    description: `${elementName} dominant today · ${params.mintCount} stones claimed. Find your element. Add your signal.`,
+    label: "Observatory",
     links: {
       actions: [
         {

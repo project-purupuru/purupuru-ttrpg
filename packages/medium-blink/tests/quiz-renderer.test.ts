@@ -193,33 +193,43 @@ describe("renderAmbient · /api/actions/today (REFRAME-1 awareness moat)", () =>
     const response = renderAmbient({
       todayElement: "FIRE",
       mintCount: 47,
-      fireSurgeDelta: 12,
       config: testConfig,
     })
     expect(response.links?.actions.length).toBe(1)
     expect(response.links!.actions[0].href).toContain("/api/actions/quiz/start")
   })
 
-  it("title includes today's element + mint count + surge delta", () => {
+  it("title is the canonical observatory surface name (Title Case · stable)", () => {
     const response = renderAmbient({
       todayElement: "WATER",
       mintCount: 12,
-      fireSurgeDelta: -3,
       config: testConfig,
     })
-    expect(response.title).toContain("12 stones")
-    expect(response.title).toContain("water")
-    expect(response.title).toContain("-3%")
+    expect(response.title).toBe("The Observatory")
+    expect(response.label).toBe("Observatory")
   })
 
-  it("respects title limit even at high mint counts", () => {
+  it("description carries dominant-element + stones-claimed (substrate KPIs · no fabricated delta)", () => {
+    const response = renderAmbient({
+      todayElement: "WATER",
+      mintCount: 12,
+      config: testConfig,
+    })
+    expect(response.description).toContain("Water")
+    expect(response.description).toContain("12 stones")
+    expect(response.description).not.toMatch(/[+-]?\d+%/)
+  })
+
+  it("respects title + description limits even at high mint counts", () => {
     const response = renderAmbient({
       todayElement: "EARTH",
       mintCount: 99999,
-      fireSurgeDelta: 100,
       config: testConfig,
     })
     expect(response.title.length).toBeLessThanOrEqual(BLINK_DESCRIPTOR.titleMaxChars)
+    expect(response.description.length).toBeLessThanOrEqual(
+      BLINK_DESCRIPTOR.descriptionMaxChars,
+    )
   })
 })
 

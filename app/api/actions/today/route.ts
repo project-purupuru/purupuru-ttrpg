@@ -40,22 +40,18 @@ export async function GET(request: Request) {
     const dist = await score.getElementDistribution()
     const todayElement = todayElementFromDistribution(dist)
 
-    // v0 ambient stats · derived from mock or real Score depending on env.
-    // sprint-3 wires more sophisticated aggregation (mint count from Sonar etc.).
+    // v0 ambient stats · derived from mock or real Score. Mint count is the
+    // sum of distribution entries (matches observatory's ActivityRail mint
+    // counter on origin/main). Per-element delta intentionally NOT computed —
+    // observatory's KpiStrip exposes `dominant element`, NOT a percent surge,
+    // so we don't fabricate a number here that the click-through can't honor.
     const mintCount = Math.round(
       Object.values(dist).reduce((sum, v) => sum + v, 0),
-    )
-    const surgeBaseline = 100 / 5 // even distribution baseline (20 per element)
-    const fireSurgeDelta = Math.round(
-      ((dist[todayElement.toLowerCase() as keyof typeof dist] - surgeBaseline) /
-        surgeBaseline) *
-        100,
     )
 
     const response = renderAmbient({
       todayElement,
       mintCount,
-      fireSurgeDelta,
       config: { baseUrl },
     })
 
@@ -65,10 +61,10 @@ export async function GET(request: Request) {
     return NextResponse.json(
       {
         icon: `${baseUrl}/api/og?ambient=fallback`,
-        title: "Today in the World",
+        title: "The Observatory",
         description:
           "The live feed is catching its breath · check back in a moment.",
-        label: "the world",
+        label: "Observatory",
         links: {
           actions: [
             {

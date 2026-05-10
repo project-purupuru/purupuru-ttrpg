@@ -14,9 +14,8 @@ export {
 
 export type { RendererConfig } from "./quiz-renderer"
 
-// Voice corpus · placeholder strings (zksoju-authored · gumi swaps in S2-T6).
+// Voice corpus · operator + Gumi-authored copy.
 export {
-  AMBIENT_PROMPT,
   ARCHETYPE_REVEALS,
   QUIZ_CORPUS,
   QUIZ_STEP_TITLES,
