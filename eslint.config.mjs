@@ -1,3 +1,4 @@
+import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 
@@ -73,29 +74,36 @@ const mediumBlinkBoundaryRules = {
   },
 };
 
-// Default-ignored patterns from eslint-config-next + the framework zone.
-const ignores = {
-  ignores: [
+const eslintConfig = defineConfig([
+  ...nextVitals,
+  ...nextTs,
+  // Override default ignores of eslint-config-next.
+  globalIgnores([
+    // Default ignores of eslint-config-next:
     ".next/**",
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // .claude/ is the Loa System Zone · framework-managed · NEVER edited
-    // by us · framework's own quality gates (if any) cover it. eslint
-    // walking into it would produce noise we cannot fix.
+    // Loa framework System Zone — never edit, never lint.
     ".claude/**",
     // evals/ holds intentional bug fixtures for Loa eval suite ·
     // require()-style imports + unused vars are part of the fixture design.
     "evals/**",
-  ],
-};
-
-const eslintConfig = [
-  ...nextVitals,
-  ...nextTs,
+  ]),
   substrateBoundaryRules,
   mediumBlinkBoundaryRules,
-  ignores,
-];
+  {
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
+]);
 
 export default eslintConfig;

@@ -13,7 +13,6 @@ export {
 } from "./score-adapter"
 
 export type {
-  EcosystemEnergy,
   ElementDistribution,
   ScoreElement,
   ScoreReadAdapter,

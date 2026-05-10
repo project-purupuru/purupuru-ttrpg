@@ -939,3 +939,130 @@ the loop above is r5 after eileen alignment. is this the shape, or does it need 
 - **gumi's pitch**: same as r4 (vision: 18 cards · burn loop · soul-stage agents · cosmic weather oracles · daily friend duels)
 - **eileen's framing document** (2026-05-07 · `/Users/zksoju/Downloads/message (4).txt`): 10-category judging rubric · "what loses" diagnostic list · the strong-version Web3/AI test
 - **upstream operator brief** (2026-05-07 PM · post-eileen): full reframe · separation-as-moat doctrine · zerker dashboard parallel · gumi quiz design · 4d achievable · simulation in demo
+
+---
+
+## FR-12 Amendment · Indexer in-repo scope flip (2026-05-09)
+
+> **⚠️ HISTORICAL — SUPERSEDED 2026-05-09 evening.** This amendment captured the negotiated decisions from the morning session when we assumed the indexer would live in this repo. Subsequent analysis revealed: (a) the observatory naturally deploys to Vercel which can't host long-lived WebSocket subscriptions, (b) sonar's existing Envio framework is EVM-only so couldn't host Solana indexing either, (c) the team's body-parts naming pattern supports a sister-service decomposition. The indexer is now in [project-purupuru/radar](https://github.com/project-purupuru/radar) — a separate Node + Hono service deploying to Railway. AC-12.5/12.7/12.8/12.10/12.11/12.12 from the table below moved to radar's own PRD `grimoires/loa/prd.md`. AC-12.5 (event-to-row latency) and AC-12.9 (env-flag wiring at `lib/activity/index.ts`) and AC-12.12 (E2E test) remain valid for THIS repo's observatory-side consumer work — that's a separate small follow-up sprint.
+>
+> **Original amendment context preserved below for audit trail.**
+>
+> **Amendment authority**: zerker (lane owner per `prd.md:574`) · negotiated 2026-05-09 in response to GitHub issue [#5](https://github.com/project-purupuru/purupuru-ttrpg/issues/5) drafted by zksoju
+> **Status**: SUPERSEDES the in-repo scope boundary stated at `prd.md:510` for FR-12 only · all other FR-12 acceptance criteria preserved verbatim
+> **Cycle**: hackathon (ship 2026-05-11) · indexer must be demo-ready 2026-05-11 morning
+
+### A · scope boundary flip
+
+`prd.md:510` (FR-12, original) excluded the indexer from this repo:
+
+> "out of scope for this repo: the Solana indexer code (zerker's lane · operator+zerker learning curve)"
+
+This carve-out was authored when the assumption was a separate `score-puru` SvelteKit app. Soju's issue #5 still reflects that assumption ("in your repo · likely the score-puru SvelteKit app"). The reality on the ground:
+
+- `purupuru-ttrpg` is Next.js 16 + pnpm, not SvelteKit
+- No separate `score-puru` repo is in active use for this hackathon's observatory deliverable
+- The observatory ActivityRail (`components/observatory/ActivityRail.tsx`) is *the* Score dashboard surface for the hackathon demo
+- `lib/activity/types.ts:38-44` already defines `MintActivity` 1:1-isomorphic with `StoneClaimed`
+
+**Decision**: indexer code lives in this repo. Splitting it across repos would (a) duplicate the activity-stream contract, (b) require cross-repo deploy coordination on a 2-day clock, and (c) contradict the drift report's resolution §6.3 which already framed indexer wiring as a sprint-3 zerker-lane materialization within the observatory surface.
+
+### B · new acceptance criteria (additive · supplements AC-12.1 through AC-12.4)
+
+| ID | Criterion | Source |
+|---|---|---|
+| AC-12.5 | Indexer subscribes to devnet `StoneClaimed` events from program `7u27WmTz2hZHvvhL89XcSCY3eFhxEfHjUN5MjzMY6v38` and surfaces them in observatory ActivityRail within 30s of mint | issue #5 DoD §1 |
+| AC-12.6 | Indexer process runs as a long-lived Node process, deployable to Railway (Vercel ruled out: serverless does not hold WebSocket subscriptions) | negotiated 2026-05-09 |
+| AC-12.7 | In-memory ring buffer of last ~200 events; no Postgres / Hasura / SQLite for v0 — soju re-triggers fresh devnet events morning of demo, so no persistence across process restart needed | negotiated 2026-05-09; issue #5 non-goals |
+| AC-12.8 | WebSocket reconnect strategy: indexer detects silent `onLogs` death and reconnects with bounded backoff. Health pip in observatory chrome reflects connection state visibly so a stalled feed degrades visibly rather than silently | issue #5 §"Why this is non-obvious"; demo-day risk mitigation |
+| AC-12.9 | Env-flag toggle `INDEXER_MODE=real\|mock` — local dev defaults to `mock` (existing `lib/activity/mock.ts` path); production / Railway sets `real`. The switch lives at `lib/activity/index.ts:5` (currently a hard import — will become conditional) | negotiated 2026-05-09 |
+| AC-12.10 | Health endpoint at `app/api/indexer/status/route.ts` exposing `{ lastEventAt, count, connected }` (count = events seen since process boot; connected = WS state) | issue #5 DoD §"Health indicator" |
+| AC-12.11 | Element byte (1=Wood, 2=Fire, 3=Earth, 4=Metal, 5=Water) → lowercase `Element` string conversion happens AT the indexer boundary (`lib/indexer/`), not in the consumer. Observatory keeps its lowercase internal vocab. Resolves drift report §7.2 deferred decision | drift report §7.2; `lib/score/types.ts:7` |
+| AC-12.12 | End-to-end tested with a fresh devnet claim before demo recording on 2026-05-11. Test = trigger claim via purupuru-blink.vercel.app/preview → observe row appear in ActivityRail within 30s | issue #5 DoD §"Tested end-to-end" |
+
+Pre-existing AC-12.1 through AC-12.4 (`prd.md:514-517`) remain in force unchanged — they govern the substrate-side deliverables (anchor program emit, Effect Schema export, deploy timing coordination, demo inclusion).
+
+### C · technical decisions (locked this turn)
+
+| Decision | Choice | Why | Risk if wrong |
+|---|---|---|---|
+| RPC provider | raw `api.devnet.solana.com` (free, no signup) | zero signup friction; demo volume is ~10 events; INDEXER_MODE flip path lets us swap to Helius via env-var if RPC flakes | silent WS disconnect during demo recording — mitigated by AC-12.8 reconnect + AC-12.10 health pip |
+| IDL acquisition | vendor copy NOW from soju's branch into `lib/indexer/idl/purupuru_anchor.json` | unblocks build immediately; `@purupuru/peripheral-events` npm package timeline (🟡 in flight per issue #5) is uncertain on the 2-day clock | IDL drift if soju upgrades program before D-12 upgrade-authority freeze — mitigated by post-freeze re-vendor task in sprint plan |
+| Storage shape | in-memory ring buffer (~200 events, module singleton) | simplest path; persistence not needed (soju re-triggers events morning of demo) | process restart loses recent feed — acceptable for demo window |
+| Deploy target | Railway | long-lived Node process required by WebSocket subscription; Vercel serverless cannot hold the connection | Railway cold-start eats demo window — mitigated by warming up service ≥30 min before recording |
+| Server-boot hook | Next.js 16 `instrumentation.ts` (currently absent) | canonical Next 16 pattern for run-once-on-boot side effects; aligns with the codebase's existing `"use client"` boundary discipline (`PentagramCanvas.tsx`) | inappropriate for HMR cycles in dev — mitigated by env-flag default `mock` in dev |
+
+### D · open discovery items (become spike tasks in /sprint-plan)
+
+| Item | Investigation needed | Output |
+|---|---|---|
+| Reconnect loop shape | exponential backoff vs heartbeat-based vs simple-retry? Solana `onLogs` does not surface explicit disconnect events — need a liveness-check pattern (e.g., periodic `getSlot` call with a dead-man timer) | sprint task: 30-min spike, decide pattern, document in SDD |
+| Devnet rate-limit headroom | actual req/s ceiling on `api.devnet.solana.com` for ~10 events/demo + heartbeat polling — burn through it once before demo to know the cliff | sprint task: 15-min spike during pre-demo dry-run |
+| Element byte resolution | confirm `StoneClaimed.element` is exactly `u8` 1-5 in the IDL (not 0-4, not bigger enum). Anchor IDLs sometimes encode enums differently than hand-coded integers | sprint task: read IDL after vendoring; one-line confirmation |
+
+### E · non-goals (preserved from issue #5)
+
+- ❌ Backfill from before indexer was running (devnet only · soju re-triggers fresh batch morning of demo)
+- ❌ Multi-program indexing (only `7u27WmTz...` matters)
+- ❌ Mainnet (devnet only · post-hackathon mainnet is a separate cycle)
+- ❌ Analytics / aggregations (counts · histograms etc) beyond the live feed
+- ❌ Persistence across process restart (in-memory ring buffer is sufficient given soju's re-trigger)
+- ❌ Reconciliation between indexer-observed events and any prior history (no prior history matters for demo)
+
+### F · risk register additions
+
+Supplements existing risk register entries `prd.md:482` (indexer lag) and the indexer-readiness risks at `sprint.md:228, 173`.
+
+| Risk | Likelihood | Impact | Mitigation | Trigger condition |
+|---|---|---|---|---|
+| **R-13**: Devnet RPC silent WS disconnect during demo recording | medium | high (live feed goes dark) | reconnect loop (AC-12.8) + visible health pip (AC-12.10) + env-flag swap to Helius (AC-12.9) as 2-min escape hatch | onLogs callback stops firing for >60s without explicit error |
+| **R-14**: IDL drift if zksoju upgrades anchor program before D-12 upgrade-authority freeze (`prd.md:622`) | low | high (parser fails silently — events look like noise) | re-vendor IDL post-D-12 freeze; zksoju notifies zerker before any pre-freeze re-deploy | borsh decode fails on incoming logs |
+| **R-15**: Railway cold-start latency eats the demo window | low | medium (first event delayed, may miss 30s SLO) | warm Railway service ≥30 min before recording; health endpoint serves as warmup probe | first deployed-cold ping >5s |
+
+### G · coordination delta
+
+Updates the lane-ownership tables at `prd.md:574-578`.
+
+| Concern | Pre-amendment owner | Post-amendment owner |
+|---|---|---|
+| Anchor program | zksoju | zksoju (unchanged) |
+| `StoneClaimed` event schema in IDL | zksoju | zksoju (unchanged) |
+| Effect Schema export `@purupuru/peripheral-events` | zksoju | zksoju (unchanged · 🟡 in flight) |
+| Pre-demo event batch trigger (~10 fresh claims morning of 2026-05-11) | zksoju | zksoju (unchanged) |
+| Upgrade-authority freeze (D-12 / `prd.md:622`) | zksoju | zksoju (unchanged) |
+| **Indexer process (subscribe + parse + adapt)** | ❌ explicitly out-of-repo | ✅ **zerker · in this repo** |
+| **IDL vendoring into this repo** | ❌ N/A | ✅ **zerker** |
+| **Railway deploy + env-var contract** | ❌ N/A | ✅ **zerker** |
+| **`INDEXER_MODE` env-flag wiring at `lib/activity/index.ts`** | ❌ N/A | ✅ **zerker** |
+| **Health endpoint + observatory chrome health pip** | ❌ N/A | ✅ **zerker** |
+
+### H · Definition of Done (from issue #5, adapted)
+
+- [ ] Indexer subscribed to devnet · receives `StoneClaimed` within 30s of mint (AC-12.5)
+- [ ] In-memory ring buffer populated with idempotent rows on `(signature, log_index)` (AC-12.7)
+- [ ] `INDEXER_MODE=real|mock` env switch wired at `lib/activity/index.ts` (AC-12.9)
+- [ ] Observatory ActivityRail renders the live data with existing purupuru styling (AC-12.5; no new design tokens needed)
+- [ ] Health endpoint + visible pip in observatory chrome (AC-12.10)
+- [ ] Reconnect loop survives a manual WS-kill test (AC-12.8)
+- [ ] IDL vendored at `lib/indexer/idl/purupuru_anchor.json` (Decision C)
+- [ ] Tested end-to-end with a fresh devnet claim during 2026-05-10 (T-1 dry-run) (AC-12.12)
+- [ ] Railway deploy live + warmed ≥30 min before 2026-05-11 demo recording (R-15 mitigation)
+
+### I · sources & traceability
+
+- **GitHub issue**: [project-purupuru/purupuru-ttrpg#5](https://github.com/project-purupuru/purupuru-ttrpg/issues/5) (zksoju · 2026-05-09)
+- **Pre-amendment PRD lines**: 497-517 (FR-12 original) · 574-579 (lane ownership) · 482 (risk register) · 510 (in-repo carve-out)
+- **SDD lines**: 349, 377 (StoneClaimed event flow) · 514 (Sonar/Hasura context) · 555, 569 (observability) · 612-616 (sprint-3 timing) · 640 (D-17 ready-by-date)
+- **Sprint plan lines**: 147 (S3-T9 indexer coordination) · 173 (sprint-3 risk: indexer not ready) · 228 (risk register: indexer lag) · 255 (D-17 dependency)
+- **Drift report**: `grimoires/loa/context/04-observatory-awareness-drift.md` §6.3 (resolution materialized) · §7.2 (element casing boundary)
+- **Repo reality**: `lib/activity/types.ts:38-44` (MintActivity 1:1 with StoneClaimed) · `lib/activity/index.ts:5` (mock/real seam) · `components/observatory/ActivityRail.tsx` (read-side consumer) · `lib/score/types.ts:7` (lowercase Element)
+- **Negotiation transcript**: this session (Phase 0.5 routing decision · 2 focused interview questions on RPC + IDL)
+
+### J · forward dispatch
+
+This amendment is the PRD-side gate for the indexer workstream. The dependency chain to demo-readiness:
+
+1. **/architect** → SDD addendum: indexer architecture (RPC client, IDL parsing, ring buffer, reconnect loop, instrumentation.ts boot hook, INDEXER_MODE wiring, health endpoint) — gated on this amendment landing
+2. **/sprint-plan** → indexer sprint with concrete tasks: scaffold deps, vendor IDL, indexer core, server boot, stream wiring, health endpoint, demo dry-run — gated on SDD addendum
+3. **/simstim** → execution dispatch
+4. **/run-bridge** → autonomous excellence loop with kaironic termination

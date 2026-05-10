@@ -21,7 +21,6 @@ import {
   mockScoreAdapter,
   type Element as ScoreElement,
   type ElementDistribution,
-  type EcosystemEnergy,
   type ScoreReadAdapter,
   type Wallet,
   type WalletBadge,
@@ -32,7 +31,6 @@ import {
 export type {
   ScoreElement,
   ElementDistribution,
-  EcosystemEnergy,
   ScoreReadAdapter,
   Wallet,
   WalletBadge,
@@ -132,13 +130,6 @@ const buildRealAdapter = (config: RealAdapterConfig): ScoreReadAdapter => {
         return await fetchJson<ElementDistribution>(`/ecosystem/elements`)
       } catch {
         return mockScoreAdapter.getElementDistribution()
-      }
-    },
-    async getEcosystemEnergy() {
-      try {
-        return await fetchJson<EcosystemEnergy>(`/ecosystem/energy`)
-      } catch {
-        return mockScoreAdapter.getEcosystemEnergy()
       }
     },
   }

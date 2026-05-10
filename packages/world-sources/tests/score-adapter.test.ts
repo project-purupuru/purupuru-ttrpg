@@ -43,7 +43,6 @@ describe("resolveScoreAdapter · hybrid env-flag toggle (HIGH-3 fix)", () => {
     expect(typeof adapter.getWalletBadges).toBe("function")
     expect(typeof adapter.getWalletSignals).toBe("function")
     expect(typeof adapter.getElementDistribution).toBe("function")
-    expect(typeof adapter.getEcosystemEnergy).toBe("function")
   })
 
   it("mock adapter is deterministic (same address → same profile across calls)", async () => {

@@ -1,6 +1,53 @@
 @import "tailwindcss";
 
 /* ─────────────────────────────────────────────────────────────────────────────
+   Tailwind dark variant — keep in sync with the CSS-variable theme below.
+   Two activation paths:
+     1. Explicit `[data-theme="old-horai"]` — set by ObservatoryClient on the
+        local sunrise/sunset boundary once the weather feed has landed.
+     2. `prefers-color-scheme: dark` AND no explicit theme yet — covers the
+        first-paint window before the weather effect runs (e.g. during the
+        IntroAnimation), so a system-dark visitor sees the white wordmark on
+        cloud-base-dark instead of the black wordmark.
+   Both branches must stay in lockstep with the CSS-variable theme rules
+   further down — flipping the variant without flipping the variables (or
+   vice versa) produces the wordmark-color-on-wrong-bg defect we just fixed.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+@custom-variant dark {
+  &:where([data-theme="old-horai"], [data-theme="old-horai"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme]), :root:not([data-theme]) *) {
+      @slot;
+    }
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Per-element bleed mix — drives the soft color washes behind activity rows
+   and the WeatherTile content gradient. Higher in light mode (vivid against
+   cream needs more chroma to read), lower in dark (vivid against deep cloud
+   pops at half the strength).
+   ───────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --puru-bleed-mix: 25%;
+  --puru-bleed-stop: 62%;
+}
+[data-theme="old-horai"] {
+  --puru-bleed-mix: 14%;
+  --puru-bleed-stop: 55%;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --puru-bleed-mix: 14%;
+    --puru-bleed-stop: 55%;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
    Local fonts — FOT-Yuruka Std (display brand) and ZCOOL KuaiLe (CN display).
    Inter and Geist Mono are loaded via next/font in app/layout.tsx.
    ───────────────────────────────────────────────────────────────────────────── */
@@ -31,7 +78,7 @@
 :root {
   color-scheme: light dark;
 
-  /* ── Cloud surfaces (warm cream, not void) ─────────────────────────── */
+  /* ── Cloud surfaces (warm cream, not void) — canonical world-purupuru ── */
   --puru-cloud-bright: oklch(0.97 0.010 90);
   --puru-cloud-base:   oklch(0.94 0.015 90);
   --puru-cloud-dim:    oklch(0.88 0.020 90);
@@ -113,8 +160,8 @@
   --puru-surface-highlight-strong: oklch(1 0 0 / 0.5);
   --puru-surface-track:            oklch(0.93 0.020 85);
   --puru-surface-track-shadow:     oklch(0.7 0.02 85 / 0.15);
-  --puru-surface-shadow-sm:        oklch(0.7 0.03 85 / 0.12);
-  --puru-surface-shadow-md:        oklch(0.7 0.03 85 / 0.16);
+  --puru-surface-shadow-sm:        oklch(0.62 0.03 85 / 0.16);
+  --puru-surface-shadow-md:        oklch(0.55 0.04 85 / 0.22);
 
   /* ── Ghost card ────────────────────────────────────────────────────── */
   --puru-ghost-border: oklch(0.88 0.020 90);
@@ -200,6 +247,20 @@
   --shadow-modal:       0 16px 48px oklch(0.50 0.03 85 / 0.25);
   --shadow-tile:        0 2px 4px var(--puru-surface-shadow-sm), 0 1px 1px var(--puru-surface-shadow-sm), inset 0 1px 0 var(--puru-surface-highlight);
   --shadow-tile-hover:  0 4px 12px var(--puru-surface-shadow-md), 0 1px 2px var(--puru-surface-shadow-sm), inset 0 1px 0 var(--puru-surface-highlight-strong);
+
+  /* Tsuheji continent backdrop — felt-not-seen treatment used by the
+     observatory canvas wrapper. Mirrors purupuru.world's hero map.
+     Light theme leans on opacity to mute; dark theme bumps brightness
+     so the warm-toned PNG still reads against cloud-base. */
+  --puru-continent-opacity:    0.19;
+  --puru-continent-saturate:   0.4;
+  --puru-continent-brightness: 1;
+  /* Rim shadows — for surfaces flush against a viewport edge that need
+     to project a music-player-class drop into the canvas pane on their
+     ONE open side. -2px spread keeps the falloff tight to the
+     projecting edge so the shadow reads as directional, not as a glow. */
+  --shadow-rim-bottom:  0 8px 20px -2px var(--puru-surface-shadow-md), 0 2px 4px -1px var(--puru-surface-shadow-sm), inset 0 1px 0 var(--puru-surface-highlight-strong);
+  --shadow-rim-left:    -8px 0 20px -2px var(--puru-surface-shadow-md), -2px 0 4px -1px var(--puru-surface-shadow-sm), inset 0 1px 0 var(--puru-surface-highlight-strong);
   --surface-glaze:      inset 0 1px 0 var(--puru-surface-highlight);
 
   /* ── Element vivid aliases ─────────────────────────────────────────── */
@@ -225,6 +286,12 @@
    ───────────────────────────────────────────────────────────────────────────── */
 
 [data-theme="old-horai"] {
+  /* Continent backdrop — bump brightness so the warm-toned PNG reads
+     against the dark cloud-base, drop opacity so it stays felt-not-seen. */
+  --puru-continent-opacity:    0.13;
+  --puru-continent-saturate:   0.6;
+  --puru-continent-brightness: 1.15;
+
   --puru-cloud-bright: oklch(0.24 0.015 80);
   --puru-cloud-base:   oklch(0.20 0.012 80);
   --puru-cloud-dim:    oklch(0.14 0.010 80);
@@ -277,8 +344,8 @@
   --puru-surface-highlight-strong: oklch(1 0 0 / 0.08);
   --puru-surface-track:            oklch(0.24 0.010 80);
   --puru-surface-track-shadow:     oklch(0.05 0.008 80 / 0.3);
-  --puru-surface-shadow-sm:        oklch(0.03 0.008 80 / 0.30);
-  --puru-surface-shadow-md:        oklch(0.03 0.008 80 / 0.40);
+  --puru-surface-shadow-sm:        oklch(0.02 0.008 80 / 0.42);
+  --puru-surface-shadow-md:        oklch(0.02 0.008 80 / 0.55);
 
   --puru-ghost-border: oklch(0.28 0.012 80);
   --puru-ghost-bg:     oklch(0.17 0.008 80);
@@ -300,6 +367,11 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
+    /* Continent — keep in sync with [data-theme="old-horai"] above. */
+    --puru-continent-opacity:    0.13;
+    --puru-continent-saturate:   0.6;
+    --puru-continent-brightness: 1.15;
+
     --puru-cloud-bright: oklch(0.24 0.015 80);
     --puru-cloud-base:   oklch(0.20 0.012 80);
     --puru-cloud-dim:    oklch(0.14 0.010 80);
@@ -352,8 +424,8 @@
     --puru-surface-highlight-strong: oklch(1 0 0 / 0.08);
     --puru-surface-track:            oklch(0.24 0.010 80);
     --puru-surface-track-shadow:     oklch(0.05 0.008 80 / 0.3);
-    --puru-surface-shadow-sm:        oklch(0.03 0.008 80 / 0.30);
-    --puru-surface-shadow-md:        oklch(0.03 0.008 80 / 0.40);
+    --puru-surface-shadow-sm:        oklch(0.02 0.008 80 / 0.42);
+    --puru-surface-shadow-md:        oklch(0.02 0.008 80 / 0.55);
 
     --puru-ghost-border: oklch(0.28 0.012 80);
     --puru-ghost-bg:     oklch(0.17 0.008 80);
@@ -408,12 +480,30 @@
   --color-puru-water-tint: var(--puru-water-tint);
   --color-puru-metal-tint: var(--puru-metal-tint);
 
-  /* Surfaces */
+  /* Cloud surfaces (warm-dark stack — five levels, brightness only) */
   --color-puru-cloud-bright: var(--puru-cloud-bright);
   --color-puru-cloud-base:   var(--puru-cloud-base);
   --color-puru-cloud-dim:    var(--puru-cloud-dim);
   --color-puru-cloud-deep:   var(--puru-cloud-deep);
   --color-puru-cloud-shadow: var(--puru-cloud-shadow);
+
+  /* Surface chrome (borders, glaze, tracks) — depth without brightness shifts */
+  --color-puru-surface-border:           var(--puru-surface-border);
+  --color-puru-surface-highlight:        var(--puru-surface-highlight);
+  --color-puru-surface-highlight-strong: var(--puru-surface-highlight-strong);
+  --color-puru-surface-track:            var(--puru-surface-track);
+
+  /* Honey-tint for active pill / chip backgrounds */
+  --color-puru-honey-tint: var(--puru-honey-tint);
+
+  /* Shadow utilities — `shadow-puru-tile` / `shadow-puru-tile-hover` /
+     `shadow-puru-rim-bottom` / `shadow-puru-rim-left`.
+     Rim variants project only on the open edge for surfaces flush
+     against a viewport boundary (KpiStrip → bottom; rails → left). */
+  --shadow-puru-tile:       var(--shadow-tile);
+  --shadow-puru-tile-hover: var(--shadow-tile-hover);
+  --shadow-puru-rim-bottom: var(--shadow-rim-bottom);
+  --shadow-puru-rim-left:   var(--shadow-rim-left);
 
   /* Ink */
   --color-puru-ink-rich:  var(--puru-ink-rich);
@@ -544,6 +634,84 @@ button { font: inherit; border: none; background: none; cursor: pointer; }
 :focus:not(:focus-visible) { outline: none; }
 
 button, a, [role="button"], [tabindex] { touch-action: manipulation; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Brand press — asymmetric squash on interactive surfaces
+   (world-purupuru sites/world Button.svelte:87, Pill.svelte:56)
+   ───────────────────────────────────────────────────────────────────────── */
+.puru-press {
+  transition: transform var(--duration-press) var(--ease-puru-bounce);
+  transform-origin: center;
+}
+.puru-press:active {
+  transform: scaleY(0.96) scaleX(1.02);
+}
+
+/* Soft ceramic-tile hover lift for rows / list items.
+   Uses surface-highlight (alpha-only inset glaze, no bg-color shift —
+   same brightness, just the warm light catches the top edge). */
+.puru-row {
+  position: relative;
+  transition: box-shadow var(--duration-fast) var(--ease-puru-settle);
+}
+.puru-row:hover {
+  box-shadow: var(--surface-glaze);
+}
+
+/* Fresh-row signal — runs once when a new event row mounts. A thin warm
+   accent runs along the left edge then fades, plus a brief alpha
+   settle on the row itself. Reads as "this just arrived" without a
+   notification badge. The accent uses currentColor so callers tint it
+   per element via the row's color context. */
+@keyframes puru-row-fresh-edge {
+  0%   { transform: scaleY(0); opacity: 0; }
+  18%  { transform: scaleY(1); opacity: 1; }
+  100% { transform: scaleY(1); opacity: 0; }
+}
+@keyframes puru-row-fresh-settle {
+  0%   { background-color: color-mix(in oklch, currentColor 8%, transparent); }
+  100% { background-color: transparent; }
+}
+.puru-row-fresh::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: currentColor;
+  border-radius: 0 1px 1px 0;
+  transform-origin: top;
+  pointer-events: none;
+  animation: puru-row-fresh-edge 1600ms var(--ease-puru-settle) 1 forwards;
+}
+.puru-row-fresh {
+  animation: puru-row-fresh-settle 1600ms var(--ease-puru-settle) 1 forwards;
+}
+
+/* Live-tracking dot — soft ambient pulse for the "live" indicators in
+   ActivityRail / WeatherTile headers. Two-channel: scale + opacity so
+   it reads as a heartbeat, not a flash. */
+@keyframes puru-live-pulse {
+  0%, 100% { transform: scale(1);   opacity: 0.55; }
+  50%      { transform: scale(1.4); opacity: 1; }
+}
+.puru-live-dot {
+  animation: puru-live-pulse 1.6s var(--ease-puru-breathe) infinite;
+}
+
+/* Wordmark drift — subtle zubora-inspired float for static SVG wordmarks.
+   Per-letter zubora (PuruWordmark.svelte:124–137) requires inline SVG paths;
+   this is the lightweight whole-glyph version for img-based wordmarks. */
+@keyframes wordmark-drift {
+  0%, 100% { transform: translate(0, 0); }
+  25%      { transform: translate(0.6px, -0.9px); }
+  50%      { transform: translate(-0.4px, -0.4px); }
+  75%      { transform: translate(0.4px, 0.2px); }
+}
+.puru-wordmark-drift {
+  animation: wordmark-drift 3.2s var(--ease-puru-breathe) infinite;
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
