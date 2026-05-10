@@ -48,7 +48,7 @@ export function KpiStrip({
   const cycleKanji = cycleDirection === "sheng" ? "生" : "克";
 
   return (
-    <section className="flex shrink-0 divide-x divide-puru-surface-border border-b border-puru-surface-border bg-puru-cloud-bright shadow-puru-tile">
+    <section className="relative z-10 flex shrink-0 divide-x divide-puru-surface-border border-b border-puru-surface-border bg-puru-cloud-bright shadow-puru-rim-bottom">
       <div className="flex shrink-0 items-center bg-puru-cloud-bright px-5">
         <span className="puru-wordmark-drift inline-flex">
           <Image

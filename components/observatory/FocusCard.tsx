@@ -142,7 +142,7 @@ export function FocusCard({
         transition: "transform 360ms cubic-bezier(.32,.72,.24,1), opacity 240ms ease-out",
       }}
     >
-      <div className="overflow-hidden rounded-puru-md border border-puru-surface-border bg-puru-cloud-bright/95 shadow-puru-tile backdrop-blur-md">
+      <div className="overflow-hidden rounded-puru-md border border-puru-surface-border bg-puru-cloud-bright/95 shadow-puru-tile-hover backdrop-blur-md">
         <header
           className="flex items-start gap-3 border-b border-puru-surface-border px-4 py-3"
           style={{

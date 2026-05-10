@@ -210,7 +210,6 @@ export function ObservatoryClient() {
           <PentagramCanvas
             onSpriteClick={handleSpriteClick}
             focusedTrader={focused?.trader ?? null}
-            isNight={weather.is_night}
             amplifiedElement={weather.amplifiedElement}
           />
           {/* MusicPlayer + FocusCard share the canvas pane's stacking

@@ -36,8 +36,6 @@ interface PentagramCanvasProps {
   onSpriteClick?: (identity: PuruhaniIdentity) => void;
   /** Wallet of the currently-focused puruhani; non-focused sprites dim. */
   focusedTrader?: string | null;
-  /** Local night state from weather feed — flips the wrapper texture to cosmos-stars. */
-  isNight?: boolean;
   /** Element amplified by the user's location weather — biases wrapper tint
    *  + boosts the matching vertex aura. */
   amplifiedElement?: Element;
@@ -104,6 +102,18 @@ const SHADOW_RY_BASE = 4;
 const SHADOW_OFFSET_BASE = 14;
 const AURA_RADIUS_BASE = 32;
 const FOCUS_GLOW_R_BASE = 28;
+
+// Sprite contact-shadow vocabulary. Two stacked ellipses inside one
+// Graphics object: a softer outer "ambient occlusion" ring at ~1.7×
+// the contact radius, and the original tighter contact ellipse on top.
+// Stacking the soft ring under the dense disk gives the lil guys a
+// readable falloff against the canvas instead of a flat-disk read.
+// Both fills ride the same Graphics.alpha (focus-dim modulation),
+// so the relative weighting between ring + disk stays constant
+// whether a sprite is focused or dimmed.
+const SHADOW_OUTER_SCALE = 1.7;
+const SHADOW_OUTER_FILL_ALPHA = 0.14;
+const SHADOW_INNER_FILL_ALPHA = 0.38;
 
 // Avatar texture sizing — generated bigger than display so retina
 // rendering stays crisp regardless of mobile/desktop display target.
@@ -303,7 +313,6 @@ function lerpHex(a: number, b: number, t: number): number {
 export function PentagramCanvas({
   onSpriteClick,
   focusedTrader = null,
-  isNight,
   amplifiedElement,
 }: PentagramCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -447,8 +456,12 @@ export function PentagramCanvas({
         spriteLayer.addChild(node);
 
         const shadow = new Graphics();
+        // Outer ambient ring first (paints under), tighter contact disk
+        // on top — see SHADOW_* constants for the rationale.
+        shadow.ellipse(0, 0, assetSizes.shadowRx * SHADOW_OUTER_SCALE, assetSizes.shadowRy * SHADOW_OUTER_SCALE);
+        shadow.fill({ color: 0x000000, alpha: SHADOW_OUTER_FILL_ALPHA });
         shadow.ellipse(0, 0, assetSizes.shadowRx, assetSizes.shadowRy);
-        shadow.fill({ color: 0x000000, alpha: 0.22 });
+        shadow.fill({ color: 0x000000, alpha: SHADOW_INNER_FILL_ALPHA });
         shadow.x = entity.position.x;
         shadow.y = entity.position.y + assetSizes.shadowOffsetY;
         shadowLayer.addChild(shadow);
@@ -496,6 +509,11 @@ export function PentagramCanvas({
       focusGlow.alpha = 0;
       app.stage.addChildAt(focusGlow, app.stage.getChildIndex(spriteLayer));
       const FOCUS_LERP_TC_MS = 280;
+      // Peak Graphics.alpha for the shadow container — modulates the
+      // composite of both stacked ellipses (outer ring + contact disk).
+      // Keep separate from the per-fill SHADOW_*_FILL_ALPHA constants:
+      // this one governs focus-dim amplitude, those govern shadow ink
+      // weight. Effective per-shape opacity = SHADOW_BASE_ALPHA × fill.alpha.
       const SHADOW_BASE_ALPHA = 0.22;
       // When dimmed, tint multiplies the avatar texture toward this hex so
       // non-selected sprites read as recessed-into-shadow rather than
@@ -813,12 +831,14 @@ export function PentagramCanvas({
           s.baseScale = newBaseScale;
           s.node.scale.set(newBaseScale);
           // Redraw shadow geometry at the new dimensions — clear()
-          // wipes the old ellipse, ellipse()+fill() re-issues with the
-          // current sizes. shadow.y is updated by the ticker every
-          // frame from assetSizes.shadowOffsetY.
+          // wipes both ellipses, ellipse()+fill() pairs re-issue them
+          // (outer ring first, tighter contact disk on top). shadow.y
+          // is updated by the ticker every frame from assetSizes.shadowOffsetY.
           s.shadow.clear();
+          s.shadow.ellipse(0, 0, assetSizes.shadowRx * SHADOW_OUTER_SCALE, assetSizes.shadowRy * SHADOW_OUTER_SCALE);
+          s.shadow.fill({ color: 0x000000, alpha: SHADOW_OUTER_FILL_ALPHA });
           s.shadow.ellipse(0, 0, assetSizes.shadowRx, assetSizes.shadowRy);
-          s.shadow.fill({ color: 0x000000, alpha: 0.22 });
+          s.shadow.fill({ color: 0x000000, alpha: SHADOW_INNER_FILL_ALPHA });
         }
 
         drawPentagon(pentagonG, geometry);
@@ -848,20 +868,26 @@ export function PentagramCanvas({
     };
   }, [onSpriteClick]);
 
-  // ─── Wrapper background — day/night texture + amplified-element tint ───
-  // Texture flips on isNight: warm grain by day, cosmos starfield by night.
-  // The translucent overlay carries a subtle hint of the user's currently-
-  // amplified element (~12%) so a fire day reads warm, water day reads cool,
-  // etc. — without ever competing with the Pixi stage. is_night undefined
-  // (initial paint, before first weather fetch) falls back to the day
-  // texture; amplifiedElement undefined falls back to plain cloud-base.
-  const textureUrl = isNight
-    ? "/art/patterns/cosmos-stars.webp"
-    : "/art/patterns/grain-warm.webp";
-  const overlayColor = amplifiedElement
-    ? `color-mix(in oklch, var(--puru-cloud-base) 88%, var(--puru-${amplifiedElement}-vivid) 12%)`
-    : "var(--puru-cloud-base)";
-  const tintedOverlay = `color-mix(in oklch, ${overlayColor} 50%, transparent)`;
+  // ─── Wrapper background — Tsuheji continent, felt-not-seen ──────────
+  // Single tsuheji-map.png centered behind the pentagram, treated to
+  // match purupuru.world's hero continent: low opacity, desaturated,
+  // and feathered out by a radial-gradient mask so the edges fade into
+  // cloud-base instead of cutting hard against the strip / rails. The
+  // visitor knows this dashboard "is" Tsuheji without any image ever
+  // pulling focus from the canvas.
+  //
+  // Theme tuning lives in CSS tokens so the dark theme can drop opacity
+  // and bump brightness without a JS branch — see globals.css for
+  // --puru-continent-{opacity,saturate,brightness}.
+  //
+  // amplifiedElement still rides as a very faint (4%) ambient tint so
+  // the cosmos's currently-amplified element is visible in the backdrop
+  // the same way it is in the vertex auras.
+  const ambientTint = amplifiedElement
+    ? `color-mix(in oklch, var(--puru-${amplifiedElement}-vivid) 4%, transparent)`
+    : "transparent";
+  const continentMask =
+    "radial-gradient(ellipse 80% 70% at 50% 50%, black 10%, oklch(0 0 0 / 0.4) 35%, transparent 70%)";
 
   return (
     <div
@@ -869,18 +895,38 @@ export function PentagramCanvas({
       style={{
         perspective: "1400px",
         perspectiveOrigin: "center 60%",
-        // Background lives on the OUTER wrapper (no tilt) so the inner
-        // rotateX(6deg) on the canvas mount can't reveal page-void along
-        // the top edge. Texture tints through at ~50% via a translucent
-        // overlay biased by amplifiedElement — no blend mode (which warps
-        // unevenly under the perspective).
-        background: [
-          `linear-gradient(${tintedOverlay}, ${tintedOverlay})`,
-          `url('${textureUrl}') center / 120px 120px repeat`,
-          "var(--puru-cloud-base)",
-        ].join(", "),
+        background: "var(--puru-cloud-base)",
       }}
     >
+      {/* Continent — masked + muted. Lives on the OUTER wrapper (no tilt)
+          so the inner rotateX(6deg) on the canvas mount can't reveal
+          page-void along the top edge. 120%-of-wrapper width keeps the
+          continent body behind the pentagram on most aspect ratios; the
+          mask hides whatever bleeds past. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+        style={{
+          width: "120%",
+          maxWidth: "1100px",
+          aspectRatio: "1 / 1",
+          backgroundImage: "url('/art/tsuheji-map.png')",
+          backgroundSize: "contain",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+          opacity: "var(--puru-continent-opacity)",
+          filter:
+            "saturate(var(--puru-continent-saturate)) brightness(var(--puru-continent-brightness))",
+          WebkitMaskImage: continentMask,
+          maskImage: continentMask,
+        }}
+      />
+      {/* Faint amplified-element tint — the cosmos signal in the backdrop. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{ background: ambientTint }}
+      />
       <div
         ref={containerRef}
         className="relative h-full w-full"
