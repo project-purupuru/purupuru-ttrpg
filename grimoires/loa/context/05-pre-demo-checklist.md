@@ -20,7 +20,9 @@ This prints 64 hex chars = 32 bytes. Copy the output — that's your value.
 
 ### Paste into Vercel
 
-1. Open https://vercel.com/0xhoneyjar-s-team/purupuru-blink/settings/environment-variables
+> **2026-05-09 update**: The Vercel project for the quiz Blink moved from `purupuru-blink` (now zerker's observatory) to a NEW project **`purupuru-quiz`** at `https://purupuru-quiz.vercel.app`. Env vars must be set on the **new** project.
+
+1. Open https://vercel.com/0xhoneyjar-s-team/purupuru-quiz/settings/environment-variables
 2. Click **Add New**
 3. Name: `QUIZ_HMAC_KEY`
 4. Value: paste the 64-hex-char output from step 1
@@ -53,7 +55,7 @@ echo "QUIZ_HMAC_KEY=<paste 64-hex from step 1>" >> .env.local
 After redeploy, quickly hit the start endpoint:
 
 ```bash
-curl -s https://purupuru-blink.vercel.app/api/actions/quiz/start | jq .title
+curl -s https://purupuru-quiz.vercel.app/api/actions/quiz/start | jq .title
 ```
 
 Expected: a non-empty quiz question title (the Q1 prompt). If you get `"Catching our breath"` instead, the env still isn't applied — check var spelling and that you triggered a fresh deploy.
@@ -70,12 +72,12 @@ pnpm dev  # in another terminal
 pnpm tsx scripts/sp3-mint-route-smoke.ts
 
 # Or against live Vercel
-BASE_URL=https://purupuru-blink.vercel.app pnpm tsx scripts/sp3-mint-route-smoke.ts
+BASE_URL=https://purupuru-quiz.vercel.app pnpm tsx scripts/sp3-mint-route-smoke.ts
 ```
 
 Expected output:
 ```
-→ Smoke test against: https://purupuru-blink.vercel.app
+→ Smoke test against: https://purupuru-quiz.vercel.app
 ✓ Signed HMAC: <16 hex chars>...
 ✓ Test user wallet: <pubkey>
 → POST .../mint/genesis-stone?a1=...&mac=...
@@ -106,7 +108,7 @@ If smoke test FAILS:
 
 Once smoke passes, do the real walk-through:
 
-1. Go to `https://purupuru-blink.vercel.app/preview`
+1. Go to `https://purupuru-quiz.vercel.app/preview`
 2. Connect Phantom (devnet)
 3. Click "What's My Element?"
 4. Answer Q1-Q8
@@ -181,7 +183,7 @@ Things to show in the demo video (3-min target):
 | Anchor program on devnet | ✅ deployed | `7u27WmTz...` · 6/6 invariant tests green · upgrade-auth NOT yet frozen |
 | Stone art (5 PNGs) | ✅ live | Gumi-delivered · 1350×1350 · served from `/art/stones/` |
 | Result reveal · plain-language copy | ✅ shipped | "tide" stripped · operator-validated |
-| Vercel deploy | ✅ live | `https://purupuru-blink.vercel.app` |
+| Vercel deploy | ✅ live | `https://purupuru-quiz.vercel.app` |
 | Zerker indexer | 🔴 not built | issue #5 filed · zerker's lane · not blocking demo |
 | Score dashboard view | 🔴 not built | downstream of indexer · post-anchor-deploy |
 | Demo simulator (FR-11) | 🔴 not built | post-recording video acceleration is the 0d fallback |
