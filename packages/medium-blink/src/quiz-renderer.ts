@@ -43,9 +43,14 @@ const defaultConfig: RendererConfig = {
   baseUrl: "http://localhost:3000",
 }
 
-// Build the icon URL for a given step · v0 uses static element-themed icons.
-// Sprint-2 swaps to dynamic OG image render (S1-T2 + Metaplex art via S1-Sp1).
+// Build the icon URL for a given step · serves the per-step quiz illustration
+// from `/public/art/quiz/q{step}.png` (operator-curated atmospheric scenes ·
+// 8 stages of the same setting at different times/weather). Falls back to the
+// generated SVG via `/api/og?step=N` for any out-of-range value.
 const iconUrlForStep = (step: number, config: RendererConfig): string => {
+  if (step >= 1 && step <= 8) {
+    return `${config.baseUrl}/art/quiz/q${step}.png`
+  }
   const base = config.iconBaseUrl ?? `${config.baseUrl}/api/og`
   return `${base}?step=${step}`
 }
