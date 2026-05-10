@@ -91,27 +91,55 @@ terms:
 
   live_presence:
     canonical: live presence
+    cold_audience_register: "who's here right now"
+    register: lowercase-mono (KPI label)
+    surfaces:
+      - main:components/observatory/KpiStrip.tsx
+      - feat/awareness-layer-spine:packages/medium-blink/src/quiz-renderer.ts (renderAmbient subhead)
+    forbidden:
+      - "online users": "Too web2 · purupuru voice is observational"
+      - "active wallets": "Reveals substrate detail at presentation layer · violates cmp-boundary"
+    last_confirmed: f9ceb84
+
+  quizzes_taken:
+    canonical: quizzes taken
+    cold_audience_register: "have found their element"
     register: lowercase-mono (KPI label)
     surfaces:
       - main:components/observatory/KpiStrip.tsx
     forbidden:
-      - "online users": "Too web2 · purupuru voice is observational"
-      - "active wallets": "Reveals substrate detail at presentation layer · violates cmp-boundary"
-    last_confirmed: 062538b
+      - "completions": "Substrate verb · hide it · 'taken' is the social register"
+      - "quiz responses": "Reduces to dataset language · loses the social fabric"
+    notes: "NEW 2026-05-10 · zerker added quizzes_taken alongside stones_claimed when KpiStrip reorganized · distinguishes quiz-completion-without-mint from full claim path."
+    last_confirmed: f9ceb84
 
   cycle_balance:
     canonical: cycle balance
-    register: lowercase-mono (KPI label)
+    status: deprecated
+    deprecated_at: "2026-05-10"
+    superseded_by: [quizzes_taken, stones_claimed]
+    register: lowercase-mono (KPI label · historical)
     surfaces:
-      - main:components/observatory/KpiStrip.tsx (e.g. "64% 生" or "58% 克")
-    notes: "References sheng/ke (生/克) · the wuxing creation/destruction cycle · do NOT translate"
+      - main:components/observatory/KpiStrip.tsx (HISTORICAL · removed when zerker reorganized)
+    notes: |
+      DEPRECATED 2026-05-10 (KEEPER R3 audit). Removed from KpiStrip when zerker reorganized
+      observatory to people-counts (stones · quizzes) over abstract scalars. Kept in lexicon
+      as historical truth · future drift-detectors will want "we used to have this."
+      References sheng/ke (生/克) · the wuxing creation/destruction cycle · do NOT translate.
     last_confirmed: 062538b
 
   cosmic_intensity:
     canonical: cosmic intensity
-    register: lowercase-mono (KPI label)
+    status: deprecated
+    deprecated_at: "2026-05-10"
+    superseded_by: [quizzes_taken, stones_claimed, dominant_element]
+    register: lowercase-mono (KPI label · historical)
     surfaces:
-      - main:components/observatory/KpiStrip.tsx (decimal · 2 places)
+      - main:components/observatory/KpiStrip.tsx (HISTORICAL · removed when zerker reorganized)
+    notes: |
+      DEPRECATED 2026-05-10 (KEEPER R3 audit). Removed from KpiStrip same time as cycle_balance.
+      Decimal-2-places abstract scalar · was opaque to cold readers per VOCAB R2 (✗ rating).
+      Kept in lexicon as historical truth.
     last_confirmed: 062538b
 
   # === Activity rail event copy (observatory canon · KEEPER verified) ===

@@ -58,7 +58,9 @@ The wallet bridges the two surfaces. Twitter takes you in; the wallet records yo
 
 ## The whole user journey · what to emphasize
 
-> **Reading guide** · four beats left-to-right: *1 discover · 2 take the quiz · 3 cross trust · 4 land in the world*. 🟢 live · 🟡 emotional payoff · 🟣 wallet signature (commitment changes shape) · 🔵 the destination · 🟠 dashed = v0 gap we'd ship next sprint · ⚪ dashed = future room.
+> **In a social experience, you should feel others were there with you.** That promise is what beat 4 carries — your stone arriving means *you* becomes *we* · you see others drifting in their elements · your local sky bleeds into the room's mood · the world keeps populating while you watch.
+
+> **Reading guide** · four beats left-to-right: *1 discover · 2 take the quiz · 3 cross trust · 4 land in the world*. 🟢 live · 🟡 emotional payoff (recognition + reflection) · 🟣 wallet signature (commitment changes shape) · 🔵 the destination · 🟠 dashed = v0 gap we'd ship next sprint · ⚪ dashed = future room · ◌ ghost = offstage signal feeding in.
 
 ```mermaid
 flowchart LR
@@ -66,19 +68,20 @@ flowchart LR
     classDef payoff fill:#fff3cd,stroke:#a07a00,stroke-width:3px,color:#3d2c00
     classDef trust fill:#e7e3f7,stroke:#5a4fcf,stroke-width:2px,color:#2a1f6b
     classDef destination fill:#dbeafe,stroke:#1e40af,stroke-width:2px,color:#0b2545
-    classDef openWound fill:#fff7e6,stroke:#c2410c,stroke-width:1.5px,stroke-dasharray:6 4,color:#7c2d12
+    classDef arrival fill:#bfdbfe,stroke:#1e40af,stroke-width:3px,color:#0b2545
     classDef futureRoom fill:#fafafa,stroke:#999,stroke-width:1.5px,stroke-dasharray:6 4,color:#555
+    classDef offstage fill:#f5f5f5,stroke:#aaa,stroke-width:1.5px,stroke-dasharray:2 3,color:#666
 
     subgraph DISCOVERY["1 · discover"]
         direction TB
         feed["Twitter feed<br/><i>also: Telegram · base app</i>"]
-        ambient["Live world tile<br/>today's element · pulse"]
+        ambient["Live world tile<br/>today's leading element ·<br/>who's here right now"]
     end
 
-    subgraph QUIZ["2 · take the quiz"]
+    subgraph QUIZ["2 · take the quiz · find out about yourself"]
         direction TB
         cta["Tap:<br/>What's my element?"]
-        quiz["8-question quiz"]
+        quiz["8-question quiz<br/><i>grounded · familiar · easy</i>"]
         reveal["Quiz reveal<br/><b>You are Wood</b><br/>stone PNG"]
     end
 
@@ -88,42 +91,58 @@ flowchart LR
         confirmed["Mint confirmed"]
     end
 
-    subgraph WORLD["4 · land in the world"]
+    subgraph WORLD["4 · land in the world · the lobby"]
         direction TB
-        plaza["Observatory<br/>pentagram · rail · weather"]
-        focus["Tap a sprite<br/>peek detail"]
+        arrive["Your stone joins the lobby"]
+        room["See others drift in<br/>their element<br/><i>木 火 土 金 水</i>"]
+        census["Which element leads tonight<br/><i>clan counts · stones · quizzes</i>"]
+        bridge["Local weather →<br/>the room's mood"]
+        focus["Tap a sprite ·<br/>peek one face"]
         profile["Your element ·<br/>your stones<br/><i>(future room)</i>"]
     end
 
+    realworld["☀ your local sky"]:::offstage
+    others["others walking<br/>the same path"]:::offstage
+
     feed --> ambient
-    feed --> cta
+    feed -->|hook| cta
     ambient -->|see today,<br/>then take quiz| cta
-    cta --> quiz
-    quiz --> reveal
-    reveal -->|claim your stone| sign
+    cta -->|the door| quiz
+    quiz -->|recognition + reflection| reveal
+    reveal -->|now you have<br/>something to claim| sign
     sign --> confirmed
-    confirmed -.->|no bridge yet ·<br/>v0 gap| plaza
-    plaza --> focus
-    plaza -.->|login + wallet-link<br/>not built| profile
+    confirmed -.->|now you appear ·<br/>v0 gap on the bridge| arrive
+    arrive --> room
+    arrive -.-> profile
+    room --> census
+    room --> bridge
+    room --> focus
+    others -.->|converge here| arrive
+    realworld -.->|amplifies an element| bridge
 
     class feed,ambient,cta,quiz live
     class reveal payoff
     class sign,confirmed trust
-    class plaza,focus destination
+    class arrive arrival
+    class room,census,bridge,focus destination
     class profile futureRoom
 
     linkStyle 7 stroke:#c2410c,stroke-width:2px,stroke-dasharray:6 4
     linkStyle 9 stroke:#999,stroke-width:1.5px,stroke-dasharray:6 4
+    linkStyle 13 stroke:#aaa,stroke-width:1.5px,stroke-dasharray:3 3
+    linkStyle 14 stroke:#aaa,stroke-width:1.5px,stroke-dasharray:3 3
 ```
 
 > **Twitter is the v0 instance.** Same Action endpoints unfurl in Telegram and base app — one journey, many doorways. The chain layer (Solana for v0) and substrate (HMAC-sealed quiz state · Anchor program · Metaplex mint) stay constant; the presentation layer adapts per distribution.
 
 **Demo emphasis** (3-min recording target):
-- **Linger 45s · Quiz reveal** — the emotional payoff. The moment where recognition + reflection land · *"this is me · this gives me a way to navigate."*
-- **Linger 30s · Observatory** — pan the pentagram canvas · activity rail ticking · click a sprite. Sells "Strava for on-chain."
-- **Linger 20s · Live world tile** — the moat made visible. The shot that distinguishes us from "just another quiz app."
+- **Linger 45s · Quiz reveal** — the emotional payoff. Where recognition + reflection land · *"this is me · this gives me a way to navigate."*
+- **Linger 30s · Land in the lobby** — your stone joining · sprites of others drifting in their elements · clan counts ticking up · the activity feed of arrivals · sells "Strava for on-chain."
+- **Linger 20s · Live world tile** — the moat made visible. Today's leading element + who's here right now · the shot that distinguishes us from "just another quiz app."
 - **Montage 30s · Quiz** — accelerate Q1 → Q3 → Q6 → Q8 · texture without latency.
 - **Quick 15s · Mint moment** — Phantom popup · sign · confirm. Don't dwell.
+
+**The IRL bridge (worth its own beat in the voiceover · 5-10s)**: today's actual sky maps onto the wuxing element it amplifies — sun → Fire · rain → Water · etc. The Observatory shows the user their local weather and which element it boosts. The offline world bleeds into the online one · this is the texture that makes the awareness layer feel grounded, not abstract.
 
 Full journey detail at [`grimoires/loa/context/06-user-journey-map.md`](grimoires/loa/context/06-user-journey-map.md) (rosenzu spatial map).
 
