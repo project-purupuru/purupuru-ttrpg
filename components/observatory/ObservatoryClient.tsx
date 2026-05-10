@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { scoreAdapter } from "@/lib/score";
 import { weatherFeed } from "@/lib/weather";
 import type { WeatherState } from "@/lib/weather";
@@ -21,6 +21,8 @@ import { MobileBottomPanel } from "./MobileBottomPanel";
 const ZERO_DISTRIBUTION: Record<Element, number> = {
   wood: 0, fire: 0, earth: 0, water: 0, metal: 0,
 };
+
+const ELEMENT_DISPLAY_ORDER: readonly Element[] = ["wood", "fire", "earth", "metal", "water"] as const;
 
 export function ObservatoryClient() {
   const [introDone, setIntroDone] = useState(false);
@@ -129,6 +131,21 @@ export function ObservatoryClient() {
     };
   }, []);
 
+  // Leading clan — same computation as KpiStrip; powers the canvas-pane
+  // edge gradient so the ambient backdrop tint follows whichever clan
+  // is currently winning.
+  const leader = useMemo(() => {
+    let best: Element = "wood";
+    let bestVal = -Infinity;
+    for (const el of ELEMENT_DISPLAY_ORDER) {
+      if (distribution[el] > bestVal) {
+        bestVal = distribution[el];
+        best = el;
+      }
+    }
+    return best;
+  }, [distribution]);
+
   return (
     <div className="flex h-dvh flex-col bg-puru-cloud-deep text-puru-ink-base">
       {!introDone && <IntroAnimation onDone={() => setIntroDone(true)} />}
@@ -173,6 +190,30 @@ export function ObservatoryClient() {
             focusedTrader={focused?.trader ?? null}
             amplifiedElement={weather.amplifiedElement}
           />
+          {/* Leading-clan edge gradient — soft cloud-like vignette
+              tinted by whichever element is currently winning. Updates
+              every 3s when the score adapter refreshes; the 1.2s
+              transition smooths the cross-fade so a leader change
+              reads as the cosmos shifting weather, not a snap. */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 z-0 transition-[background] duration-[1200ms] ease-out"
+            style={{
+              background: `radial-gradient(ellipse at center, transparent 35%, color-mix(in oklch, var(--puru-${leader}-vivid) 18%, transparent) 100%)`,
+            }}
+          />
+          {/* Synthetic-data disclaimer — top-right corner of the canvas
+              pane. Honest signal to judges that this is a v0 demo with
+              mocked stream + score data; the design vocab matches the
+              other "live"/timestamp eyebrows so it reads as a UI label
+              rather than a watermark. */}
+          <span className="pointer-events-none absolute right-4 top-4 z-10 inline-flex items-center gap-2 rounded-puru-sm border border-puru-surface-border bg-puru-cloud-bright/85 px-2.5 py-1 font-puru-mono text-2xs uppercase tracking-[0.22em] text-puru-ink-dim shadow-puru-tile backdrop-blur-sm">
+            <span
+              aria-hidden
+              className="inline-block h-1.5 w-1.5 rounded-full bg-puru-ink-dim/60"
+            />
+            synthetic data · demo
+          </span>
           {/* MusicPlayer + FocusCard share the canvas pane's stacking
               context so the focus card cleanly slides in over the
               player when a sprite is clicked. Both anchored to bottom-

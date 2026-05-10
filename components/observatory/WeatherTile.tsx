@@ -122,7 +122,17 @@ export function WeatherTile({
           label="amplifies"
           value={<span className="capitalize">{state.amplifiedElement}</span>}
           aside={ELEMENT_KANJI[state.amplifiedElement]}
-          asideStyle={{ color: `var(--puru-${state.amplifiedElement}-vivid)` }}
+          // Same "leader" treatment as the KpiStrip's winning cell —
+          // element-tinted bleed gradient on the cell + kanji bumped
+          // from the ambient 0.10 to 0.42 so the cosmos signal reads
+          // clearly instead of looking washed-out.
+          cellStyle={{
+            backgroundImage: `linear-gradient(to left, color-mix(in oklch, var(--puru-${state.amplifiedElement}-vivid) var(--puru-bleed-mix), transparent) 0%, transparent var(--puru-bleed-stop))`,
+          }}
+          asideStyle={{
+            color: `var(--puru-${state.amplifiedElement}-vivid)`,
+            opacity: 0.42,
+          }}
         />
       </div>
     </section>
