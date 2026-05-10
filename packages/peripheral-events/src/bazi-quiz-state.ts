@@ -16,9 +16,17 @@ import { Schema as S } from "effect"
 export const Answer = S.Literal(0, 1, 2, 3, 4)
 export type Answer = S.Schema.Type<typeof Answer>
 
-// Quiz step (1-8 · eight questions · operator-authored corpus).
-export const QuizStep = S.Number.pipe(S.between(1, 8))
+// Quiz step (1..9 · 1-8 = active step · 9 = completed sentinel).
+// step=9 → answers.length=8 (all questions answered) · used at result + mint
+// routes as the canonical "completed" HMAC state. The verifyQuizState
+// invariant `answers.length === step - 1` holds across the full range.
+export const QuizStep = S.Number.pipe(S.between(1, 9))
 export type QuizStep = S.Schema.Type<typeof QuizStep>
+
+// "All answers in" · the step value used at /result + /mint endpoints.
+// Importing this constant avoids magic numbers at call sites and makes the
+// "completed" semantics explicit in the type system.
+export const QUIZ_COMPLETED_STEP = 9 as const
 
 // Quiz state · URL-encoded between Q1-Q5 GET requests.
 //
@@ -121,7 +129,7 @@ export function verifyQuizState(
   if (
     !Number.isInteger(state.step) ||
     state.step < 1 ||
-    state.step > 8
+    state.step > 9
   ) {
     return false
   }

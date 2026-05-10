@@ -26,6 +26,7 @@ export {
   Answer,
   BaziQuizState,
   CompletedQuizState,
+  QUIZ_COMPLETED_STEP,
   QuizStep,
   signQuizState,
   verifyQuizState,
@@ -60,3 +61,12 @@ export {
   archetypeFromAnswers,
   quizStateHashOf,
 } from "./bazi-resolver"
+
+// StoneClaimed · on-chain Anchor event mirror · indexer consumption (zerker)
+export {
+  ElementByte,
+  StoneClaimedIndexedFields,
+  StoneClaimedRaw,
+  StoneClaimedSchema,
+} from "./stone-claimed"
+export type { StoneClaimed } from "./stone-claimed"

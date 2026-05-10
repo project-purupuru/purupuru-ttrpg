@@ -8,6 +8,7 @@
 
 import { NextResponse } from "next/server"
 
+import { verifyQuizState, type Answer } from "@purupuru/peripheral-events"
 import {
   QUIZ_CONFIG,
   QUIZ_CORPUS,
@@ -17,8 +18,6 @@ import {
 } from "@purupuru/medium-blink"
 
 import { ACTION_CORS_HEADERS, getBaseUrl } from "@/lib/blink/cors"
-
-const PLACEHOLDER_MAC = "placeholder-mac-s1-t4"
 
 // Validate URL query · returns parsed state OR NextResponse error.
 function parseStepQuery(url: URL):
@@ -89,9 +88,38 @@ function parseStepQuery(url: URL):
   }
 
   const mac = params.get("mac") ?? ""
-  if (mac !== PLACEHOLDER_MAC) {
-    // S1 lenient mode · log + continue. S2-T2's verifyQuizState wires real check.
-    console.warn("[quiz/step] non-placeholder mac · S1 lenient")
+
+  // Verify HMAC over (step, priorAnswers) · sprint-3 T2 · rejects tampered URLs.
+  // signQuizState in the renderer signs the SAME shape so a valid forward
+  // step always carries a valid mac · invalid/missing mac → 400.
+  const macValid = verifyQuizState({
+    step,
+    answers: priorAnswers as ReadonlyArray<Answer>,
+    mac,
+  })
+  if (!macValid) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        {
+          icon: `${baseUrl}/api/og?step=1`,
+          title: "Something's off",
+          description: "We lost your place · start again to read you fresh.",
+          label: "begin",
+          links: {
+            actions: [
+              {
+                type: "post",
+                label: "Begin Again",
+                href: `${baseUrl}/api/actions/quiz/start`,
+              },
+            ],
+          },
+          error: { message: "Quiz state HMAC validation failed" },
+        },
+        { headers: ACTION_CORS_HEADERS, status: 400 },
+      ),
+    }
   }
 
   return { ok: true, step, priorAnswers, mac }

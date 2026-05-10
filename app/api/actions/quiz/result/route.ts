@@ -8,7 +8,12 @@
 
 import { NextResponse } from "next/server"
 
-import { archetypeFromAnswers } from "@purupuru/peripheral-events"
+import {
+  archetypeFromAnswers,
+  QUIZ_COMPLETED_STEP,
+  verifyQuizState,
+  type Answer,
+} from "@purupuru/peripheral-events"
 import {
   QUIZ_CONFIG,
   QUIZ_CORPUS,
@@ -19,13 +24,35 @@ import {
 
 import { ACTION_CORS_HEADERS, getBaseUrl } from "@/lib/blink/cors"
 
-// Parse and validate URL query · returns either parsed answers or an error response.
+// Parse and validate URL query · returns parsed answers + validated mac.
+// Verifies HMAC over (step=QUIZ_COMPLETED_STEP, answers) · rejects tampered.
 function parseResultQuery(url: URL):
-  | { ok: true; answers: Array<0 | 1 | 2 | 3 | 4> }
+  | { ok: true; answers: Array<0 | 1 | 2 | 3 | 4>; mac: string }
   | { ok: false; response: ReturnType<typeof NextResponse.json> } {
   const params = url.searchParams
   const baseUrl = `${url.protocol}//${url.host}`
   const answers: Array<0 | 1 | 2 | 3 | 4> = []
+
+  const beginAgainResponse = (status: number, message: string) =>
+    NextResponse.json(
+      {
+        icon: `${baseUrl}/api/og?step=1`,
+        title: "Something's off",
+        description: "Your answers got out of sync · start over to read you fresh.",
+        label: "begin",
+        links: {
+          actions: [
+            {
+              type: "post",
+              label: "Begin Again",
+              href: `${baseUrl}/api/actions/quiz/start`,
+            },
+          ],
+        },
+        error: { message },
+      },
+      { headers: ACTION_CORS_HEADERS, status },
+    )
 
   for (let i = 1; i <= QUIZ_CONFIG.totalSteps; i++) {
     const raw = params.get(`a${i}`)
@@ -40,32 +67,31 @@ function parseResultQuery(url: URL):
     ) {
       return {
         ok: false,
-        response: NextResponse.json(
-          {
-            icon: `${baseUrl}/api/og?step=1`,
-            title: "Something's off",
-            description: "Your answers got out of sync · start over to read you fresh.",
-            label: "begin",
-            links: {
-              actions: [
-                {
-                  type: "post",
-                  label: "Begin Again",
-                  href: `${baseUrl}/api/actions/quiz/start`,
-                },
-              ],
-            },
-            error: {
-              message: `Invalid answer parameter a${i} (must be 0..${maxIdx} for question ${i})`,
-            },
-          },
-          { headers: ACTION_CORS_HEADERS, status: 400 },
+        response: beginAgainResponse(
+          400,
+          `Invalid answer parameter a${i} (must be 0..${maxIdx} for question ${i})`,
         ),
       }
     }
     answers.push(ans as 0 | 1 | 2 | 3 | 4)
   }
-  return { ok: true, answers }
+
+  // HMAC verify · the canonical "completed" state is step=9 with all 8 answers.
+  // The renderer signs this shape on the final step's button · we verify here.
+  const mac = params.get("mac") ?? ""
+  const macValid = verifyQuizState({
+    step: QUIZ_COMPLETED_STEP,
+    answers: answers as ReadonlyArray<Answer>,
+    mac,
+  })
+  if (!macValid) {
+    return {
+      ok: false,
+      response: beginAgainResponse(400, "Quiz state HMAC validation failed"),
+    }
+  }
+
+  return { ok: true, answers, mac }
 }
 
 // Resolve archetype Element from validated answers via voice-corpus mapping.
@@ -91,7 +117,12 @@ export async function GET(request: Request) {
   if (!parsed.ok) return parsed.response
 
   const archetype = resolveArchetype(parsed.answers)
-  const response = renderQuizResult({ archetype, config: { baseUrl } })
+  const response = renderQuizResult({
+    archetype,
+    answers: parsed.answers,
+    mac: parsed.mac,
+    config: { baseUrl },
+  })
   return NextResponse.json(response, { headers: ACTION_CORS_HEADERS })
 }
 
@@ -104,6 +135,8 @@ export async function POST(request: Request) {
   const archetype = resolveArchetype(parsed.answers)
   const action: ActionGetResponse = renderQuizResult({
     archetype,
+    answers: parsed.answers,
+    mac: parsed.mac,
     config: { baseUrl },
   })
 

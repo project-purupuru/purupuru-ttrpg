@@ -10,7 +10,12 @@
 //     → quiz-renderer composes ActionGetResponse
 //     → apps/web route returns to client
 
-import type { Element } from "@purupuru/peripheral-events"
+import {
+  QUIZ_COMPLETED_STEP,
+  signQuizState,
+  type Answer,
+  type Element,
+} from "@purupuru/peripheral-events"
 
 import { QUIZ_CONFIG, selectAnswers, shouldButtonsPost } from "./quiz-config"
 import type { ActionGetResponse, LinkedAction } from "./solana-actions-types"
@@ -24,9 +29,14 @@ import {
 
 // Base URL configuration · injected by app-level wrapper.
 // Default to localhost:3000 for tests · prod sets env at runtime.
+//
+// `hmacKey` is optional · when omitted the renderer falls back to
+// process.env.QUIZ_HMAC_KEY (production path). Tests inject `hmacKey`
+// directly to avoid env coupling.
 export interface RendererConfig {
   baseUrl: string // e.g. "https://purupuru-blinks.vercel.app"
   iconBaseUrl?: string // optional CDN · defaults to baseUrl/api/og
+  hmacKey?: Buffer // optional · for test injection · falls back to env
 }
 
 const defaultConfig: RendererConfig = {
@@ -148,8 +158,18 @@ export const renderQuizStep = (params: {
 //
 // Element is RECOMPUTED server-side from validated answers (per HIGH-1 fix · client
 // element supply is ignored). Caller passes derived element here.
+//
+// `answers` is threaded into the claim button URL so the mint POST route can
+// recompute archetype + weather + quiz_state_hash from validated state. Without
+// it, the mint route receives an empty URL and rejects with 400.
+//
+// `mac` is the validated HMAC the result endpoint received · re-attached to
+// the claim URL so the mint route verifies the same canonical state without
+// the result endpoint needing to re-sign.
 export const renderQuizResult = (params: {
   archetype: Element
+  answers?: ReadonlyArray<0 | 1 | 2 | 3 | 4>
+  mac?: string
   config?: RendererConfig
 }): ActionGetResponse => {
   const config = params.config ?? defaultConfig
@@ -161,6 +181,19 @@ export const renderQuizResult = (params: {
   // identity-locating phrase. Title Case for CTAs throughout.
   const elementName =
     params.archetype.charAt(0) + params.archetype.slice(1).toLowerCase()
+
+  // Build claim URL with answers + mac threaded as ?a1=...&a8=...&mac=... .
+  // Mint route parses these to recompute archetype + quiz_state_hash AND
+  // verify the HMAC over (step=9, answers).
+  const claimParams = new URLSearchParams()
+  if (params.answers) {
+    params.answers.forEach((ans, i) => claimParams.set(`a${i + 1}`, String(ans)))
+  }
+  if (params.mac) {
+    claimParams.set("mac", params.mac)
+  }
+  const claimQuery = claimParams.toString()
+  const claimHref = `${config.baseUrl}/api/actions/mint/genesis-stone${claimQuery ? "?" + claimQuery : ""}`
 
   return {
     icon: iconUrlForArchetype(params.archetype, config),
@@ -174,7 +207,7 @@ export const renderQuizResult = (params: {
           // type:"transaction" so wallet adapter prompts for sig at click time
           type: "transaction",
           label: "Claim Your Stone",
-          href: `${config.baseUrl}/api/actions/mint/genesis-stone`,
+          href: claimHref,
         },
         {
           // ambient → chains to next inline action (no wallet needed)
@@ -219,9 +252,10 @@ export const renderAmbient = (params: {
 // Build answer buttons for a quiz step · count + selection driven by QUIZ_CONFIG.
 //
 // State encoded as URL query params: ?step=N&a1=...&aN-1=...&mac=...
-// Each button gets `type` matching the configured chainStyle:
-//   "inline-post" → type:"post" → POST handler returns next action inline
-//   "external-link" → type:"external-link" → simple navigation
+// Each button signs an HMAC over (nextStep, priorAnswers + thisAnswer) so the
+// receiving route can verify the URL state hasn't been tampered with. The
+// "completed" state (final question's button) signs over (step=9, all 8
+// answers) and routes the user to /result.
 const buildAnswerButtons = (
   step: number,
   priorAnswers: ReadonlyArray<0 | 1 | 2 | 3 | 4>,
@@ -236,19 +270,28 @@ const buildAnswerButtons = (
   return selected.map(({ originalIndex, answer }) => {
     const newAnswers = [...priorAnswers, originalIndex as 0 | 1 | 2 | 3 | 4]
     const nextStep = step + 1
+    const isCompletedNext = nextStep > QUIZ_CONFIG.totalSteps
 
-    // Final step → links go to /result · earlier steps → /step
-    const path =
-      nextStep > QUIZ_CONFIG.totalSteps
-        ? "/api/actions/quiz/result"
-        : "/api/actions/quiz/step"
+    // Final step → links go to /result with step=9 (completed sentinel) ·
+    // earlier steps → /step with the next step number.
+    const path = isCompletedNext
+      ? "/api/actions/quiz/result"
+      : "/api/actions/quiz/step"
+
+    // The `step` field in the signed HMAC state is the NEXT step number ·
+    // for completed (after Q8 answered) the canonical step is 9.
+    const macStep = isCompletedNext ? QUIZ_COMPLETED_STEP : nextStep
+    const signed = signQuizState(
+      { step: macStep, answers: newAnswers as ReadonlyArray<Answer> },
+      config.hmacKey ? { key: config.hmacKey } : undefined,
+    )
 
     const params = new URLSearchParams()
-    if (nextStep <= QUIZ_CONFIG.totalSteps) {
+    if (!isCompletedNext) {
       params.set("step", String(nextStep))
     }
     newAnswers.forEach((ans, i) => params.set(`a${i + 1}`, String(ans)))
-    params.set("mac", "placeholder-mac-s1-t4") // sprint-3 wires real HMAC via signQuizState
+    params.set("mac", signed.mac)
 
     const queryString = params.toString()
     const href = `${config.baseUrl}${path}${queryString ? "?" + queryString : ""}`

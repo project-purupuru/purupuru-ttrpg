@@ -25,13 +25,24 @@ describe("BaziQuizState · GET-chain URL state shape", () => {
     expect(decoded.answers).toEqual([0, 2])
   })
 
-  it("rejects step out of range (1-8)", () => {
+  it("rejects step out of range (1-9 · 9=completed sentinel)", () => {
     expect(() =>
       S.decodeUnknownSync(BaziQuizState)({ step: 0, answers: [], mac: "x" }),
     ).toThrow()
     expect(() =>
-      S.decodeUnknownSync(BaziQuizState)({ step: 9, answers: [], mac: "x" }),
+      S.decodeUnknownSync(BaziQuizState)({ step: 10, answers: [], mac: "x" }),
     ).toThrow()
+  })
+
+  it("accepts step=9 (completed sentinel · all 8 answers in)", () => {
+    type A = 0 | 1 | 2 | 3 | 4
+    const decoded = S.decodeUnknownSync(BaziQuizState)({
+      step: 9,
+      answers: [0, 1, 2, 3, 4, 0, 1, 2] as A[],
+      mac: "x",
+    })
+    expect(decoded.step).toBe(9)
+    expect(decoded.answers.length).toBe(8)
   })
 
   it("rejects invalid answer values (must be 0-4)", () => {

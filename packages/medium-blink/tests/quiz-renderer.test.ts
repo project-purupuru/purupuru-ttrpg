@@ -14,7 +14,14 @@ import {
   validateActionResponse,
 } from "../src/quiz-renderer"
 
-const testConfig = { baseUrl: "https://test.purupuru.app" }
+// Inject a deterministic 32-byte HMAC key for tests · avoids env coupling.
+// The renderer's signQuizState falls back to process.env.QUIZ_HMAC_KEY when
+// no key is provided · explicit config keeps tests hermetic.
+const TEST_HMAC_KEY = Buffer.alloc(32, 0xab)
+const testConfig = {
+  baseUrl: "https://test.purupuru.app",
+  hmacKey: TEST_HMAC_KEY,
+}
 
 describe("renderQuizStart · Q1 entry point", () => {
   const response = renderQuizStart(testConfig)
