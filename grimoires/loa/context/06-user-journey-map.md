@@ -84,7 +84,7 @@
 | Z1a | Ambient Window (`/api/actions/today`) | 0.5F arcade | LIVE | Weather-vane · pulses with substrate truth · single-glance | Blink unfurl in feed | "What's My Element?" CTA → Z2 | us (feat) |
 | Z1b | Quiz Threshold (`/api/actions/quiz/start`) | 1F lobby door | LIVE | Warm prompt · curiosity is the only ticket | Tap on quiz Blink, OR cross-link from Z1a | Button-tap (POST chain) into Q2 | us (feat) |
 | Z2 | Quiz Hallway (Q1 → Q8) | 1F · 8-door corridor | LIVE | Meditative procession · per-step illustrations shift weather/time | Q1 button | Q8 → result POST | us (feat) |
-| Z3 | Reveal Chamber (`/api/actions/quiz/result`) | 2F · private alcove | LIVE | **★ highest atmos quality** · "You are Wood." · stone PNG · fortune-telling vibe | Q8 answer POST | "Claim Your Stone" → Z4 | us (feat) |
+| Z3 | Reveal Chamber (`/api/actions/quiz/result`) | 2F · private alcove | LIVE | **★ highest atmos quality** · "You are Wood." · stone PNG · recognition + reflection ("this is me · gives me a way to navigate") | Q8 answer POST | "Claim Your Stone" → Z4 | us (feat) |
 | Z4 | Treasury (`/api/actions/mint/genesis-stone` · Phantom signing) | 3F · vault | LIVE | Ritual · trust crossing · **Phantom owns the room** | Tap "Claim Your Stone" | Signed tx → confirmation | us (feat) |
 | Z5 | Confirmation (post-mint) | 3F · ⚠ UNDEFINED | NOT BUILT | **Currently a vacuum** · biggest hole in journey | Tx confirmation | ??? — should bridge to Z6 | tbd |
 | Z6 | Observatory Plaza (`purupuru-blink.vercel.app/`) | 1F · public square | LIVE | Living world · pentagram canvas · activity rail · weather tile · music · day/night theme · **most finished zone** | Direct URL only | Click sprite → Z7 | zerker (main) |
@@ -115,7 +115,7 @@
 
 | Action | Zone | Duration | Why |
 |---|---|---|---|
-| **LINGER** | Z3 Reveal Chamber | 45s | This is the journey's emotional payoff · stone PNG · "You are Wood" · aggregate · the room where fortune-telling vibe lands or doesn't |
+| **LINGER** | Z3 Reveal Chamber | 45s | This is the journey's emotional payoff · stone PNG · "You are Wood" · aggregate · the room where recognition + reflection land · "this is me · gives me a way to navigate" |
 | **LINGER** | Z6 Observatory Plaza | 30s | Pan the pentagram canvas · show activity rail ticking · click sprite to surface Z7 · use the music · sells "Strava for on-chain" · most finished zone |
 | **LINGER** | Z1a Ambient Window | 20s | The moat made visible · "Wood leads today · 47 have read themselves in." · this is the shot that distinguishes us from "just another quiz app" |
 | **MONTAGE** | Z2 Quiz Hallway | 30s | Accelerate · Q1 · Q3 · Q6 · Q8 · don't show all 8 doors · show the *texture* of the corridor (illustration shifts) without the latency |
@@ -171,27 +171,29 @@ This is the cmp-boundary doctrine working too literally: "presentation never mut
 
 ---
 
-## Reframings worth surfacing to operator
+## Pitch framing decisions (operator-confirmed 2026-05-10)
 
-### "Strava for on-chain communities" · KEEPER's challenge
+KEEPER's challenges in round-2 surfaced three framings worth resolving before the deck hardens. Operator's calls:
 
-Strava works because *the activity is the product*. Users run, then look at the map. Here, the proposed loop is: take a quiz (off-chain) → mint (on-chain) → see others on the dashboard. **The user did not do an on-chain activity to be surfaced.** They did a personality quiz. The "on-chain action" is a single mint they were prompted into, not an organic behavior worth surfacing.
+### "Strava for on-chain communities" · AFFIRMED as the vision
 
-The honest framing might be: **"Buzzfeed-quiz-as-onboarding-to-an-on-chain-community-dashboard."** The quiz is the lure; the observatory is the destination; the stone is the receipt of having entered. "Strava" implies recurring activity worth tracking. "Sorting hat + bulletin board" might be closer.
+Strava-as-vision is the right framing for the hackathon. **The hackathon submission is one demonstrable component of that vision** — a starter loop (quiz → stone → observatory) that proves the architecture. The vision is bigger:
 
-Operator's call before the deck hardens.
+- **Chain layer** (Solana for v0 · agnostic at the schema layer)
+- **Service layer** (substrate primitives · platform-portable · should NOT be overdone — it should serve to enrich, not replace, the platforms people already use)
+- **Presentation layer** (Twitter Blink today · Telegram + base app + others to come)
 
-### "Fortune-telling vibe" · KEEPER's challenge
+The infrastructure is modular by design. New presentations and chains plug in without reshaping the core. KEEPER's "Buzzfeed-quiz-as-onboarding" reframe was useful diagnostically — it correctly identified that the v0 loop is single-mint-as-receipt — but it missed that v0 is the entry-point for a vision that DOES match Strava once the activity surface populates.
 
-Fortune-telling reflects details back at you. The current 1-line reveal ("You start things. You grow into what's next.") is element-keyed but answer-blind. The user doesn't see her cancelled-plans answer feed into anything. **The fortune-telling premise needs the reveal to mention something specific she said yes to.**
+### "Fortune-telling vibe" → REPLACED with **recognition + reflection**
 
-Alternative framing: **personality recognition** rather than fortune-telling. The Mom Test would catch this — nobody opens Twitter saying "I want my fortune told." They DO say "I want to find out about myself." Recognition > prediction.
+The original "fortune-telling" framing came from the Chinese-base-app distribution conversation (the platform-agnostic story · same mechanic, different cultural frame). What's actually happening for users is closer to MBTI-style archetype recognition: *"I'm answering questions loosely, the result resonates, and I get a way to navigate the world."* The reveal copy already lives in this register (operator stripped "tide" metaphor 2026-05-09 specifically to ground it).
 
-For demo: lean into recognition · the questions ARE good · the reveal needs to feel like *you, specifically, were seen* not *you got assigned a category*.
+KEEPER's Mom Test is the right test: *nobody opens Twitter saying "I want my fortune told."* They DO say "I want to find out about myself." For the demo voiceover and deck: lean into recognition + reflection. The questions reflect reality back · the user learns something about themselves · the stone marks the moment.
 
-### Quiz length · 8 vs 5 (ROSENZU + KEEPER)
+### Quiz length · 8 questions for v0 · 5 leaning post-hackathon
 
-Twitter quiz attention budget is 3-5 questions. By Q6 cold users are wondering when it ends. 8 was a Gumi-feedback choice. Trade-off: 8 gives richer signal but adds 3 doors of drop-off risk. Worth re-considering for v1 if conversion data shows mid-quiz bail-out.
+Currently 8 questions per Gumi feedback. Operator's read post-audit: research suggests 3-5 for Twitter attention budget · 5 may be the right balance (richer signal than 3 · fewer drop-off doors than 8). **Open question pending Gumi conversation post-hackathon.** No change for v0 ship.
 
 ---
 

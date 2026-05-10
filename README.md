@@ -2,7 +2,9 @@
 
 > **Solana Frontier hackathon submission · ship 2026-05-11**
 
-A Twitter-native personality quiz that sorts you into one of five elements, mints you a Genesis Stone on Solana, and surfaces what your community is doing through a live observatory dashboard. The quiz is the lure · the observatory is the destination · the stone is the receipt of having entered.
+**Strava for on-chain communities.** Your community's on-chain activity, surfaced where your community already hangs out — Twitter, Telegram, group chats — without anyone leaving to see it. The quiz + stone + observatory you'll see in this hackathon submission is **one component of that vision**: a starter loop that demonstrates the architecture. The infrastructure is modular by design — the Blink renders anywhere the Solana Actions spec is honored; the substrate is chain-agnostic at the schema layer (Solana for now); the presentation layer is built to wrap any underlying community-activity feed.
+
+What you'll experience in v0: a Twitter-native personality quiz that sorts you into one of five elements, mints you a Genesis Stone on Solana, and surfaces what your community is doing through a live observatory dashboard. The quiz is the lure · the observatory is the destination · the stone is the receipt of having entered.
 
 > **Live**: [purupuru-quiz.vercel.app](https://purupuru-quiz.vercel.app) (Twitter Blink) · [purupuru-blink.vercel.app](https://purupuru-blink.vercel.app) (Observatory dashboard)
 > **Program**: `7u27WmTz2hZHvvhL89XcSCY3eFhxEfHjUN5MjzMY6v38` on Solana devnet
@@ -98,7 +100,7 @@ The wallet bridges the two surfaces. Twitter takes you in; the wallet records yo
 ```
 
 **Demo emphasis** (3-min recording target):
-- **Linger 45s · Z3 Reveal** — the emotional payoff. The room where fortune-telling lands or doesn't.
+- **Linger 45s · Z3 Reveal** — the emotional payoff. The room where recognition + reflection land · *"this is me · this gives me a way to navigate."*
 - **Linger 30s · Z6 Observatory** — pan the pentagram canvas · activity rail ticking · click a sprite. Sells "Strava for on-chain."
 - **Linger 20s · Z1a Ambient** — the moat made visible. The shot that distinguishes us from "just another quiz app."
 - **Montage 30s · Z2 Quiz** — accelerate Q1 → Q3 → Q6 → Q8 · texture without latency.
@@ -349,9 +351,11 @@ Beyond that, the user journey map calls out three rooms that need to land:
 2. **Z8 profile claim** · the missing room · auth · element recognition · "this is yours"
 3. **Indexer wiring** · close seam between mint events and observatory rail (`project-purupuru/radar`)
 
-Plus the standing reframings worth surfacing pre-pitch:
-- "Strava for on-chain communities" vs **"Buzzfeed-quiz-as-onboarding-to-community-dashboard"** (KEEPER's challenge)
-- "Fortune-telling" vs **personality recognition** (Mom-Test-pass framing)
+**Pitch framing decisions** (operator-confirmed 2026-05-10):
+
+- **"Strava for on-chain communities" is the vision** — affirmed. The hackathon submission is one demonstrable component. The infrastructure is modular: chain layer (Solana for v0 · agnostic at schema layer) → service layer (substrate primitives · platform-portable) → presentation layer (Twitter Blink today · Telegram + base app + others to come). The service layer should NOT be overdone — it should serve to enrich how people connect with their communities, not replace the platforms they're on.
+- **Recognition + reflection · not fortune-telling** — the quiz reflects something true about the user · helps them navigate the world · resonance via specifics from MBTI-style archetypes. "Fortune-telling" was a reference frame from the Chinese-base-app distribution conversation; the underlying mechanic is the same across distributions.
+- **Quiz length** — currently 8 questions per Gumi feedback. Open question post-hackathon: research suggests 3-5 for Twitter attention budget · operator may push for 5 (richer signal · fewer drop-off doors). Pending Gumi conversation.
 
 ---
 
