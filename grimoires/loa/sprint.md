@@ -256,6 +256,14 @@ per PRD r6 §9 + SDD §11:
 
 ---
 
+---
+
+## Companion sprints (separate workstreams · same cycle)
+
+- **Sprint 2 · Indexer in-repo** (`grimoires/loa/sprints/indexer-sprint.md` · 2026-05-09) — `feature/indexer-stoneclaimed` branch off `main` · zerker sole owner · demo-ready 2026-05-11 AM · gates on PRD amendment §FR-12 (`prd.md:945-1064`) + SDD §13 (`sdd.md:660-1074`). Does NOT supersede this sprint plan; runs in parallel as a separate ~36h workstream.
+
+---
+
 ## Sources
 
 - **PRD r6** (`grimoires/loa/prd.md`) — functional requirements (FR-1 through FR-12)

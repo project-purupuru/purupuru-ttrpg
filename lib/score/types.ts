@@ -35,12 +35,9 @@ export interface WalletSignals {
 
 export type ElementDistribution = Record<Element, number>;
 
-export type EcosystemEnergy = Record<string, number>;
-
 export interface ScoreReadAdapter {
   getWalletProfile(address: Wallet): Promise<WalletProfile | null>;
   getWalletBadges(address: Wallet): Promise<WalletBadge[]>;
   getWalletSignals(address: Wallet): Promise<WalletSignals | null>;
   getElementDistribution(): Promise<ElementDistribution>;
-  getEcosystemEnergy(): Promise<EcosystemEnergy>;
 }

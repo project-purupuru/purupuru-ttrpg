@@ -1,7 +1,6 @@
 import type {
   Element,
   ElementDistribution,
-  EcosystemEnergy,
   ScoreReadAdapter,
   Wallet,
   WalletBadge,
@@ -66,17 +65,12 @@ export const mockScoreAdapter: ScoreReadAdapter = {
   },
 
   async getElementDistribution(): Promise<ElementDistribution> {
+    // Polyrhythmic sine drift — distribution shifts slowly so the
+    // wuxing bar in the KPI strip feels alive across the demo.
+    const t = Date.now() / 1000;
     return ELEMENTS.reduce((acc, el, i) => {
-      acc[el] = 50 + Math.round(50 * Math.abs(Math.sin(i * 1.3)));
+      acc[el] = 50 + Math.round(35 * Math.abs(Math.sin(i * 1.3 + t / 19)));
       return acc;
     }, {} as ElementDistribution);
-  },
-
-  async getEcosystemEnergy(): Promise<EcosystemEnergy> {
-    return {
-      total_active: 1234,
-      cosmic_intensity: 0.62,
-      cycle_balance: 0.81,
-    };
   },
 };
