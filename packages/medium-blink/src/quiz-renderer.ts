@@ -249,8 +249,12 @@ export const renderAmbient = (params: {
 
   return {
     icon: iconUrlForArchetype(params.todayElement, config),
-    title: "The Observatory",
-    description: `${elementName} dominant today · ${params.mintCount} stones claimed. Find your element. Add your signal.`,
+    // Cold-audience entry surface · question-as-hook (ARTISAN R2 Variant A).
+    // Internal canon ("Observatory") moves to label; title carries the
+    // user-shaped question that pulls cold scrollers in. KPI moves to
+    // description as social proof rather than vocabulary lesson.
+    title: "What Element Are You Today?",
+    description: `${elementName} leads today · ${params.mintCount} have read themselves in. Take 90 seconds.`,
     label: "Observatory",
     links: {
       actions: [

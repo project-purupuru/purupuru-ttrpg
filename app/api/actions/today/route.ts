@@ -61,9 +61,9 @@ export async function GET(request: Request) {
     return NextResponse.json(
       {
         icon: `${baseUrl}/api/og?ambient=fallback`,
-        title: "The Observatory",
+        title: "What Element Are You Today?",
         description:
-          "The live feed is catching its breath · check back in a moment.",
+          "The live feed is catching its breath · take the quiz in 90 seconds while we reconnect.",
         label: "Observatory",
         links: {
           actions: [

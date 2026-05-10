@@ -130,9 +130,9 @@ export const QUIZ_CORPUS: ReadonlyArray<QuizQuestion> = [
 // for users who haven't been initiated into the world's voice yet).
 export const ARCHETYPE_REVEALS: Record<Element, string> = {
   WOOD: "You start things. You grow into what's next.",
-  FIRE: "You move quick. You light up the room.",
+  FIRE: "You move quick. The room moves with you.",
   EARTH: "You stay steady. People find their ground with you.",
-  METAL: "You see clearly. You cut through noise.",
+  METAL: "You see clearly. You notice what people leave out.",
   WATER: "You flow with what moves. You feel before you think.",
 }
 

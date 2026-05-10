@@ -199,24 +199,24 @@ describe("renderAmbient · /api/actions/today (REFRAME-1 awareness moat)", () =>
     expect(response.links!.actions[0].href).toContain("/api/actions/quiz/start")
   })
 
-  it("title is the canonical observatory surface name (Title Case · stable)", () => {
+  it("title is question-as-hook · cold-audience pull (ARTISAN R2 Variant A)", () => {
     const response = renderAmbient({
       todayElement: "WATER",
       mintCount: 12,
       config: testConfig,
     })
-    expect(response.title).toBe("The Observatory")
+    expect(response.title).toBe("What Element Are You Today?")
     expect(response.label).toBe("Observatory")
   })
 
-  it("description carries dominant-element + stones-claimed (substrate KPIs · no fabricated delta)", () => {
+  it("description carries Element + count as social proof (no fabricated delta)", () => {
     const response = renderAmbient({
       todayElement: "WATER",
       mintCount: 12,
       config: testConfig,
     })
     expect(response.description).toContain("Water")
-    expect(response.description).toContain("12 stones")
+    expect(response.description).toContain("12")
     expect(response.description).not.toMatch(/[+-]?\d+%/)
   })
 

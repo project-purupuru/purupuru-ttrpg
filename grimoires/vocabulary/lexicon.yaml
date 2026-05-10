@@ -12,6 +12,11 @@
 #   forbidden · synonyms NOT to use (with reason)
 #   register · Title Case · sentence-case · lowercase-mono · etc
 #   last_confirmed · commit SHA where canonical was validated
+#   cold_audience_register · (R2 addition · 2026-05-10) the plain-language
+#     version used at first-encounter surfaces (ambient cards · share-OG ·
+#     landing hero) BEFORE the user is inside. Inside-the-quiz surfaces
+#     keep canonical (per ARTISAN R2 pushback: world-vocab earned by step 8).
+#     Scope: ambient · share-OG · landing hero ONLY.
 #
 # Update protocol:
 #   - When a new surface introduces a competing term: STOP · open this file
@@ -28,17 +33,23 @@ terms:
 
   observatory:
     canonical: Observatory
+    cold_audience_register: "the live feed of who's joining"
     register: Title Case
     surfaces:
       - main:components/observatory/KpiStrip.tsx
       - main:components/observatory/ActivityRail.tsx
       - main:components/observatory/WeatherTile.tsx
       - main:app/page.tsx (metadata title "purupuru observatory · the world, breathing")
-      - feat/awareness-layer-spine:packages/medium-blink/src/quiz-renderer.ts (renderAmbient)
+      - feat/awareness-layer-spine:packages/medium-blink/src/quiz-renderer.ts (renderAmbient · label only · NOT title in cold-audience surface)
     forbidden:
       - "the world": "Was used in ambient renderer pre-2026-05-10 · zerker's observatory canon won (40+ commits) · unified per ambient-card audit"
       - "world view": "Never canon · do not use"
       - "live feed": "OK as descriptive phrase · NOT a surface name"
+    cold_audience_note: |
+      VOCAB R2 audit (2026-05-10): cold scrollers don't recognize "Observatory"
+      as a surface name (reads as astronomy / museum). Title slot of ambient
+      card now uses cold-hook ("What Element Are You Today?") · Observatory
+      stays as `label` (small surface tag, not the headline).
     last_confirmed: 062538b
 
   quiz:
@@ -67,13 +78,15 @@ terms:
 
   dominant_element:
     canonical: dominant element
+    cold_audience_register: "leads today"
     register: lowercase-mono (KPI label)
     surfaces:
       - main:components/observatory/KpiStrip.tsx
+      - feat/awareness-layer-spine:packages/medium-blink/src/quiz-renderer.ts (renderAmbient · uses cold register "leads today")
     forbidden:
       - "rising element": "Implies delta · observatory has no per-element delta KPI · SUBSTRATE-BROKEN if used"
       - "winning element": "Wrong register · observatory is observational not competitive"
-    notes: "KEEPER drift report 2026-05-10 D2 · using delta phrasing for this KPI broke click-through promise · ambient card now matches"
+    notes: "KEEPER drift report 2026-05-10 D2 · using delta phrasing for this KPI broke click-through promise · ambient card now matches. VOCAB R2: 'dominant' opaque to cold readers · ambient uses 'leads today' as cold register · canonical 'dominant element' kept for inside-observatory KPI labels."
     last_confirmed: 757803f
 
   live_presence:
@@ -141,15 +154,20 @@ terms:
 
   stones_claimed:
     canonical: stones claimed
+    cold_audience_register: "have read themselves in"
     register: sentence-case (running count phrasing)
     surfaces:
-      - feat/awareness-layer-spine:packages/medium-blink/src/quiz-renderer.ts (renderAmbient description)
+      - feat/awareness-layer-spine:packages/medium-blink/src/quiz-renderer.ts (renderAmbient description · uses cold register pre-quiz)
     related: rail_mint_event
     forbidden:
       - "stones minted": "Substrate verb · hide the chain"
       - "NFTs created": "Cmp-boundary violation · never mention NFTs in presentation"
-    notes: "Aligns with observatory's mint counter on rail · counts events not artifacts (KEEPER D4)"
-    last_confirmed: bb52cf2
+    notes: |
+      Aligns with observatory's mint counter on rail · counts events not artifacts (KEEPER D4).
+      VOCAB R2 (2026-05-10): "stone" undefined to cold scrollers · ambient pre-quiz uses
+      "have read themselves in" (action-shaped · Buzzfeed-quiz-legible) · "stones claimed"
+      stays canonical for inside-quiz + result-reveal where context has earned the term.
+    last_confirmed: df69f1b
 
   # === Identity / archetype ===
 
