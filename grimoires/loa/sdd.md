@@ -655,6 +655,423 @@ If spine fails by EOD day 1: HALT · operator pair · ALL stretch deferred
 - **eileen's framing document** (`/Users/zksoju/Downloads/message (4).txt`) — Frontier-aligned judging rubric · separation-as-moat punchline
 - **upstream operator brief** (2026-05-07 PM · post-eileen) — separation-as-moat doctrine · zerker dashboard parallel · gumi quiz design
 
+---
+
+## 13 · Indexer Architecture (FR-12 Amendment · 2026-05-09)
+
+> **⚠️ HISTORICAL — SUPERSEDED 2026-05-09 evening.** This addendum specified an in-process Next.js indexer via `instrumentation.ts`. Subsequent analysis (Vercel can't host long-lived WebSocket subscriptions; sonar's Envio framework is EVM-only) led to spinning up [project-purupuru/radar](https://github.com/project-purupuru/radar) as a sister service. Radar's own SDD at `radar/grimoires/loa/sdd.md` is the canonical architecture spec for the indexer. This §13 is preserved as historical context for the negotiation.
+>
+> **Amendment authority**: zerker (lane owner per `prd.md:574`) · authored in response to issue #5 (zksoju · 2026-05-09).
+> **Supersedes**: §FR-12 carve-out at `prd.md:510` ("out of scope for this repo: the Solana indexer code") — flipped in-repo per `prd.md:945-1064`.
+> **Scope**: ADDITIVE to existing SDD §0-§12. Does not rewrite any prior architectural choice; specifies the indexer surface that was previously out-of-repo.
+> **Authority chain**: PRD amendment §A "scope boundary flip" (`prd.md:951-964`) → AC-12.5–AC-12.12 (`prd.md:966-977`) → locked tech decisions (`prd.md:982-989`) → this addendum.
+> **Hackathon clock**: demo-ready 2026-05-11 morning. Scope limited to that horizon — no over-engineering for post-hackathon concerns.
+
+### 13.0 · why this exists in this SDD now
+
+The SDD r2 mentions the indexer as a downstream consumer at three points:
+
+- §4.2 step 9: *"indexer confirms StoneClaimed event"* (`sdd.md:349`)
+- §5.1 step 7: *"Emit StoneClaimed event"* (`sdd.md:377`)
+- §11 D-17: *"zerker indexer ready-by-date · post-anchor-deploy · sprint-3 close"* (`sdd.md:640`)
+
+Zero indexer architecture lives anywhere in §0-§12. That gap is what AC-12.5–AC-12.12 fills. The drift report's deferred decision §7.2 (element-casing boundary · `04-observatory-awareness-drift.md:148`) also resolves here: convert at indexer boundary, not in observatory consumers.
+
+### 13.1 · module layout
+
+New tree under `lib/indexer/` (greenfield · no brownfield wrap):
+
+```
+lib/indexer/
+  idl/
+    purupuru_anchor.json        [VENDORED · IDL copy from soju's anchor branch]
+                                 source-of-truth: zksoju/<branch>/target/idl/purupuru_anchor.json
+                                 re-vendor cadence: post-D-12 upgrade-authority freeze (prd.md:622)
+  client.ts                     [Solana Connection + EventParser wired to PROGRAM_ID]
+                                 PROGRAM_ID = 7u27WmTz2hZHvvhL89XcSCY3eFhxEfHjUN5MjzMY6v38
+                                 deps: @solana/web3.js + @coral-xyz/anchor (NOT YET INSTALLED)
+  ring-buffer.ts                [module-singleton · last ~200 MintActivity events]
+                                 dedup key: (signature, log_index) per AC-12.7 + issue #5 §DoD
+                                 contract: subscribe(cb), recent(n), push(activity)
+                                 implements ActivityStream (lib/activity/types.ts:79-82) shape
+                                 with the same start/stop discipline as mock.ts:165-187
+  adapter.ts                    [StoneClaimed → MintActivity transform]
+                                 element byte (1-5) → lowercase Element string
+                                 boundary owns the casing flip · observatory unchanged
+  reconnect.ts                  [WebSocket liveness + bounded backoff loop]
+                                 dead-man timer drives tear-down + reconnect
+                                 backoff: 1s → 2s → 4s → 8s → 16s → max 30s
+  health.ts                     [{ lastEventAt, count, connected } state surface]
+                                 read by app/api/indexer/status/route.ts (§13.4)
+                                 writable only from within lib/indexer/* (encapsulated)
+  index.ts                      [public surface · `realActivityStream: ActivityStream`]
+                                 conforms to lib/activity/types.ts ActivityStream interface
+                                 the contract for the env-flag flip at lib/activity/index.ts (§13.3)
+
+instrumentation.ts              [NEW FILE at repo root · Next.js 16 register() hook]
+                                 conditional indexer boot — see §13.2
+
+app/api/indexer/status/route.ts [NEW · App Router route handler — see §13.4]
+```
+
+**Module boundary discipline**: `lib/indexer/` exports ONLY `realActivityStream` (the `ActivityStream` adapter) and a small health-read accessor. The internal client/ring-buffer/reconnect/health modules are not part of the public surface — consumers import from `lib/indexer` (barrel) or `lib/activity` (env-resolved seam).
+
+**No new packages directory**: This is `lib/`, not `packages/peripheral-events/` or `packages/world-sources/`. Per the amendment scope-flip rationale (`prd.md:957-960`) the observatory branch is monolithic Next.js, not the awareness-branch monorepo. The indexer code lives where the observatory's other adapters live (`lib/score`, `lib/weather`, `lib/activity`).
+
+### 13.2 · server boot via `instrumentation.ts`
+
+Currently absent in the repo. Spec: a single new file at repo root.
+
+```ts
+// instrumentation.ts (NEW · Next.js 16 register() canonical hook)
+export async function register() {
+  // Run-once-per-process — Next.js 16 invokes register() on server boot only.
+  // HMR safety: in dev, register() runs on each server reload, not each HMR
+  // cycle — but we still gate by INDEXER_MODE so dev defaults to mock and
+  // never spins a real WS subscription unless explicitly opted in.
+  if (process.env.NEXT_RUNTIME !== "nodejs") return; // edge runtime: never
+  if (process.env.INDEXER_MODE !== "real") return;   // dev/preview default: mock
+
+  const { startIndexer } = await import("./lib/indexer");
+  await startIndexer();
+}
+```
+
+**Single-subscription invariant**: the `startIndexer()` function holds a module-level `started: boolean` flag (mirrors `mockActivityStream` start guard at `lib/activity/mock.ts:166`) so a second `register()` call (cold-start retry on Railway) is idempotent.
+
+**Why not a separate worker process**: Railway's free tier serves one Node process per service. Co-locating the indexer with the Next.js handler is cheaper, simpler, and the WS subscription cost is negligible (~10 events / demo, periodic `getSlot` heartbeat). When the demo concludes the workload disappears with the process.
+
+**Why `instrumentation.ts` over `middleware.ts` or a custom server**: per Next.js 16's documented run-once-on-boot hook (`prd.md:989` "canonical Next 16 pattern for run-once-on-boot side effects"). `middleware.ts` runs per-request on the edge runtime — wrong scope. A custom server would force us off Vercel's static-output bias and complicate Railway deploy.
+
+### 13.3 · mock/real switch at `lib/activity/index.ts`
+
+Today (`lib/activity/index.ts:1-5`):
+
+```ts
+export type { ActionKind, ActivityEvent, ActivityStream } from "./types";
+import { mockActivityStream } from "./mock";
+import type { ActivityStream } from "./types";
+
+export const activityStream: ActivityStream = mockActivityStream;
+```
+
+Becomes (per AC-12.9):
+
+```ts
+export type { ActionKind, ActivityEvent, ActivityStream } from "./types";
+import type { ActivityStream } from "./types";
+import { mockActivityStream } from "./mock";
+
+// Resolve the seam at module load. INDEXER_MODE defaults to "mock" for dev/preview;
+// production / Railway sets INDEXER_MODE=real (see §13.7 deploy contract).
+// The contract that makes this safe: realActivityStream and mockActivityStream
+// both implement the same ActivityStream interface (lib/activity/types.ts:79-82).
+function resolveStream(): ActivityStream {
+  if (process.env.INDEXER_MODE === "real") {
+    // Lazy require so dev bundles never pull in @solana/web3.js when running mock.
+    // ESM dynamic import preserves tree-shaking on the client edge.
+    const { realActivityStream } = require("@/lib/indexer");
+    return realActivityStream as ActivityStream;
+  }
+  return mockActivityStream;
+}
+
+export const activityStream: ActivityStream = resolveStream();
+```
+
+**Critical contract preserved**: every consumer of `activityStream` (e.g., `components/observatory/ActivityRail.tsx`) sees the same `subscribe(cb) → unsubscribe` and `recent(n)` shape from `lib/activity/types.ts:79-82`. No consumer changes. The seam is invisible above the boundary.
+
+**Default = mock**: dev and preview deploys (Vercel) keep mocked behavior. This protects against:
+- HMR spawning multiple WS subscriptions in dev (gated by env-flag)
+- Vercel preview deploys accidentally hitting devnet rate limits
+- Local dev runs without Solana RPC connectivity
+
+Only Railway production sets `INDEXER_MODE=real`.
+
+### 13.4 · health endpoint at `app/api/indexer/status/route.ts`
+
+```ts
+// app/api/indexer/status/route.ts (NEW · Next.js 16 App Router route handler)
+import { NextResponse } from "next/server";
+import { getIndexerHealth } from "@/lib/indexer/health";
+
+export const runtime = "nodejs";       // must NOT be edge — needs lib/indexer state
+export const dynamic = "force-dynamic"; // never statically cache
+
+export async function GET() {
+  const health = getIndexerHealth();
+  return NextResponse.json({
+    mode: process.env.INDEXER_MODE === "real" ? "real" : "mock",
+    lastEventAt: health.lastEventAt,   // ISO string | null
+    count: health.count,                // events seen since process boot
+    connected: health.connected,        // WS state · false during reconnect backoff
+  });
+}
+```
+
+Response shape matches AC-12.10 verbatim (`prd.md:975`) plus the `mode` field for operator clarity at-a-glance.
+
+**Visible health pip in observatory chrome (AC-12.8 + AC-12.10)**: a small dot rendered in the Observatory header/rail chrome, polling `/api/indexer/status` every 10s. Pip color states:
+
+| `connected` | last event age | pip |
+|---|---|---|
+| `true` | ≤ 60s | green (live) |
+| `true` | > 60s | amber (connected · feed quiet — ambiguous on devnet but visible) |
+| `false` | n/a | red (reconnecting · users see degraded state honestly) |
+
+The pip is **demo-day insurance**: a stalled feed degrades visibly per AC-12.8, not silently. Implementation lives in observatory chrome (e.g., `components/observatory/HealthPip.tsx`); that's an observatory-surface task in the sprint plan, not an indexer task.
+
+### 13.5 · reconnect strategy (resolves PRD open discovery item D · `prd.md:993-997`)
+
+The architectural problem: Solana's `connection.onLogs(...)` does NOT surface explicit disconnect events. A WebSocket can silently die — the callback simply stops firing, with no error to catch. We need an external liveness signal.
+
+**Liveness pattern (locked here)**: dead-man timer driven by lightweight `getSlot` polling.
+
+```
+on indexer boot:
+  subscribe via connection.onLogs(PROGRAM_ID, handler, "confirmed")
+  start heartbeat loop:
+    every 15s:
+      currentSlot ← await connection.getSlot("confirmed")
+      if currentSlot > lastObservedSlot:
+        lastObservedSlot ← currentSlot
+        lastSlotAdvanceAt ← now()
+      else if (now() - lastSlotAdvanceAt) > 60s:
+        // dead-man triggered: chain still advances but we're not seeing it
+        teardown_subscription()
+        reconnect_with_backoff()
+        return
+
+on event received:
+  push to ring-buffer
+  update health.{lastEventAt, count}
+  // event reception is its own liveness signal — slot polling is fallback
+```
+
+**Backoff schedule (AC-12.8)**: `1s, 2s, 4s, 8s, 16s, 30s, 30s, 30s, ...` — capped at 30s per try, infinite retries (devnet rate-limits don't punish us this politely; if we hit a wall the env-flag escape hatch to Helius is the operator's 2-min recovery move).
+
+**Why `getSlot` over a heartbeat WS subscription**: getSlot is one HTTP call. A second WS subscription doubles the failure surface. The amendment notes devnet is rate-limited; we burn fewer requests with periodic polling than with parallel WS streams.
+
+**Demo-day risk (R-13)**: silent disconnect during recording is the headline risk. Mitigations stack:
+1. Reconnect loop catches it within 60s + backoff.
+2. Visible health pip flips to red so a stalled feed is honest about itself.
+3. `INDEXER_MODE=real` env-flag is per-deploy, so swapping `SOLANA_RPC_URL` to a Helius endpoint is a 2-minute Railway env-update + redeploy.
+
+### 13.6 · element byte conversion (AC-12.11 · resolves drift §7.2)
+
+The IDL's `StoneClaimed.element` field is `u8` 1-5 per the locked decision (`prd.md:976`). The mapping (canonical wuxing order, matches both `sdd.md:240` ClaimMessage and the awareness-branch `04-observatory-awareness-drift.md:50`):
+
+| byte | Element (lowercase) |
+|---|---|
+| 1 | `wood` |
+| 2 | `fire` |
+| 3 | `earth` |
+| 4 | `metal` |
+| 5 | `water` |
+
+```ts
+// lib/indexer/adapter.ts (NEW)
+import type { Element } from "@/lib/score";
+import type { MintActivity } from "@/lib/activity/types";
+
+const ELEMENT_BY_BYTE: Record<number, Element> = {
+  1: "wood",
+  2: "fire",
+  3: "earth",
+  4: "metal",
+  5: "water",
+};
+
+interface RawStoneClaimed {
+  signature: string;
+  log_index: number;
+  owner: string;          // Pubkey base58
+  element: number;        // u8 · 1-5
+  weather: number;        // u8 · 1-5
+  slot: number;
+  blockTime: number | null; // unix seconds (null if unconfirmed at parse time)
+}
+
+export function stoneClaimedToMintActivity(raw: RawStoneClaimed): MintActivity {
+  const element = ELEMENT_BY_BYTE[raw.element];
+  const weather = ELEMENT_BY_BYTE[raw.weather];
+  if (!element || !weather) {
+    throw new Error(
+      `[indexer/adapter] invalid element byte: element=${raw.element} weather=${raw.weather} sig=${raw.signature}`,
+    );
+  }
+  return {
+    id: `${raw.signature}:${raw.log_index}`, // stable, dedup-safe per AC-12.7
+    kind: "mint",
+    origin: "on-chain",
+    actor: raw.owner,
+    element,
+    weather,
+    at: raw.blockTime
+      ? new Date(raw.blockTime * 1000).toISOString()
+      : new Date().toISOString(), // fallback if blockTime not yet available
+  };
+}
+```
+
+**Boundary discipline**: this conversion happens HERE, in `lib/indexer/adapter.ts`. Observatory consumers (`ActivityRail`, `PentagramCanvas`, `lib/score`) never see uppercase or byte values — they see the lowercase `Element` they already use. This resolves the deferred decision at `04-observatory-awareness-drift.md:148` in favor of "boundary-conversion" (lower-risk for the observatory branch in isolation).
+
+**Validation note (AC-12.11 spike)**: the open-discovery item at `prd.md:997` requires reading the vendored IDL once it lands to confirm the byte encoding (Anchor IDLs can encode enums as struct-tagged unions instead of plain integers). If the IDL surface differs from the `u8 1-5` assumption, this adapter is the only file that needs adjustment.
+
+### 13.7 · idempotency (AC-12.7 · issue #5 §DoD §1)
+
+Compound key: `(signature, log_index)`. Both are stable on Solana — a transaction signature is unique per cluster, and log_index is the position within the transaction's emit sequence.
+
+The ring buffer dedupes on this key. Implementation contract:
+
+```ts
+// lib/indexer/ring-buffer.ts (NEW)
+const BUFFER_SIZE = 200;          // AC-12.7: "last ~200 events"
+const buffer: MintActivity[] = [];
+const seen = new Set<string>();   // signature:log_index keys
+const subscribers = new Set<(e: MintActivity) => void>();
+
+export function pushIfNew(activity: MintActivity): boolean {
+  if (seen.has(activity.id)) return false; // already seen — dedup
+  buffer.push(activity);
+  seen.add(activity.id);
+  if (buffer.length > BUFFER_SIZE) {
+    const evicted = buffer.shift()!;
+    seen.delete(evicted.id);       // keep `seen` bounded with the buffer
+  }
+  for (const cb of subscribers) {
+    try { cb(activity); } catch { /* isolate subscriber errors · same as mock */ }
+  }
+  return true;
+}
+```
+
+**Restart-resilience scope**: dedup survives within the buffer window of any single process. Cross-restart dedup is explicitly out of scope per AC-12.7 + non-goal `prd.md:1005` — soju re-triggers fresh devnet events morning of demo, and the demo recording window is shorter than any plausible restart cadence.
+
+**`seen.delete(evicted.id)` matters**: without this line the `seen` Set grows unbounded and would, given enough events, recreate the duplicate-from-history bug we're nominally preventing. Bounded together with the buffer.
+
+### 13.8 · Railway deploy contract (AC-12.6)
+
+Process model: single Next.js production server (`pnpm start`). The `instrumentation.ts` register hook (§13.2) boots the indexer in-process alongside the Next handler. No separate worker container, no external scheduler.
+
+Required env vars on Railway service:
+
+| Var | Required | Default if unset | Purpose |
+|---|---|---|---|
+| `INDEXER_MODE` | yes (=`real`) | `mock` (no boot) | Master gate — anything other than `real` keeps mock path |
+| `SOLANA_RPC_URL` | yes | `https://api.devnet.solana.com` | HTTP RPC endpoint for `getSlot` heartbeat + IDL fetch fallback |
+| `SOLANA_WS_URL` | yes | `wss://api.devnet.solana.com` | WebSocket endpoint for `onLogs` subscription |
+| `INDEXER_PROGRAM_ID` | no | `7u27WmTz2hZHvvhL89XcSCY3eFhxEfHjUN5MjzMY6v38` | Program ID (defaulted from `prd.md:970`) |
+
+**Vercel ruled out**: per amendment Decision C (`prd.md:988`), Vercel serverless functions cannot hold WebSocket subscriptions across invocations. Railway's long-lived Node process is the requirement.
+
+**Health probe**: Railway healthcheck path = `/api/indexer/status` (200 = process alive). This is the same endpoint operators read for human-eye health (§13.4) — single source of truth.
+
+**Cold-start mitigation (R-15)**: Railway free-tier services sleep on idle. Operator action: warm the service ≥30 minutes before demo recording on 2026-05-11 by hitting `/api/indexer/status` from a curl loop. This is a runbook step, not architectural — captured in the sprint plan as a demo-day task.
+
+### 13.9 · failure modes & defenses (extends §13's risks into existing register at `sdd.md:572`)
+
+Mirrors PRD amendment §F risk-register additions (`prd.md:1008-1016`).
+
+| ID | Risk | Likelihood | Impact | Mitigation | Trigger |
+|---|---|---|---|---|---|
+| **R-13** | Devnet RPC silent WS disconnect during demo | medium | high | reconnect loop §13.5 + visible health pip §13.4 + Helius env-flag escape hatch (2-min Railway redeploy) | `onLogs` callback silent for >60s while `getSlot` advances |
+| **R-14** | IDL drift if zksoju upgrades program before D-12 freeze (`prd.md:622`) | low | high | re-vendor IDL post-freeze · zksoju notifies zerker before any pre-freeze redeploy · adapter §13.6 throws on invalid byte (visible failure rather than silent corruption) | Borsh decode fails or `ELEMENT_BY_BYTE` lookup returns undefined |
+| **R-15** | Railway cold-start eats demo window | low | medium | warm service ≥30 min before recording via `/api/indexer/status` curl loop · health pip serves dual purpose as warmup probe | First post-deploy ping >5s |
+| **R-16** | HMR double-subscription in dev (would burn devnet rate limit fast) | low | low | `INDEXER_MODE=mock` default in dev · `started: boolean` module-level guard in `startIndexer()` · `register()` early-returns when `NEXT_RUNTIME !== "nodejs"` | Dev console shows multiple "[indexer] subscribed" logs per HMR cycle |
+
+R-16 is new to this addendum; R-13/R-14/R-15 mirror the PRD amendment register verbatim for SDD-side traceability.
+
+### 13.10 · test strategy
+
+Aligned with the existing test pyramid at `sdd.md:542-561`. New surfaces:
+
+```
+unit
+  - lib/indexer/adapter.ts
+      · stoneClaimedToMintActivity: byte-1..5 maps to wood/fire/earth/metal/water
+      · invalid byte (0, 6, 255) throws with diagnostic context (signature included)
+      · id format = `{signature}:{log_index}` (stable + dedup-safe)
+      · null blockTime falls back to current time (no crash)
+  - lib/indexer/ring-buffer.ts
+      · push of (sig, idx) once → recent() returns it
+      · push of same (sig, idx) twice → returns false on second, no duplicate emit
+      · push past BUFFER_SIZE (200) → oldest evicted, seen-set shrinks accordingly
+      · subscriber receives each unique event exactly once
+      · subscriber throwing does not poison other subscribers (matches mock.ts:147-152)
+
+integration
+  - lib/indexer/reconnect.ts
+      · liveness loop: getSlot advance resets dead-man timer
+      · liveness loop: 60s without slot advance triggers tear-down + reconnect
+      · backoff sequence walks 1→2→4→8→16→30→30 seconds and is interruptible
+      · reconnect succeeds after simulated WS-kill (manual matches "WS-kill test" in DoD `prd.md:1042`)
+
+manual e2e (gates demo readiness · 2026-05-10 T-1 dry-run + 2026-05-11 demo morning)
+  - INDEXER_MODE=real on Railway preview · trigger devnet claim via
+    purupuru-blink.vercel.app/preview · ActivityRail row appears within 30s (AC-12.5, AC-12.12)
+  - Health endpoint `/api/indexer/status` returns mode=real, connected=true, count>0
+  - Visible health pip in observatory chrome reflects connection state during a kill test
+```
+
+**No mainnet tests**: amendment §E non-goal `prd.md:1003`. Devnet-only · the demo target.
+
+**No persistence tests**: amendment §E non-goal `prd.md:1005`. Process restart loses recent feed · acceptable for demo window.
+
+### 13.11 · sequence diagram · happy-path StoneClaimed → ActivityRail row
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant W as Wallet (Phantom)
+    participant Anchor as purupuru_anchor (devnet)
+    participant RPC as Solana RPC (devnet WS)
+    participant IDX as lib/indexer (Railway)
+    participant Buf as ring-buffer (in-mem)
+    participant Sub as ActivityRail subscriber
+
+    Note over IDX: instrumentation.ts register() ran on Railway boot<br/>INDEXER_MODE=real → startIndexer()
+    IDX->>RPC: connection.onLogs(PROGRAM_ID, handler, "confirmed")
+    IDX->>RPC: getSlot() heartbeat (every 15s)
+
+    W->>Anchor: claim_genesis_stone(ClaimMessage)
+    Anchor-->>RPC: emit StoneClaimed { signature, log_index, owner, element, weather, slot }
+    RPC-->>IDX: onLogs callback fires
+    IDX->>IDX: adapter.stoneClaimedToMintActivity(raw)
+    IDX->>Buf: pushIfNew(activity)
+    Buf->>Sub: subscriber callback(activity)
+    Sub-->>Sub: setState → ActivityRail re-renders new row
+
+    Note over IDX,Sub: AC-12.5 SLO: total elapsed ≤ 30s<br/>(claim → row visible)
+```
+
+### 13.12 · what's deferred (post-hackathon · NOT v0)
+
+Explicitly out of scope for this addendum (mirrors amendment §E + general prudence):
+
+| # | item | gate |
+|---|---|---|
+| D-19 | Persistence layer (Postgres / Hasura / SQLite) | post-hackathon · only if mainnet path materializes |
+| D-20 | Multi-program indexing | post-hackathon · single program for demo |
+| D-21 | Backfill from program genesis | post-hackathon · soju re-triggers for demo |
+| D-22 | Mainnet endpoint switch | separate cycle · gates on full audit |
+| D-23 | Aggregations / analytics endpoint | post-hackathon · live feed only for v0 |
+| D-24 | Multi-region Railway deploy | post-hackathon · single region (iad1-equivalent) sufficient |
+
+### 13.13 · forward dispatch
+
+This addendum closes the SDD-side gate of the amendment chain at `prd.md:1059-1064`:
+
+1. ✅ **/architect** → SDD addendum (this section §13) · LANDED
+2. ⏭ **/sprint-plan** → indexer sprint with concrete tasks: install deps (`@solana/web3.js`, `@coral-xyz/anchor`), vendor IDL, scaffold `lib/indexer/*`, scaffold `instrumentation.ts`, wire `lib/activity/index.ts` env-flag, scaffold `app/api/indexer/status/route.ts`, observatory health pip, demo-dry-run runbook
+3. ⏭ **/simstim** → execution dispatch (HITL-accelerated)
+4. ⏭ **/run-bridge** → autonomous excellence loop · kaironic termination at AC-12.12 e2e pass
+
+Per zerker (`feedback_iteration_pace.md`), observatory branch uses ad-hoc commits rather than formal `/implement` cycles for hackathon-clock FE-polish work — but the indexer touches the mock/real seam and the deploy contract, both of which warrant the formal cycle. /sprint-plan determines which tasks ride the formal track vs ad-hoc.
+
+---
+
 ## supersedes
 
 - **r1** (`grimoires/loa/sdd.md` · companion-from-/ride · 2026-05-07) — placeholder · superseded by r2 (this document)
+- **§FR-12 in-repo carve-out** at original `prd.md:510` — superseded by amendment `prd.md:945-1064` and §13 of this SDD (2026-05-09)

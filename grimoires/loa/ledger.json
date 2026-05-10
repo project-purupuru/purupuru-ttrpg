@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "next_sprint_number": 2,
+  "next_sprint_number": 3,
   "active_cycle": "cycle-001",
   "cycles": [
     {
@@ -26,6 +26,46 @@
           "task_beads": ["bd-39o", "bd-2ga", "bd-95f", "bd-bek", "bd-tb4", "bd-3kg", "bd-1b0", "bd-3m6", "bd-2og", "bd-122"],
           "spec_path": "grimoires/loa/sprint.md",
           "spec_section": "Sprint 1: v0.1 — Idle Frame"
+        },
+        {
+          "global_id": 2,
+          "local_id": "sprint-2",
+          "pass": "indexer-stoneclaimed",
+          "theme": "Indexer in-repo · devnet StoneClaimed → ActivityRail",
+          "scope": "LARGE",
+          "task_count": 21,
+          "duration_days": 2.0,
+          "start_date": "2026-05-09",
+          "end_date": "2026-05-11",
+          "status": "planned",
+          "branch": "feature/indexer-stoneclaimed",
+          "owner": "zerker",
+          "spec_path": "grimoires/loa/sprints/indexer-sprint.md",
+          "spec_section": "Sprint 2 · Indexer in-repo",
+          "ac_authority": "AC-12.5 through AC-12.12 (prd.md:966-977)",
+          "arch_authority": "SDD §13 (sdd.md:660-1074)",
+          "dod_authority": "PRD amendment §H (prd.md:1037-1045)",
+          "demo_recording": "2026-05-11 AM",
+          "epic_bead": "bd-360",
+          "task_beads": [
+            "bd-knf", "bd-1a9", "bd-zt3", "bd-125", "bd-2cv",
+            "bd-2rv", "bd-3lb", "bd-2xn", "bd-3p8", "bd-361", "bd-1rw", "bd-3s9",
+            "bd-3ap", "bd-3kd", "bd-2am",
+            "bd-12z", "bd-1dq", "bd-1k8",
+            "bd-3f0", "bd-39b", "bd-23n",
+            "bd-19k", "bd-3m9", "bd-2m3", "bd-1uk",
+            "bd-aio", "bd-11p", "bd-2u9", "bd-1ym", "bd-3nm", "bd-14f", "bd-2bq"
+          ],
+          "task_id_map": {
+            "A1": "bd-knf", "A2": "bd-1a9", "A3": "bd-zt3", "A4": "bd-125", "A5": "bd-2cv",
+            "B1": "bd-2rv", "B2": "bd-3lb", "B3": "bd-2xn", "B4": "bd-3p8", "B5": "bd-361", "B6": "bd-1rw", "B7": "bd-3s9",
+            "C1": "bd-3ap", "C2": "bd-3kd", "C3": "bd-2am",
+            "D1": "bd-12z", "D2": "bd-1dq", "D3": "bd-1k8",
+            "E1": "bd-3f0", "E2": "bd-39b", "E3": "bd-23n",
+            "F1": "bd-19k", "F2": "bd-3m9", "F3": "bd-2m3", "F4": "bd-1uk",
+            "G1": "bd-aio", "G2": "bd-11p", "G3": "bd-2u9", "G4": "bd-1ym", "G5": "bd-3nm", "G6": "bd-14f",
+            "G.E2E": "bd-2bq"
+          }
         }
       ]
     }

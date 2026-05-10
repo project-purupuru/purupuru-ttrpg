@@ -7,6 +7,8 @@
 - Build live-observatory visualization layer for Solana Frontier hackathon (ship 2026-05-11)
 - Mock the Score data layer through FE — no real backend wiring for hackathon
 - **Per PRD r6 §3.1 three-view architecture**: this branch's observatory IS the **operator surface · community-manager view** (zerker's lane). Member surface (Blink quiz → mint) is zksoju + gumi's parallel lane.
+- **NEW (2026-05-09)**: Build StoneClaimed indexer in this repo (FR-12 amendment) — branch `feature/indexer-stoneclaimed` off main, deploy to Railway, raw devnet RPC, vendored IDL, in-memory ring buffer. Follows /architect → /sprint-plan → /simstim → /run-bridge.
+- **2026-05-09 (planning-sprints · indexer)**: Sprint 2 plan written at `grimoires/loa/sprints/indexer-sprint.md`. LARGE scope · 21 tasks across 7 phases (A-Scaffold · B-Indexer-core · C-Server-boot · D-Stream-wiring · E-Health · F-Tests · G-Deploy+dry-run+E2E). Hard gate at A4 (IDL element-byte encoding spike). Critical path A→B→(C‖D)→E→F→G. Beads epic `bd-360` + 32 task beads + 38 dependency edges wired. Ledger sprint-2 registered. Goals auto-assigned: G-1 (≤30s claim→row), G-2 (survive demo failure modes), G-3 (zero consumer-code-diff). Existing `sprint.md` preserved (observatory cycle); appended companion-sprint pointer. DoD = PRD amendment §H 9 boxes. Demo recording 2026-05-11 AM with T-1 dry-run 2026-05-10 evening.
 
 ## Discovered Technical Debt
 

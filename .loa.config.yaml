@@ -48,3 +48,15 @@ run_mode:
     consolidate_pr: true
     commit_prefix: "feat"
     include_commits_by_sprint: true
+
+# Simstim — HITL accelerated workflow (PRD → SDD → Sprint → Implementation)
+# Enabled 2026-05-09 for indexer sprint-2 Flatline gate
+simstim:
+  enabled: true
+
+# Flatline Protocol — multi-model adversarial review
+# Enabled 2026-05-09 for indexer sprint-2 Flatline gate (sprint plan + amendments)
+# Auto-trigger left off — manual invocation via /flatline-review only
+flatline_protocol:
+  enabled: true
+  auto_trigger: false

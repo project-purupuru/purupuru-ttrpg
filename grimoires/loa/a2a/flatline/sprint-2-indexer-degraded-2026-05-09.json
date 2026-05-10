@@ -1,0 +1,10 @@
+{
+  "document": "grimoires/loa/sprints/indexer-sprint.md",
+  "phase": "sprint",
+  "status": "degraded",
+  "reason": "2 of 4 Phase 1 calls failed (gpt-5.3-codex review + skeptic). Opus calls also produced empty parsed output. Net: 0 actionable findings.",
+  "cost_cents": 32,
+  "latency_ms": 89000,
+  "decision": "skip remaining Flatline phases (PRD/SDD reviews) and proceed to /run sprint-plan. Toolchain failure unrelated to sprint plan content.",
+  "timestamp": "2026-05-09T20:54:17Z"
+}
