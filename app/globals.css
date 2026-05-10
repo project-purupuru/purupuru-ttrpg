@@ -146,8 +146,8 @@
   --puru-surface-highlight-strong: oklch(1 0 0 / 0.5);
   --puru-surface-track:            oklch(0.93 0.020 85);
   --puru-surface-track-shadow:     oklch(0.7 0.02 85 / 0.15);
-  --puru-surface-shadow-sm:        oklch(0.7 0.03 85 / 0.12);
-  --puru-surface-shadow-md:        oklch(0.7 0.03 85 / 0.16);
+  --puru-surface-shadow-sm:        oklch(0.62 0.03 85 / 0.16);
+  --puru-surface-shadow-md:        oklch(0.55 0.04 85 / 0.22);
 
   /* ── Ghost card ────────────────────────────────────────────────────── */
   --puru-ghost-border: oklch(0.88 0.020 90);
@@ -233,6 +233,12 @@
   --shadow-modal:       0 16px 48px oklch(0.50 0.03 85 / 0.25);
   --shadow-tile:        0 2px 4px var(--puru-surface-shadow-sm), 0 1px 1px var(--puru-surface-shadow-sm), inset 0 1px 0 var(--puru-surface-highlight);
   --shadow-tile-hover:  0 4px 12px var(--puru-surface-shadow-md), 0 1px 2px var(--puru-surface-shadow-sm), inset 0 1px 0 var(--puru-surface-highlight-strong);
+  /* Rim shadows — for surfaces flush against a viewport edge that need
+     to project a music-player-class drop into the canvas pane on their
+     ONE open side. -2px spread keeps the falloff tight to the
+     projecting edge so the shadow reads as directional, not as a glow. */
+  --shadow-rim-bottom:  0 8px 20px -2px var(--puru-surface-shadow-md), 0 2px 4px -1px var(--puru-surface-shadow-sm), inset 0 1px 0 var(--puru-surface-highlight-strong);
+  --shadow-rim-left:    -8px 0 20px -2px var(--puru-surface-shadow-md), -2px 0 4px -1px var(--puru-surface-shadow-sm), inset 0 1px 0 var(--puru-surface-highlight-strong);
   --surface-glaze:      inset 0 1px 0 var(--puru-surface-highlight);
 
   /* ── Element vivid aliases ─────────────────────────────────────────── */
@@ -310,8 +316,8 @@
   --puru-surface-highlight-strong: oklch(1 0 0 / 0.08);
   --puru-surface-track:            oklch(0.24 0.010 80);
   --puru-surface-track-shadow:     oklch(0.05 0.008 80 / 0.3);
-  --puru-surface-shadow-sm:        oklch(0.03 0.008 80 / 0.30);
-  --puru-surface-shadow-md:        oklch(0.03 0.008 80 / 0.40);
+  --puru-surface-shadow-sm:        oklch(0.02 0.008 80 / 0.42);
+  --puru-surface-shadow-md:        oklch(0.02 0.008 80 / 0.55);
 
   --puru-ghost-border: oklch(0.28 0.012 80);
   --puru-ghost-bg:     oklch(0.17 0.008 80);
@@ -457,9 +463,14 @@
   /* Honey-tint for active pill / chip backgrounds */
   --color-puru-honey-tint: var(--puru-honey-tint);
 
-  /* Shadow utilities — `shadow-puru-tile` / `shadow-puru-tile-hover` */
+  /* Shadow utilities — `shadow-puru-tile` / `shadow-puru-tile-hover` /
+     `shadow-puru-rim-bottom` / `shadow-puru-rim-left`.
+     Rim variants project only on the open edge for surfaces flush
+     against a viewport boundary (KpiStrip → bottom; rails → left). */
   --shadow-puru-tile:       var(--shadow-tile);
   --shadow-puru-tile-hover: var(--shadow-tile-hover);
+  --shadow-puru-rim-bottom: var(--shadow-rim-bottom);
+  --shadow-puru-rim-left:   var(--shadow-rim-left);
 
   /* Ink */
   --color-puru-ink-rich:  var(--puru-ink-rich);

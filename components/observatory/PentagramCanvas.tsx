@@ -105,6 +105,18 @@ const SHADOW_OFFSET_BASE = 14;
 const AURA_RADIUS_BASE = 32;
 const FOCUS_GLOW_R_BASE = 28;
 
+// Sprite contact-shadow vocabulary. Two stacked ellipses inside one
+// Graphics object: a softer outer "ambient occlusion" ring at ~1.7×
+// the contact radius, and the original tighter contact ellipse on top.
+// Stacking the soft ring under the dense disk gives the lil guys a
+// readable falloff against the canvas instead of a flat-disk read.
+// Both fills ride the same Graphics.alpha (focus-dim modulation),
+// so the relative weighting between ring + disk stays constant
+// whether a sprite is focused or dimmed.
+const SHADOW_OUTER_SCALE = 1.7;
+const SHADOW_OUTER_FILL_ALPHA = 0.14;
+const SHADOW_INNER_FILL_ALPHA = 0.38;
+
 // Avatar texture sizing — generated bigger than display so retina
 // rendering stays crisp regardless of mobile/desktop display target.
 const AVATAR_TEX_SIZE = 96;
@@ -447,8 +459,12 @@ export function PentagramCanvas({
         spriteLayer.addChild(node);
 
         const shadow = new Graphics();
+        // Outer ambient ring first (paints under), tighter contact disk
+        // on top — see SHADOW_* constants for the rationale.
+        shadow.ellipse(0, 0, assetSizes.shadowRx * SHADOW_OUTER_SCALE, assetSizes.shadowRy * SHADOW_OUTER_SCALE);
+        shadow.fill({ color: 0x000000, alpha: SHADOW_OUTER_FILL_ALPHA });
         shadow.ellipse(0, 0, assetSizes.shadowRx, assetSizes.shadowRy);
-        shadow.fill({ color: 0x000000, alpha: 0.22 });
+        shadow.fill({ color: 0x000000, alpha: SHADOW_INNER_FILL_ALPHA });
         shadow.x = entity.position.x;
         shadow.y = entity.position.y + assetSizes.shadowOffsetY;
         shadowLayer.addChild(shadow);
@@ -496,6 +512,11 @@ export function PentagramCanvas({
       focusGlow.alpha = 0;
       app.stage.addChildAt(focusGlow, app.stage.getChildIndex(spriteLayer));
       const FOCUS_LERP_TC_MS = 280;
+      // Peak Graphics.alpha for the shadow container — modulates the
+      // composite of both stacked ellipses (outer ring + contact disk).
+      // Keep separate from the per-fill SHADOW_*_FILL_ALPHA constants:
+      // this one governs focus-dim amplitude, those govern shadow ink
+      // weight. Effective per-shape opacity = SHADOW_BASE_ALPHA × fill.alpha.
       const SHADOW_BASE_ALPHA = 0.22;
       // When dimmed, tint multiplies the avatar texture toward this hex so
       // non-selected sprites read as recessed-into-shadow rather than
@@ -813,12 +834,14 @@ export function PentagramCanvas({
           s.baseScale = newBaseScale;
           s.node.scale.set(newBaseScale);
           // Redraw shadow geometry at the new dimensions — clear()
-          // wipes the old ellipse, ellipse()+fill() re-issues with the
-          // current sizes. shadow.y is updated by the ticker every
-          // frame from assetSizes.shadowOffsetY.
+          // wipes both ellipses, ellipse()+fill() pairs re-issue them
+          // (outer ring first, tighter contact disk on top). shadow.y
+          // is updated by the ticker every frame from assetSizes.shadowOffsetY.
           s.shadow.clear();
+          s.shadow.ellipse(0, 0, assetSizes.shadowRx * SHADOW_OUTER_SCALE, assetSizes.shadowRy * SHADOW_OUTER_SCALE);
+          s.shadow.fill({ color: 0x000000, alpha: SHADOW_OUTER_FILL_ALPHA });
           s.shadow.ellipse(0, 0, assetSizes.shadowRx, assetSizes.shadowRy);
-          s.shadow.fill({ color: 0x000000, alpha: 0.22 });
+          s.shadow.fill({ color: 0x000000, alpha: SHADOW_INNER_FILL_ALPHA });
         }
 
         drawPentagon(pentagonG, geometry);
