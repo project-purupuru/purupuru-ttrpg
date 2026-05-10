@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { scoreAdapter } from "@/lib/score";
 import { weatherFeed } from "@/lib/weather";
 import type { WeatherState } from "@/lib/weather";
 import type { Element } from "@/lib/score";
 import type { PuruhaniIdentity } from "@/lib/sim/types";
-import { activityStream, type ActivityEvent } from "@/lib/activity";
+import { activityStream } from "@/lib/activity";
 import { OBSERVATORY_SPRITE_COUNT } from "@/lib/sim/entities";
 import { getSonifier } from "@/lib/audio/sonify";
 import Image from "next/image";
@@ -23,19 +23,20 @@ const ZERO_DISTRIBUTION: Record<Element, number> = {
   wood: 0, fire: 0, earth: 0, water: 0, metal: 0,
 };
 
-// Rolling window for the cycle-balance derivation. 30 events spans
-// roughly the last 60–90s at the activity stream's emit cadence —
-// long enough to read as a "current mood," short enough to actually
-// shift when a streak of one kind hits.
-const CYCLE_BALANCE_WINDOW = 30;
+// Session-monotonic tallies for the top-strip headline counters. Seeded
+// from whatever's already in the activity stream's buffer at mount
+// (3 backdated events from start()) so the strip doesn't read as 0/0
+// during the first second; climbs from there as new events fire.
+function seedCount(kind: "mint" | "quiz_completed"): number {
+  return activityStream.recent(100).filter((e) => e.kind === kind).length;
+}
 
 export function ObservatoryClient() {
   const [introDone, setIntroDone] = useState(false);
   const [distribution, setDistribution] = useState<Record<Element, number>>(ZERO_DISTRIBUTION);
   const [weather, setWeather] = useState<WeatherState>(weatherFeed.current());
-  const [recentActivity, setRecentActivity] = useState<ActivityEvent[]>(() =>
-    activityStream.recent(CYCLE_BALANCE_WINDOW),
-  );
+  const [stones, setStones] = useState<number>(() => seedCount("mint"));
+  const [quizzes, setQuizzes] = useState<number>(() => seedCount("quiz_completed"));
   const [focused, setFocused] = useState<PuruhaniIdentity | null>(null);
   // `playing` drives the MusicPlayer's <audio> element. `sfxEnabled`
   // independently toggles the pentatonic sonifier — both must be true
@@ -121,10 +122,10 @@ export function ObservatoryClient() {
 
   // KPI sources — every metric derives from an observable signal that
   // correlates with the canvas:
-  //   live presence    → OBSERVATORY_SPRITE_COUNT (matches what the canvas renders)
-  //   wuxing dist      → scoreAdapter.getElementDistribution() (same source the canvas seeds from)
-  //   cycle balance    → derived from recentActivity below (mints vs element_shifts)
-  //   cosmic intensity → weather.cosmic_intensity (same source the canvas tide+halo read)
+  //   live presence  → OBSERVATORY_SPRITE_COUNT (matches what the canvas renders)
+  //   wuxing dist    → scoreAdapter.getElementDistribution() (same source the canvas seeds from)
+  //   stones claimed → monotonic count of mint events from activityStream
+  //   quizzes taken  → monotonic count of quiz_completed events from activityStream
   useEffect(() => {
     let cancelled = false;
     const refetch = async () => {
@@ -136,7 +137,8 @@ export function ObservatoryClient() {
     const id = setInterval(refetch, 3000);
     const unsubWeather = weatherFeed.subscribe(setWeather);
     const unsubActivity = activityStream.subscribe((e) => {
-      setRecentActivity((prev) => [e, ...prev].slice(0, CYCLE_BALANCE_WINDOW));
+      if (e.kind === "mint") setStones((n) => n + 1);
+      else if (e.kind === "quiz_completed") setQuizzes((n) => n + 1);
     });
     return () => {
       cancelled = true;
@@ -145,23 +147,6 @@ export function ObservatoryClient() {
       unsubActivity();
     };
   }, []);
-
-  // Sheng (生 generation) vs Ke (克 transformation). Mints carry creation
-  // (a new stone enters the world); element_shifts carry transformation
-  // (an old affinity yielding to a new). Weather + quiz_completed are
-  // ambient and don't tilt the ratio. Defaults to 0.5 (neutral) before
-  // any classified events have arrived.
-  const cycleBalance = useMemo(() => {
-    let creative = 0;
-    let transformative = 0;
-    for (const e of recentActivity) {
-      if (e.kind === "mint") creative++;
-      else if (e.kind === "element_shift") transformative++;
-    }
-    const total = creative + transformative;
-    if (total === 0) return 0.5;
-    return creative / total;
-  }, [recentActivity]);
 
   return (
     <div className="flex h-dvh flex-col bg-puru-cloud-deep text-puru-ink-base">
@@ -201,8 +186,8 @@ export function ObservatoryClient() {
         <KpiStrip
           totalActive={OBSERVATORY_SPRITE_COUNT}
           distribution={distribution}
-          cosmicIntensity={weather.cosmic_intensity}
-          cycleBalance={cycleBalance}
+          stones={stones}
+          quizzes={quizzes}
         />
       </div>
       <main className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[1fr_440px]">
@@ -241,8 +226,8 @@ export function ObservatoryClient() {
       <MobileBottomPanel
         totalActive={OBSERVATORY_SPRITE_COUNT}
         distribution={distribution}
-        cosmicIntensity={weather.cosmic_intensity}
-        cycleBalance={cycleBalance}
+        stones={stones}
+        quizzes={quizzes}
         weather={weather}
       />
     </div>

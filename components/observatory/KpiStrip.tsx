@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useMemo } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { ELEMENTS, type Element } from "@/lib/score";
-import { Users, Lightning, Scales } from "@phosphor-icons/react";
+import { Users, Sparkle, Compass } from "@phosphor-icons/react";
 
 const ELEMENT_KANJI: Record<Element, string> = {
   wood: "木",
@@ -17,13 +17,13 @@ const ELEMENT_KANJI: Record<Element, string> = {
 export function KpiStrip({
   totalActive,
   distribution,
-  cosmicIntensity,
-  cycleBalance,
+  stones,
+  quizzes,
 }: {
   totalActive: number;
   distribution: Record<Element, number>;
-  cosmicIntensity: number;
-  cycleBalance: number;
+  stones: number;
+  quizzes: number;
 }) {
   const dominantElement = useMemo(() => {
     let best: Element = "wood";
@@ -36,16 +36,6 @@ export function KpiStrip({
     }
     return best;
   }, [distribution]);
-
-  // Cycle balance from activity stream — 0..1 where ≥0.5 reads as
-  // sheng-leaning (creative: mints), <0.5 as ke-leaning (transformative:
-  // element_shifts). Display the dominant side's share so the value is
-  // always positive and meaningful.
-  const cycleDirection: "sheng" | "ke" = cycleBalance >= 0.5 ? "sheng" : "ke";
-  const cyclePct = Math.round(
-    cycleBalance >= 0.5 ? cycleBalance * 100 : (1 - cycleBalance) * 100,
-  );
-  const cycleKanji = cycleDirection === "sheng" ? "生" : "克";
 
   return (
     <section className="relative z-10 flex shrink-0 divide-x divide-puru-surface-border border-b border-puru-surface-border bg-puru-cloud-bright shadow-puru-rim-bottom">
@@ -75,20 +65,20 @@ export function KpiStrip({
         icon={<Users weight="fill" />}
       />
       <Stat
+        label="stones claimed"
+        value={stones}
+        icon={<Sparkle weight="fill" />}
+      />
+      <Stat
+        label="quizzes taken"
+        value={quizzes}
+        icon={<Compass weight="fill" />}
+      />
+      <Stat
         label="dominant element"
         value={<span className="capitalize">{dominantElement}</span>}
         icon={ELEMENT_KANJI[dominantElement]}
         iconStyle={{ color: `var(--puru-${dominantElement}-vivid)` }}
-      />
-      <Stat
-        label="cycle balance"
-        value={`${cyclePct}% ${cycleKanji}`}
-        icon={<Scales weight="fill" />}
-      />
-      <Stat
-        label="cosmic intensity"
-        value={cosmicIntensity.toFixed(2)}
-        icon={<Lightning weight="fill" />}
       />
     </section>
   );
