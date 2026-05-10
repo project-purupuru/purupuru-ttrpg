@@ -222,6 +222,7 @@ export function ObservatoryClient() {
             onPlayingChange={handlePlayingChange}
             sfxEnabled={sfxEnabled}
             onSfxToggle={handleSfxToggle}
+            isNight={weather.is_night}
           />
           <FocusCard
             identity={focused}

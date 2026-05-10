@@ -33,6 +33,7 @@ export function MusicPlayer({
   onPlayingChange,
   sfxEnabled,
   onSfxToggle,
+  isNight,
 }: {
   /** True while audio should be playing (controlled by parent so the
    * pentatonic sonifier can subscribe to the same play-state). */
@@ -42,10 +43,22 @@ export function MusicPlayer({
    * plays without sfx. */
   sfxEnabled: boolean;
   onSfxToggle: () => void;
+  /** Local night-state from the weather adapter. When defined, drives
+   * the active track on transitions (sunset → dewlight, sunrise →
+   * skyeyes). Manual skip still works between transitions. */
+  isNight?: boolean;
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [trackIdx, setTrackIdx] = useState(0);
   const [progress, setProgress] = useState(0); // 0..1
+
+  // Auto-flip the active track on actual is_night transitions. Effect
+  // only re-runs when is_night changes, so a manual skip mid-day is
+  // not stomped by every weather refresh — only by the next sunset.
+  useEffect(() => {
+    if (isNight === undefined) return;
+    setTrackIdx(isNight ? 1 : 0);
+  }, [isNight]);
 
   const track = TRACKS[trackIdx];
 
