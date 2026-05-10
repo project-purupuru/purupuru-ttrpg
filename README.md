@@ -115,11 +115,11 @@ flowchart TD
 > **Twitter is the v0 instance.** Same Action endpoints unfurl in Telegram and base app — one journey, many doorways. The chain layer (Solana for v0) and substrate (HMAC-sealed quiz state · Anchor program · Metaplex mint) stay constant; the presentation layer adapts per distribution.
 
 **Demo emphasis** (3-min recording target):
-- **Linger 45s · Z3 Reveal** — the emotional payoff. The room where recognition + reflection land · *"this is me · this gives me a way to navigate."*
-- **Linger 30s · Z6 Observatory** — pan the pentagram canvas · activity rail ticking · click a sprite. Sells "Strava for on-chain."
-- **Linger 20s · Z1a Ambient** — the moat made visible. The shot that distinguishes us from "just another quiz app."
-- **Montage 30s · Z2 Quiz** — accelerate Q1 → Q3 → Q6 → Q8 · texture without latency.
-- **Quick 15s · Z4 Treasury** — Phantom popup · sign · confirm. Don't dwell.
+- **Linger 45s · Quiz reveal** — the emotional payoff. The moment where recognition + reflection land · *"this is me · this gives me a way to navigate."*
+- **Linger 30s · Observatory** — pan the pentagram canvas · activity rail ticking · click a sprite. Sells "Strava for on-chain."
+- **Linger 20s · Live world tile** — the moat made visible. The shot that distinguishes us from "just another quiz app."
+- **Montage 30s · Quiz** — accelerate Q1 → Q3 → Q6 → Q8 · texture without latency.
+- **Quick 15s · Mint moment** — Phantom popup · sign · confirm. Don't dwell.
 
 Full journey detail at [`grimoires/loa/context/06-user-journey-map.md`](grimoires/loa/context/06-user-journey-map.md) (rosenzu spatial map).
 
