@@ -135,7 +135,7 @@ export function MusicPlayer({
         {/* Title column — display-font track name. min-w-0 + truncate
             keep long titles from pushing the controls off the right edge. */}
         <div className="flex min-w-0 flex-1 flex-col">
-          <span className="truncate font-puru-display text-sm leading-tight text-puru-ink-rich">
+          <span className="truncate font-puru-display text-sm capitalize leading-tight text-puru-ink-rich">
             {track.title}
           </span>
         </div>

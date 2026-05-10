@@ -30,8 +30,7 @@ export function StatsTile({
   cosmicIntensity: number;
   cycleBalance: number;
 }) {
-  const { dominantElement, dominantPct } = useMemo(() => {
-    const total = ELEMENTS.reduce((sum, el) => sum + distribution[el], 0);
+  const dominantElement = useMemo(() => {
     let best: Element = "wood";
     let bestVal = -Infinity;
     for (const el of ELEMENTS) {
@@ -40,8 +39,7 @@ export function StatsTile({
         best = el;
       }
     }
-    const pct = total > 0 ? Math.round((bestVal / total) * 100) : 0;
-    return { dominantElement: best, dominantPct: pct };
+    return best;
   }, [distribution]);
 
   const cycleDirection: "sheng" | "ke" = cycleBalance >= 0.5 ? "sheng" : "ke";
@@ -77,7 +75,7 @@ export function StatsTile({
         />
         <KpiCell
           label="dominant element"
-          value={`${dominantElement} ${dominantPct}%`}
+          value={<span className="capitalize">{dominantElement}</span>}
           aside={ELEMENT_KANJI[dominantElement]}
           asideStyle={{ color: `var(--puru-${dominantElement}-vivid)` }}
         />

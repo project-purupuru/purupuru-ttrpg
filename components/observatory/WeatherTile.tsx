@@ -88,7 +88,7 @@ export function WeatherTile({ state }: { state: WeatherState }) {
           return (
             <KpiCell
               label="sky"
-              value={state.precipitation}
+              value={<span className="capitalize">{state.precipitation}</span>}
               aside={<PrecipIcon weight="fill" />}
             />
           );
@@ -100,7 +100,7 @@ export function WeatherTile({ state }: { state: WeatherState }) {
         />
         <KpiCell
           label="amplifies"
-          value={state.amplifiedElement}
+          value={<span className="capitalize">{state.amplifiedElement}</span>}
           aside={ELEMENT_KANJI[state.amplifiedElement]}
           asideStyle={{ color: `var(--puru-${state.amplifiedElement}-vivid)` }}
         />
