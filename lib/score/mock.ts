@@ -65,11 +65,23 @@ export const mockScoreAdapter: ScoreReadAdapter = {
   },
 
   async getElementDistribution(): Promise<ElementDistribution> {
-    // Polyrhythmic sine drift — distribution shifts slowly so the
-    // wuxing bar in the KPI strip feels alive across the demo.
+    // Skewed clan-population mock — one element clearly dominates,
+    // others taper in rank. The "favored" element rotates slowly through
+    // the wuxing cycle (full rotation ≈ 10 min) so the leader changes
+    // a couple of times across a demo without whipping. Per-element
+    // noise on a slower sine keeps individual bars wiggling so the
+    // strip never reads as frozen.
+    //
+    // Total ≈ 1000. Rank shares: 0.34 / 0.22 / 0.18 / 0.15 / 0.11.
+    const TOTAL = 1000;
+    const RANK_SHARES = [0.34, 0.22, 0.18, 0.15, 0.11];
     const t = Date.now() / 1000;
+    const favoredIdx = Math.floor((t / 120) % ELEMENTS.length);
     return ELEMENTS.reduce((acc, el, i) => {
-      acc[el] = 50 + Math.round(35 * Math.abs(Math.sin(i * 1.3 + t / 19)));
+      const rank = (i - favoredIdx + ELEMENTS.length) % ELEMENTS.length;
+      const share = RANK_SHARES[rank];
+      const noise = 0.025 * Math.sin(i * 2.7 + t / 11);
+      acc[el] = Math.max(1, Math.round(TOTAL * (share + noise)));
       return acc;
     }, {} as ElementDistribution);
   },
