@@ -253,8 +253,8 @@
      Tuned 2026-05-10 — was reading too prominent at 0.19/0.4; dropped
      to a near-watermark wash so the canvas (sprites + pentagram) wins
      the eye and the continent registers only on a second look. */
-  --puru-continent-opacity:    0.12;
-  --puru-continent-saturate:   0.28;
+  --puru-continent-opacity:    0.18;
+  --puru-continent-saturate:   0.38;
   --puru-continent-brightness: 1;
   /* Rim shadows — for surfaces flush against a viewport edge that need
      to project a music-player-class drop into the canvas pane on their
@@ -290,8 +290,8 @@
   /* Continent backdrop — bump brightness so the warm-toned PNG reads
      against the dark cloud-base, drop opacity hard so it stays as a
      near-watermark wash (matching the light-theme tuning of 2026-05-10). */
-  --puru-continent-opacity:    0.10;
-  --puru-continent-saturate:   0.4;
+  --puru-continent-opacity:    0.14;
+  --puru-continent-saturate:   0.5;
   --puru-continent-brightness: 1.15;
 
   --puru-cloud-bright: oklch(0.24 0.015 80);
@@ -370,8 +370,8 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
     /* Continent — keep in sync with [data-theme="old-horai"] above. */
-    --puru-continent-opacity:    0.10;
-    --puru-continent-saturate:   0.4;
+    --puru-continent-opacity:    0.14;
+    --puru-continent-saturate:   0.5;
     --puru-continent-brightness: 1.15;
 
     --puru-cloud-bright: oklch(0.24 0.015 80);
