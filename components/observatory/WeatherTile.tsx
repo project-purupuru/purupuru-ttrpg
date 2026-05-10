@@ -43,7 +43,15 @@ function syncedAgo(iso: string, now: number): string {
   return `${Math.floor(diff / MINUTE)}m ago`;
 }
 
-export function WeatherTile({ state }: { state: WeatherState }) {
+export function WeatherTile({
+  state,
+  flush,
+}: {
+  state: WeatherState;
+  /** Mobile-panel mode: cells sit flush against each other with 1px
+   * dividers, no rounded corners or tile shadow. */
+  flush?: boolean;
+}) {
   const [now, setNow] = useState<number>(() => Date.now());
 
   useEffect(() => {
@@ -73,12 +81,21 @@ export function WeatherTile({ state }: { state: WeatherState }) {
         </div>
       </header>
       <div
-        className="grid flex-1 grid-cols-2 auto-rows-fr gap-3 overflow-y-auto bg-puru-cloud-base px-4 py-4"
-        style={{
-          backgroundImage: `linear-gradient(to left, color-mix(in oklch, var(--puru-${state.amplifiedElement}-vivid) var(--puru-bleed-mix), transparent) 0%, transparent var(--puru-bleed-stop))`,
-        }}
+        className={
+          flush
+            ? "grid flex-1 grid-cols-2 auto-rows-fr gap-px overflow-y-auto bg-puru-surface-border"
+            : "grid flex-1 grid-cols-2 auto-rows-fr gap-3 overflow-y-auto bg-puru-cloud-base px-4 py-4"
+        }
+        style={
+          flush
+            ? undefined
+            : {
+                backgroundImage: `linear-gradient(to left, color-mix(in oklch, var(--puru-${state.amplifiedElement}-vivid) var(--puru-bleed-mix), transparent) 0%, transparent var(--puru-bleed-stop))`,
+              }
+        }
       >
         <KpiCell
+          flush={flush}
           label="temperature"
           value={`${state.temperature_c}°${state.temperature_unit ?? ""}`}
           aside={<Thermometer weight="fill" />}
@@ -87,6 +104,7 @@ export function WeatherTile({ state }: { state: WeatherState }) {
           const PrecipIcon = PRECIP_ICON[state.precipitation];
           return (
             <KpiCell
+              flush={flush}
               label="sky"
               value={<span className="capitalize">{state.precipitation}</span>}
               aside={<PrecipIcon weight="fill" />}
@@ -94,11 +112,13 @@ export function WeatherTile({ state }: { state: WeatherState }) {
           );
         })()}
         <KpiCell
+          flush={flush}
           label="location"
           value={state.location}
           aside={<MapPin weight="fill" />}
         />
         <KpiCell
+          flush={flush}
           label="amplifies"
           value={<span className="capitalize">{state.amplifiedElement}</span>}
           aside={ELEMENT_KANJI[state.amplifiedElement]}

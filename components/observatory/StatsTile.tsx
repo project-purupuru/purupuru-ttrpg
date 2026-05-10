@@ -57,7 +57,7 @@ export function StatsTile({
           </span>
         </div>
       </header>
-      <div className="grid flex-1 grid-cols-2 gap-2 overflow-y-auto bg-puru-cloud-base px-3 py-3">
+      <div className="grid flex-1 grid-cols-2 gap-px overflow-y-auto bg-puru-surface-border">
         {DISPLAY_ORDER.map((el, idx) => {
           const isLeader = el === leader;
           // Last cell (water) spans both columns so the 5-element
@@ -79,6 +79,7 @@ export function StatsTile({
                 label={el}
                 value={distribution[el] ?? 0}
                 aside={ELEMENT_KANJI[el]}
+                flush
                 cellStyle={
                   isLeader
                     ? {

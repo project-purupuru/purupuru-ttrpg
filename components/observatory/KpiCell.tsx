@@ -21,6 +21,7 @@ export function KpiCell({
   sub,
   asideStyle,
   cellStyle,
+  flush,
 }: {
   label: string;
   value: ReactNode;
@@ -32,10 +33,14 @@ export function KpiCell({
   asideStyle?: CSSProperties;
   /** Inline style applied to the cell wrapper — for element-tinted bleed gradients. */
   cellStyle?: CSSProperties;
+  /** When true, drops the rounded corners + tile shadow so cells can sit
+   * flush against each other inside a divider-grid (mobile bottom panel). */
+  flush?: boolean;
 }) {
+  const chromeClass = flush ? "" : "rounded-puru-sm shadow-puru-tile";
   return (
     <div
-      className="relative flex min-w-0 flex-col gap-1 overflow-hidden rounded-puru-sm bg-puru-cloud-bright px-3 py-2 shadow-puru-tile transition-[background-image] duration-700 ease-out"
+      className={`relative flex min-w-0 flex-col gap-1 overflow-hidden bg-puru-cloud-bright px-3 py-2 transition-[background-image] duration-700 ease-out ${chromeClass}`}
       style={cellStyle}
     >
       <span className="relative z-10 truncate font-puru-mono text-2xs uppercase tracking-[0.22em] text-puru-ink-soft">

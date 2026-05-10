@@ -62,7 +62,7 @@ export function MobileBottomPanel({
           </MobilePanelShell>
         ) : (
           <MobilePanelShell>
-            <WeatherTile state={weather} />
+            <WeatherTile state={weather} flush />
           </MobilePanelShell>
         )}
       </div>
