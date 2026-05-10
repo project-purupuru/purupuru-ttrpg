@@ -58,10 +58,10 @@ The wallet bridges the two surfaces. Twitter takes you in; the wallet records yo
 
 ## The whole user journey · what to emphasize
 
-> **Reading guide**: four narrative beats from top to bottom — *discover · take the quiz · cross trust · land in the world*. Yellow = the emotional payoff. Purple = the moment commitment changes (wallet signature). Blue = the destination. Dashed lines = where the loop doesn't close yet (amber = v0 gap we'd ship if we had another sprint · grey = future room).
+> **Reading guide** · four beats left-to-right: *1 discover · 2 take the quiz · 3 cross trust · 4 land in the world*. 🟢 live · 🟡 emotional payoff · 🟣 wallet signature (commitment changes shape) · 🔵 the destination · 🟠 dashed = v0 gap we'd ship next sprint · ⚪ dashed = future room.
 
 ```mermaid
-flowchart TD
+flowchart LR
     classDef live fill:#e8f4ea,stroke:#2d6a4f,stroke-width:2px,color:#1b4332
     classDef payoff fill:#fff3cd,stroke:#a07a00,stroke-width:3px,color:#3d2c00
     classDef trust fill:#e7e3f7,stroke:#5a4fcf,stroke-width:2px,color:#2a1f6b
@@ -69,38 +69,42 @@ flowchart TD
     classDef openWound fill:#fff7e6,stroke:#c2410c,stroke-width:1.5px,stroke-dasharray:6 4,color:#7c2d12
     classDef futureRoom fill:#fafafa,stroke:#999,stroke-width:1.5px,stroke-dasharray:6 4,color:#555
 
-    subgraph DISCOVERY["Discovery · in-feed (any platform)"]
-        feed["Twitter feed<br/><i>also: Telegram · base app · ...</i>"]
-        ambient["Live world tile<br/>(today's element · activity pulse)"]
+    subgraph DISCOVERY["1 · discover"]
+        direction TB
+        feed["Twitter feed<br/><i>also: Telegram · base app</i>"]
+        ambient["Live world tile<br/>today's element · pulse"]
     end
 
-    subgraph QUIZ["Quiz · Twitter Blink"]
-        cta["Tap: What's my element?"]
+    subgraph QUIZ["2 · take the quiz"]
+        direction TB
+        cta["Tap:<br/>What's my element?"]
         quiz["8-question quiz"]
-        reveal["Quiz reveal<br/><b>You are Wood</b> · stone PNG"]
+        reveal["Quiz reveal<br/><b>You are Wood</b><br/>stone PNG"]
     end
 
-    subgraph MINT["Mint moment · trust crossing"]
-        sign["Mint stone<br/>(Phantom signature)"]
+    subgraph MINT["3 · cross trust"]
+        direction TB
+        sign["Mint stone<br/>Phantom signature"]
         confirmed["Mint confirmed"]
     end
 
-    subgraph WORLD["Community surface · Observatory (web)"]
-        plaza["Observatory<br/>live pentagram · activity rail · weather"]
-        focus["Tap a sprite · peek detail"]
-        profile["Your element · your stones<br/><i>(future room)</i>"]
+    subgraph WORLD["4 · land in the world"]
+        direction TB
+        plaza["Observatory<br/>pentagram · rail · weather"]
+        focus["Tap a sprite<br/>peek detail"]
+        profile["Your element ·<br/>your stones<br/><i>(future room)</i>"]
     end
 
     feed --> ambient
     feed --> cta
-    ambient -->|see today, then take quiz| cta
+    ambient -->|see today,<br/>then take quiz| cta
     cta --> quiz
     quiz --> reveal
-    reveal -->|Claim your stone| sign
+    reveal -->|claim your stone| sign
     sign --> confirmed
-    confirmed -.->|no bridge yet · v0 gap| plaza
+    confirmed -.->|no bridge yet ·<br/>v0 gap| plaza
     plaza --> focus
-    plaza -.->|login + wallet-link not built| profile
+    plaza -.->|login + wallet-link<br/>not built| profile
 
     class feed,ambient,cta,quiz live
     class reveal payoff
