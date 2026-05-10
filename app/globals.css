@@ -1,15 +1,29 @@
 @import "tailwindcss";
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   Tailwind dark variant — track our explicit `data-theme` instead of the OS.
-   Without this, `dark:` classes follow `prefers-color-scheme:dark`, which
-   doesn't move when our auto-theme effect flips `<html data-theme>` on local
-   sunrise/sunset. With it, every `dark:` utility in the codebase (logo
-   wordmark variants, IntroAnimation, KpiStrip) tracks the same source of
-   truth as the CSS-variable theme block below.
+   Tailwind dark variant — keep in sync with the CSS-variable theme below.
+   Two activation paths:
+     1. Explicit `[data-theme="old-horai"]` — set by ObservatoryClient on the
+        local sunrise/sunset boundary once the weather feed has landed.
+     2. `prefers-color-scheme: dark` AND no explicit theme yet — covers the
+        first-paint window before the weather effect runs (e.g. during the
+        IntroAnimation), so a system-dark visitor sees the white wordmark on
+        cloud-base-dark instead of the black wordmark.
+   Both branches must stay in lockstep with the CSS-variable theme rules
+   further down — flipping the variant without flipping the variables (or
+   vice versa) produces the wordmark-color-on-wrong-bg defect we just fixed.
    ───────────────────────────────────────────────────────────────────────────── */
 
-@custom-variant dark (&:where([data-theme="old-horai"], [data-theme="old-horai"] *));
+@custom-variant dark {
+  &:where([data-theme="old-horai"], [data-theme="old-horai"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-theme]), :root:not([data-theme]) *) {
+      @slot;
+    }
+  }
+}
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Per-element bleed mix — drives the soft color washes behind activity rows
@@ -233,6 +247,14 @@
   --shadow-modal:       0 16px 48px oklch(0.50 0.03 85 / 0.25);
   --shadow-tile:        0 2px 4px var(--puru-surface-shadow-sm), 0 1px 1px var(--puru-surface-shadow-sm), inset 0 1px 0 var(--puru-surface-highlight);
   --shadow-tile-hover:  0 4px 12px var(--puru-surface-shadow-md), 0 1px 2px var(--puru-surface-shadow-sm), inset 0 1px 0 var(--puru-surface-highlight-strong);
+
+  /* Tsuheji continent backdrop — felt-not-seen treatment used by the
+     observatory canvas wrapper. Mirrors purupuru.world's hero map.
+     Light theme leans on opacity to mute; dark theme bumps brightness
+     so the warm-toned PNG still reads against cloud-base. */
+  --puru-continent-opacity:    0.19;
+  --puru-continent-saturate:   0.4;
+  --puru-continent-brightness: 1;
   /* Rim shadows — for surfaces flush against a viewport edge that need
      to project a music-player-class drop into the canvas pane on their
      ONE open side. -2px spread keeps the falloff tight to the
@@ -264,6 +286,12 @@
    ───────────────────────────────────────────────────────────────────────────── */
 
 [data-theme="old-horai"] {
+  /* Continent backdrop — bump brightness so the warm-toned PNG reads
+     against the dark cloud-base, drop opacity so it stays felt-not-seen. */
+  --puru-continent-opacity:    0.13;
+  --puru-continent-saturate:   0.6;
+  --puru-continent-brightness: 1.15;
+
   --puru-cloud-bright: oklch(0.24 0.015 80);
   --puru-cloud-base:   oklch(0.20 0.012 80);
   --puru-cloud-dim:    oklch(0.14 0.010 80);
@@ -339,6 +367,11 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
+    /* Continent — keep in sync with [data-theme="old-horai"] above. */
+    --puru-continent-opacity:    0.13;
+    --puru-continent-saturate:   0.6;
+    --puru-continent-brightness: 1.15;
+
     --puru-cloud-bright: oklch(0.24 0.015 80);
     --puru-cloud-base:   oklch(0.20 0.012 80);
     --puru-cloud-dim:    oklch(0.14 0.010 80);
@@ -391,8 +424,8 @@
     --puru-surface-highlight-strong: oklch(1 0 0 / 0.08);
     --puru-surface-track:            oklch(0.24 0.010 80);
     --puru-surface-track-shadow:     oklch(0.05 0.008 80 / 0.3);
-    --puru-surface-shadow-sm:        oklch(0.03 0.008 80 / 0.30);
-    --puru-surface-shadow-md:        oklch(0.03 0.008 80 / 0.40);
+    --puru-surface-shadow-sm:        oklch(0.02 0.008 80 / 0.42);
+    --puru-surface-shadow-md:        oklch(0.02 0.008 80 / 0.55);
 
     --puru-ghost-border: oklch(0.28 0.012 80);
     --puru-ghost-bg:     oklch(0.17 0.008 80);

@@ -36,8 +36,6 @@ interface PentagramCanvasProps {
   onSpriteClick?: (identity: PuruhaniIdentity) => void;
   /** Wallet of the currently-focused puruhani; non-focused sprites dim. */
   focusedTrader?: string | null;
-  /** Local night state from weather feed — flips the wrapper texture to cosmos-stars. */
-  isNight?: boolean;
   /** Element amplified by the user's location weather — biases wrapper tint
    *  + boosts the matching vertex aura. */
   amplifiedElement?: Element;
@@ -315,7 +313,6 @@ function lerpHex(a: number, b: number, t: number): number {
 export function PentagramCanvas({
   onSpriteClick,
   focusedTrader = null,
-  isNight,
   amplifiedElement,
 }: PentagramCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -871,20 +868,26 @@ export function PentagramCanvas({
     };
   }, [onSpriteClick]);
 
-  // ─── Wrapper background — day/night texture + amplified-element tint ───
-  // Texture flips on isNight: warm grain by day, cosmos starfield by night.
-  // The translucent overlay carries a subtle hint of the user's currently-
-  // amplified element (~12%) so a fire day reads warm, water day reads cool,
-  // etc. — without ever competing with the Pixi stage. is_night undefined
-  // (initial paint, before first weather fetch) falls back to the day
-  // texture; amplifiedElement undefined falls back to plain cloud-base.
-  const textureUrl = isNight
-    ? "/art/patterns/cosmos-stars.webp"
-    : "/art/patterns/grain-warm.webp";
-  const overlayColor = amplifiedElement
-    ? `color-mix(in oklch, var(--puru-cloud-base) 88%, var(--puru-${amplifiedElement}-vivid) 12%)`
-    : "var(--puru-cloud-base)";
-  const tintedOverlay = `color-mix(in oklch, ${overlayColor} 50%, transparent)`;
+  // ─── Wrapper background — Tsuheji continent, felt-not-seen ──────────
+  // Single tsuheji-map.png centered behind the pentagram, treated to
+  // match purupuru.world's hero continent: low opacity, desaturated,
+  // and feathered out by a radial-gradient mask so the edges fade into
+  // cloud-base instead of cutting hard against the strip / rails. The
+  // visitor knows this dashboard "is" Tsuheji without any image ever
+  // pulling focus from the canvas.
+  //
+  // Theme tuning lives in CSS tokens so the dark theme can drop opacity
+  // and bump brightness without a JS branch — see globals.css for
+  // --puru-continent-{opacity,saturate,brightness}.
+  //
+  // amplifiedElement still rides as a very faint (4%) ambient tint so
+  // the cosmos's currently-amplified element is visible in the backdrop
+  // the same way it is in the vertex auras.
+  const ambientTint = amplifiedElement
+    ? `color-mix(in oklch, var(--puru-${amplifiedElement}-vivid) 4%, transparent)`
+    : "transparent";
+  const continentMask =
+    "radial-gradient(ellipse 80% 70% at 50% 50%, black 10%, oklch(0 0 0 / 0.4) 35%, transparent 70%)";
 
   return (
     <div
@@ -892,18 +895,38 @@ export function PentagramCanvas({
       style={{
         perspective: "1400px",
         perspectiveOrigin: "center 60%",
-        // Background lives on the OUTER wrapper (no tilt) so the inner
-        // rotateX(6deg) on the canvas mount can't reveal page-void along
-        // the top edge. Texture tints through at ~50% via a translucent
-        // overlay biased by amplifiedElement — no blend mode (which warps
-        // unevenly under the perspective).
-        background: [
-          `linear-gradient(${tintedOverlay}, ${tintedOverlay})`,
-          `url('${textureUrl}') center / 120px 120px repeat`,
-          "var(--puru-cloud-base)",
-        ].join(", "),
+        background: "var(--puru-cloud-base)",
       }}
     >
+      {/* Continent — masked + muted. Lives on the OUTER wrapper (no tilt)
+          so the inner rotateX(6deg) on the canvas mount can't reveal
+          page-void along the top edge. 120%-of-wrapper width keeps the
+          continent body behind the pentagram on most aspect ratios; the
+          mask hides whatever bleeds past. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+        style={{
+          width: "120%",
+          maxWidth: "1100px",
+          aspectRatio: "1 / 1",
+          backgroundImage: "url('/art/tsuheji-map.png')",
+          backgroundSize: "contain",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+          opacity: "var(--puru-continent-opacity)",
+          filter:
+            "saturate(var(--puru-continent-saturate)) brightness(var(--puru-continent-brightness))",
+          WebkitMaskImage: continentMask,
+          maskImage: continentMask,
+        }}
+      />
+      {/* Faint amplified-element tint — the cosmos signal in the backdrop. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0"
+        style={{ background: ambientTint }}
+      />
       <div
         ref={containerRef}
         className="relative h-full w-full"
