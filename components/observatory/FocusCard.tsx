@@ -176,7 +176,7 @@ export function FocusCard({
             <ul className="flex flex-col gap-2">
               <li className="flex items-center gap-2 font-puru-mono text-xs">
                 <span className="truncate text-puru-ink-rich">
-                  minted {STONE_NAME[primary]}
+                  Claimed {STONE_NAME[primary]}
                 </span>
                 <span className="ml-auto whitespace-nowrap font-puru-mono text-2xs uppercase tracking-[0.18em] text-puru-ink-dim">
                   {now ? timeAgo(mintedAt, now) : ""}
@@ -233,7 +233,7 @@ function StoneTile({
       }}
       title={
         mintedAt && now
-          ? `${STONE_NAME[element]} · minted ${timeAgo(mintedAt, now)}`
+          ? `${STONE_NAME[element]} · claimed ${timeAgo(mintedAt, now)}`
           : STONE_NAME[element]
       }
     >
