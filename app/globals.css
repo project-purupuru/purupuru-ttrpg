@@ -1,4 +1,14 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
+
+/* Tailwind v4 explicit-source whitelist · `source(none)` on the import
+ * disables auto-detection (otherwise Tailwind follows symlinks in
+ * .claude/constructs/packs/* to ~/.loa/... → Turbopack rejects with
+ * "leaves the filesystem root" → 500). Listing real source dirs
+ * explicitly is the most reliable Tailwind v4 path. */
+@source "../app/**/*.{ts,tsx,js,jsx,mdx}";
+@source "../components/**/*.{ts,tsx,js,jsx,mdx}";
+@source "../lib/**/*.{ts,tsx,js,jsx,mdx}";
+@source "../packages/**/*.{ts,tsx,js,jsx,mdx}";
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Tailwind dark variant — keep in sync with the CSS-variable theme below.

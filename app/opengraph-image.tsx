@@ -13,13 +13,14 @@ export const alt = "purupuru · five elements, five guardians"
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 
-// Wuxing palette · resolves at render time (Satori supports oklch).
+// Wuxing palette · hex values · Satori in next/og does NOT support oklch().
+// Hand-tuned to roughly match our oklch tokens at the same lightness/chroma.
 const WUXING = [
-  { name: "wood", color: "oklch(0.72 0.140 145)" },
-  { name: "fire", color: "oklch(0.68 0.180 30)" },
-  { name: "earth", color: "oklch(0.76 0.110 80)" },
-  { name: "metal", color: "oklch(0.78 0.020 250)" },
-  { name: "water", color: "oklch(0.55 0.130 240)" },
+  { name: "wood", color: "#7BB07A" }, // mid-green
+  { name: "fire", color: "#E07642" }, // warm orange-red
+  { name: "earth", color: "#C7A766" }, // honey-tan
+  { name: "metal", color: "#B4C2D2" }, // cool blue-grey
+  { name: "water", color: "#3D6FAF" }, // deep slate-blue
 ]
 
 export default async function OpengraphImage() {
@@ -40,7 +41,7 @@ export default async function OpengraphImage() {
             "ui-serif, 'Iowan Old Style', 'Apple Garamond', Georgia, serif",
         }}
       >
-        {/* Honey accent stripe at top · brand cue */}
+        {/* Honey accent stripe at top · brand cue · 5-element rainbow */}
         <div
           style={{
             position: "absolute",
@@ -49,7 +50,7 @@ export default async function OpengraphImage() {
             width: "100%",
             height: 12,
             background:
-              "linear-gradient(90deg, oklch(0.72 0.140 145), oklch(0.68 0.180 30), oklch(0.76 0.110 80), oklch(0.78 0.020 250), oklch(0.55 0.130 240))",
+              "linear-gradient(90deg, #7BB07A, #E07642, #C7A766, #B4C2D2, #3D6FAF)",
           }}
         />
 
