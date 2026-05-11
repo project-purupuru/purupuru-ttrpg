@@ -4,8 +4,8 @@
  * see ./mock.ts for the deterministic stub.
  */
 
-export type Element = "wood" | "fire" | "earth" | "water" | "metal";
-export const ELEMENTS: readonly Element[] = ["wood", "fire", "earth", "water", "metal"] as const;
+export { Element, ELEMENTS } from "@/lib/domain/element";
+import type { Element } from "@/lib/domain/element";
 
 export type Wallet = string;
 

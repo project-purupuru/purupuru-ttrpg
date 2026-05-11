@@ -74,6 +74,7 @@ import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Element } from "@/lib/score";
+import { ELEMENT_BREATH_MS } from "@/lib/domain/element";
 import {
   CEREMONY_DISMISS_LINE,
   STONE_COPY,
@@ -238,7 +239,7 @@ export function StoneCeremony({ element, pentagramPaneRef, onDismiss }: Props) {
     return () => document.removeEventListener("keydown", onKey);
   }, [handleDismiss]);
 
-  const breathSec = copy.breathDurMs / 1000;
+  const breathSec = ELEMENT_BREATH_MS[element] / 1000;
   const glowSec = breathSec * 1.7;
 
   // Don't render after the phase machine completes — onDismiss has

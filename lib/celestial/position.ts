@@ -26,6 +26,7 @@
 // day's length around midnight — accurate within a few minutes for
 // most latitudes outside polar regions.
 
+import { getSafe } from "@/lib/storage-safe";
 import {
   SUNRISE_STORAGE_KEY,
   SUNSET_STORAGE_KEY,
@@ -57,15 +58,6 @@ const HORIZON_Y_PCT = 78;
 const ARC_HEIGHT_PCT = 60; // mid-arc apex sits at HORIZON - ARC_HEIGHT
 const DEFAULT_DAY_HOURS = 12; // fallback when sunrise/sunset cache missing
 
-function readCached(key: string): string | null {
-  if (typeof localStorage === "undefined") return null;
-  try {
-    return localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-}
-
 /**
  * Resolve where the sun or moon should sit RIGHT NOW. Reads cached
  * sunrise/sunset from localStorage (theme persist writes these); falls
@@ -78,8 +70,8 @@ function readCached(key: string): string | null {
 export function resolveCelestialPosition(nowMs: number = Date.now()): CelestialPosition | null {
   if (typeof window === "undefined") return null;
 
-  const sunriseIso = readCached(SUNRISE_STORAGE_KEY);
-  const sunsetIso = readCached(SUNSET_STORAGE_KEY);
+  const sunriseIso = getSafe(SUNRISE_STORAGE_KEY);
+  const sunsetIso = getSafe(SUNSET_STORAGE_KEY);
 
   // Cache present + same calendar day = exact-as-possible position.
   if (sunriseIso && sunsetIso) {

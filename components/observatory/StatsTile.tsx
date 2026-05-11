@@ -2,15 +2,8 @@
 
 import { useMemo } from "react";
 import type { Element } from "@/lib/score";
+import { ELEMENT_KANJI } from "@/lib/domain/element";
 import { KpiCell } from "./KpiCell";
-
-const ELEMENT_KANJI: Record<Element, string> = {
-  wood: "木",
-  fire: "火",
-  earth: "土",
-  water: "水",
-  metal: "金",
-};
 
 const DISPLAY_ORDER: readonly Element[] = ["wood", "fire", "earth", "metal", "water"] as const;
 

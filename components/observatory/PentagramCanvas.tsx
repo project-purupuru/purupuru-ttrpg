@@ -12,6 +12,7 @@ import {
   Texture,
 } from "pixi.js";
 import { ELEMENTS, scoreAdapter, type Element } from "@/lib/score";
+import { ELEMENT_KANJI } from "@/lib/domain/element";
 import {
   createPentagram,
   pentagonEdges,
@@ -51,14 +52,6 @@ const AURA_HEX: Record<Element, number> = {
   earth: 0xa1a55c,
   water: 0x9cd7eb,
   metal: 0xc8ccd6,
-};
-
-const ELEMENT_KANJI: Record<Element, string> = {
-  wood: "木",
-  fire: "火",
-  earth: "土",
-  water: "水",
-  metal: "金",
 };
 
 // Element icon PNGs — self-hosted under /public/art/elements/.

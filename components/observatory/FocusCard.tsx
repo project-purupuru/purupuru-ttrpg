@@ -24,9 +24,7 @@ import { PuruhaniAvatar } from "./PuruhaniAvatar";
  * independent address hash, producing wrong-element mismatches.)
  */
 
-const ELEMENT_KANJI: Record<Element, string> = {
-  wood: "木", fire: "火", earth: "土", water: "水", metal: "金",
-};
+import { ELEMENT_KANJI } from "@/lib/domain/element";
 
 const STONE_NAME: Record<Element, string> = {
   wood: "Wood Stone",

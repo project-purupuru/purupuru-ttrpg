@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { WeatherState, Precipitation } from "@/lib/weather";
 import type { Element } from "@/lib/score";
+import { ELEMENT_KANJI } from "@/lib/domain/element";
 import { timeAgo } from "@/lib/time/format";
 import { KpiCell } from "./KpiCell";
 import {
@@ -14,14 +15,6 @@ import {
   Thermometer,
   type Icon,
 } from "@phosphor-icons/react";
-
-const ELEMENT_KANJI: Record<Element, string> = {
-  wood: "木",
-  fire: "火",
-  earth: "土",
-  water: "水",
-  metal: "金",
-};
 
 // Maps precipitation state to its Phosphor fill-weight icon. Picked
 // to mirror the original Unicode glyphs (☀ ☂ ❄ ⚡) that read at a
