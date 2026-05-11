@@ -260,7 +260,34 @@ export function StoneCeremony({ element, pentagramPaneRef, onDismiss }: Props) {
       // without unmounting the scrim (ARTISAN §3 · prevents Safari
       // repaint flash).
       style={{
-        background: `radial-gradient(circle at 50% 55%, color-mix(in oklch, var(--puru-cloud-shadow) 88%, transparent) 0%, var(--puru-cloud-shadow) 65%, var(--puru-cloud-shadow) 100%), radial-gradient(circle at 50% 50%, color-mix(in oklch, var(--puru-${element}-vivid) 22%, transparent) 0%, transparent 55%)`,
+        // ── Three-layer ceremony atmosphere · ALEXANDER+KANSEI glow spec
+        // 2026-05-11 (#ceremony-glow). Composes the canonical observatory
+        // patterns:
+        //   Layer 1 (TOP): element field · transparent center, edge-tinted
+        //     vivid · borrowed from the leader-clan gradient at
+        //     ObservatoryClient.tsx:289 ("the room is tinted by the element")
+        //   Layer 2 (BOTTOM): ceremony-veil dimmer · theme-adaptive cool
+        //     ink (NOT cloud-shadow which is hue-85 warm fog and would
+        //     mix with cool elements into desert tan)
+        //   Layer 3: stone halo · the existing -inset-12 vertex-aura
+        //     behind the stone (StoneCeremony.tsx:436-463) keeps its
+        //     honey-warm signature as the source mark
+        // The veil token --ceremony-veil shifts per theme:
+        //   light: oklch(0.18 0.020 80 / 0.92) cool dark ink
+        //   dark:  oklch(0.06 0.006 80 / 0.94) true shadow
+        // so element chroma reads the same atmospheric quality across both.
+        background: `
+          radial-gradient(ellipse 80% 70% at 50% 55%,
+            transparent 0%,
+            color-mix(in oklch, var(--puru-${element}-vivid) 16%, transparent) 55%,
+            color-mix(in oklch, var(--puru-${element}-vivid) 30%, transparent) 100%
+          ),
+          radial-gradient(circle at 50% 55%,
+            color-mix(in oklch, var(--ceremony-veil) 55%, transparent) 0%,
+            color-mix(in oklch, var(--ceremony-veil) 85%, transparent) 50%,
+            var(--ceremony-veil) 100%
+          )
+        `,
         backdropFilter:
           phase === "landed"
             ? "blur(0px) saturate(1)"
@@ -495,21 +522,13 @@ export function StoneCeremony({ element, pentagramPaneRef, onDismiss }: Props) {
           animate={isExiting ? { opacity: 0, y: -4 } : { opacity: 1, y: 0 }}
           transition={{ duration: 0.12, ease: "easeOut" }}
         >
-          <motion.span
-            aria-hidden
-            className="mt-6 block h-px w-6"
-            style={{ background: `color-mix(in oklch, var(--puru-${element}-vivid) 40%, transparent)` }}
-            initial={{ opacity: 0, scaleX: 0.4 }}
-            animate={{ opacity: 1, scaleX: 1 }}
-            transition={{ duration: 0.4, ease: "easeOut", delay: reduce ? 0.16 : 1.3 }}
-          />
-
-          {/* Operator note 2026-05-11: bridge eyebrow dropped (too much
-              to read). The Blink button "See yourself in the world"
-              already carried that promise — ceremony doesn't repeat. */}
+          {/* Operator note 2026-05-11: bridge eyebrow + hairline
+              ornament both dropped (too much chrome below the stone).
+              The element-energy halo around the stone is the only
+              ornament; the type stack rests below at clean spacing. */}
 
           <motion.h2
-            className="mt-3 font-puru-display text-[2.75rem] leading-none text-puru-ink-rich"
+            className="mt-12 font-puru-display text-[2.75rem] leading-none text-puru-ink-rich"
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1], delay: reduce ? 0.16 : 1.36 }}
