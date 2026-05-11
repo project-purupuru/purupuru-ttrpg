@@ -22,6 +22,9 @@ function timeAgo(iso: string, now: number): string {
 
 const titleCase = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 
+// "Earth" takes "an"; the other four elements start with consonant sounds.
+const indefiniteArticle = (el: string): string => (el === "earth" ? "an" : "a");
+
 export function ActivityRail() {
   const [events, setEvents] = useState<ActivityEvent[]>(() => activityStream.recent());
   const [now, setNow] = useState<number>(() => Date.now());
@@ -129,7 +132,7 @@ export function ActivityRail() {
                     )}
                   </p>
                   <p className="mt-0.5 truncate font-puru-body text-xs leading-tight text-puru-ink-soft">
-                    Claimed {titleCase(e.element)} Stone
+                    Claimed {indefiniteArticle(e.element)} {titleCase(e.element)} Stone
                   </p>
                 </div>
                 <span className="inline-block min-w-[4.5em] shrink-0 self-start text-right font-puru-body text-2xs uppercase tracking-[0.18em] tabular-nums text-puru-ink-dim">

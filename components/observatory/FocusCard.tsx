@@ -49,6 +49,9 @@ function shortAddress(addr: string): string {
   return `${addr.slice(0, 4)}…${addr.slice(-4)}`;
 }
 
+// "Earth" takes "an"; the other four elements start with consonant sounds.
+const indefiniteArticle = (el: Element): string => (el === "earth" ? "an" : "a");
+
 interface PopEntry {
   primaryElement: Element;
   joinedAt: string;
@@ -176,7 +179,7 @@ export function FocusCard({
             <ul className="flex flex-col gap-2">
               <li className="flex items-center gap-2 font-puru-mono text-xs">
                 <span className="truncate text-puru-ink-rich">
-                  Claimed {STONE_NAME[primary]}
+                  Claimed {indefiniteArticle(primary)} {STONE_NAME[primary]}
                 </span>
                 <span className="ml-auto whitespace-nowrap font-puru-mono text-2xs uppercase tracking-[0.18em] text-puru-ink-dim">
                   {now ? timeAgo(mintedAt, now) : ""}
