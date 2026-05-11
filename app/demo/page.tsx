@@ -297,15 +297,17 @@ function Post({
       {avatar}
       <div className="flex-1 min-w-0">
         {automatedBy ? (
-          /* Agent layout · 3-row stacked head + "Automated by" badge ·
-             matches @aixbt_agent reference shape. Verified + grok/menu on
-             top row; handle on row 2; agent badge on row 3. */
+          /* Agent layout · single-row head (operator R5 call · matches the
+             standard X post header) + "Automated by" badge below. */
           <>
             <div className="flex items-center gap-x-1 text-[15px]">
               <span className="font-bold" style={{ color: XC.textPrimary }}>
                 {name}
               </span>
               {verified && <VerifiedBadge size={16} />}
+              <span style={{ color: XC.textSecondary }}>@{handle}</span>
+              <span style={{ color: XC.textSecondary }}>·</span>
+              <span style={{ color: XC.textSecondary }}>{time}</span>
               <div className="ml-auto flex items-center gap-3">
                 <GrokDiamond size={16} />
                 <MoreHorizontal
@@ -313,14 +315,6 @@ function Post({
                   style={{ color: XC.textSecondary }}
                 />
               </div>
-            </div>
-            <div
-              className="flex items-center gap-x-1 text-[14px]"
-              style={{ color: XC.textSecondary }}
-            >
-              <span>@{handle}</span>
-              <span>·</span>
-              <span>{time}</span>
             </div>
             <div
               className="mt-0.5 flex items-center gap-1.5 text-[13px]"
