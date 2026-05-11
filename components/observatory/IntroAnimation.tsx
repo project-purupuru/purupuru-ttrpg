@@ -34,7 +34,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 const LOGO_TO_BUTTONS_DELAY_MS = 1200;
@@ -55,19 +55,31 @@ export function IntroAnimation({ onDone }: { onDone: () => void }) {
     if (reduce) onDone();
   }, [reduce, onDone]);
 
-  // Advance logo → buttons after the hold delay.
+  // Read latest `connected` inside the timer body without making the
+  // logo-stage timer reset whenever the wallet state flips. Otherwise a
+  // mid-hold autoConnect resolution would restart the 1.2s timer.
+  const connectedRef = useRef(connected);
+  useEffect(() => {
+    connectedRef.current = connected;
+  }, [connected]);
+
+  // Advance the logo stage after the hold delay. If the wallet has already
+  // auto-connected by then, skip the buttons stage entirely and exit
+  // straight to the app (logo → app). Otherwise show the connect/guest
+  // actions.
   useEffect(() => {
     if (reduce) return;
     if (stage !== "logo") return;
-    const t = window.setTimeout(() => setStage("buttons"), LOGO_TO_BUTTONS_DELAY_MS);
+    const t = window.setTimeout(() => {
+      setStage(connectedRef.current ? "exit" : "buttons");
+    }, LOGO_TO_BUTTONS_DELAY_MS);
     return () => window.clearTimeout(t);
   }, [stage, reduce]);
 
-  // Auto-enter on wallet connect — once the logo stage finishes and we're
-  // showing the action panel, a connected wallet (whether auto-connected
-  // from a prior session or just approved via the modal) triggers exit
-  // without requiring an extra click. Brief beat first so the user sees
-  // the "connected · 4abc…" acknowledgment before fade-out.
+  // Auto-enter when the user finishes connecting mid-buttons-stage. They
+  // clicked Connect Wallet, the modal opened, and now the wallet is live —
+  // exit after a brief beat showing the "connected · 4abc…" acknowledgment
+  // so they aren't asked for a second click.
   useEffect(() => {
     if (reduce) return;
     if (!connected) return;
