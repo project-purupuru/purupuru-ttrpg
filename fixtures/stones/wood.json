@@ -2,7 +2,7 @@
   "name": "Genesis Stone \u00b7 Wood",
   "symbol": "PGS",
   "description": "A Wood-element imprint of the awareness layer \u00b7 the day's tide read green when this stone was claimed \u00b7 purupuru world.",
-  "image": "https://purupuru-blink.vercel.app/art/stones/wood.png",
+  "image": "https://purupuru.world/art/stones/wood.png",
   "external_url": "https://purupuru.world",
   "attributes": [
     {
@@ -23,7 +23,7 @@
     "creators": [],
     "files": [
       {
-        "uri": "https://purupuru-blink.vercel.app/art/stones/wood.png",
+        "uri": "https://purupuru.world/art/stones/wood.png",
         "type": "image/png"
       }
     ]

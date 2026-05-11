@@ -8,6 +8,10 @@
 // Why client-only: `useBlink` from @dialectlabs/blinks-core uses React hooks
 // to fetch + watch the action JSON; the WalletProvider context the adapter
 // hook depends on is also browser-only.
+//
+// Consumers:
+//   /preview  → dev/ops surface · style preset tabs · raw JSON disclosure
+//   /demo     → recording surface · no dev chrome · honest feed framing
 
 import { useMemo } from "react"
 import {

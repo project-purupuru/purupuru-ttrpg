@@ -9,8 +9,8 @@
 
 import Link from "next/link"
 
-import { BlinkPreview } from "./blink-preview"
-import "./preview-overrides.css"
+import { BlinkPreview } from "@/components/blink/blink-preview"
+import "@/components/blink/blink-styles.css"
 
 interface ActionResponse {
   icon: string
@@ -55,7 +55,8 @@ type StylePreset = (typeof STYLE_PRESETS)[number]
 
 export default async function PreviewPage({ searchParams }: PageProps) {
   const params = await searchParams
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000"
+  const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
   const targetUrl = params.url ?? `${baseUrl}/api/actions/quiz/start`
   // Default x-light · matches the world repo's cream-surface landing.
   // x-dark + default still selectable via the header tabs for comparison.
@@ -81,7 +82,7 @@ export default async function PreviewPage({ searchParams }: PageProps) {
           ONE source of truth for theme · driven from one query param. */}
       <div
         data-theme={stylePreset === "x-dark" ? "old-horai" : undefined}
-        className="preview-blink-scope mx-auto max-w-md space-y-6 pb-24"
+        className="purupuru-blink-scope mx-auto max-w-md space-y-6 pb-24"
       >
         {/* Header · which endpoint we're previewing */}
         <header className="space-y-3">

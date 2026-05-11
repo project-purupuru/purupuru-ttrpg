@@ -1,4 +1,4 @@
-/* Dialect Blink renderer overrides · scoped to /preview only.
+/* Dialect Blink renderer overrides · shared across /preview + /demo.
  *
  * Why these exist:
  *   Dialect's default button row uses `flex flex-wrap items-center` with
@@ -11,16 +11,17 @@
  *     · each button       = full container width (consistent)
  *     · long labels       = wrap inside the button instead of overflowing
  *
- * The .preview-blink-scope class is added to the /preview page wrapper so
- * these rules don't leak to any other Dialect Blink usage in the app.
+ * The .purupuru-blink-scope class is added to any page wrapper that hosts
+ * <BlinkPreview /> · keeps these rules from leaking to any future Dialect
+ * Blink usage elsewhere in the app.
  */
 
-.preview-blink-scope .gap-between-buttons {
+.purupuru-blink-scope .gap-between-buttons {
   flex-direction: column;
   align-items: stretch;
 }
 
-.preview-blink-scope .blink-action-button {
+.purupuru-blink-scope .blink-action-button {
   width: 100%;
   white-space: normal;
   word-break: break-word;
@@ -30,7 +31,7 @@
 }
 
 /* Defensive · prevent any descendant from forcing horizontal overflow */
-.preview-blink-scope * {
+.purupuru-blink-scope * {
   max-width: 100%;
 }
 
@@ -81,74 +82,106 @@
  * an inner .x-light/.x-dark/.dial-light div that ALSO sets these vars
  * (their preset palette) · we override at that same class level inside
  * our scope so descendants pick up our values, not theirs. */
-.preview-blink-scope .x-light,
-.preview-blink-scope .x-dark,
-.preview-blink-scope .dial-light {
+/* Belt + suspenders: set vars on BOTH the scope wrapper AND the inner
+ * .x-light/.x-dark/.dial-light · Dialect's preset block sets the var on its
+ * own element, and a child's local declaration always beats an inherited
+ * value from an ancestor · so we have to override AT THE SAME LEVEL.
+ *
+ * !important is used because some Dialect builds insert their preset CSS
+ * after our overrides in the bundle order (CSS-in-JS injection), making
+ * cascade alone unreliable. Explicit !important wins regardless of order.
+ */
+.purupuru-blink-scope,
+.purupuru-blink-scope .x-light,
+.purupuru-blink-scope .x-dark,
+.purupuru-blink-scope .dial-light {
   /* card surfaces · cream on cream · world landing palette */
-  --blink-bg-primary: var(--puru-cloud-bright);    /* main card bg */
-  --blink-bg-secondary: var(--puru-cloud-base);    /* faintly warmer underlayer */
+  --blink-bg-primary: var(--puru-cloud-bright) !important;
+  --blink-bg-secondary: var(--puru-cloud-base) !important;
 
   /* text · dark ink on cream (matches world body text) */
-  --blink-text-primary: var(--puru-ink-rich);      /* the question */
-  --blink-text-secondary: var(--puru-ink-soft);    /* "Question N of 8" subhead */
-  --blink-text-link: var(--puru-honey-dim);
-  --blink-text-link-hover: var(--puru-ink-rich);
+  --blink-text-primary: var(--puru-ink-rich) !important;
+  --blink-text-secondary: var(--puru-ink-soft) !important;
+  --blink-text-link: var(--puru-honey-dim) !important;
+  --blink-text-link-hover: var(--puru-ink-rich) !important;
 
   /* buttons · honey CTA recipe from world landing */
-  --blink-button: var(--puru-honey-base);          /* honey yellow · stays warm in both modes */
-  --blink-button-hover: var(--puru-honey-bright);  /* brighter honey on hover */
-  --blink-button-disabled: var(--puru-honey-tint); /* paler honey when disabled */
-  --blink-button-success: var(--puru-wood-pastel);
+  --blink-button: var(--puru-honey-base) !important;
+  --blink-button-hover: var(--puru-honey-bright) !important;
+  --blink-button-disabled: var(--puru-honey-tint) !important;
+  --blink-button-success: var(--puru-wood-pastel) !important;
   /* text-button is HARDCODED dark · DOES NOT flip with theme · honey stays
    * yellow in both modes so its readable text must stay dark always · this
    * is the one override that bypasses the cascade by design (operator's
    * landing page ships the same canonical contrast: dark ink on honey). */
-  --blink-text-button: oklch(0.18 0.025 80);
-  --blink-text-button-disabled: oklch(0.40 0.020 80);
-  --blink-text-button-success: var(--puru-wood-dim);
+  --blink-text-button: oklch(0.18 0.025 80) !important;
+  --blink-text-button-disabled: oklch(0.40 0.020 80) !important;
+  --blink-text-button-success: var(--puru-wood-dim) !important;
 
   /* brand accent · honey · echoes the CTA */
-  --blink-text-brand: var(--puru-honey-dim);
+  --blink-text-brand: var(--puru-honey-dim) !important;
 
-  /* warning · keep honey-adjacent so it fits the palette */
-  --blink-icon-warning: var(--puru-honey-dim);
-  --blink-icon-warning-hover: var(--puru-honey-base);
-  --blink-text-warning: var(--puru-honey-dim);
-  --blink-stroke-warning: var(--puru-honey-tint);
-  --blink-transparent-warning: oklch(0.82 0.140 85 / 0.10);
+  /* warning · keep honey-adjacent so it fits the palette (when shown) */
+  --blink-icon-warning: var(--puru-honey-dim) !important;
+  --blink-icon-warning-hover: var(--puru-honey-base) !important;
+  --blink-text-warning: var(--puru-honey-dim) !important;
+  --blink-stroke-warning: var(--puru-honey-tint) !important;
+  --blink-transparent-warning: oklch(0.82 0.140 85 / 0.10) !important;
 
   /* strokes · soft warm separators */
-  --blink-stroke-primary: var(--puru-cloud-shadow);
-  --blink-stroke-secondary: var(--puru-cloud-dim);
+  --blink-stroke-primary: var(--puru-cloud-shadow) !important;
+  --blink-stroke-secondary: var(--puru-cloud-dim) !important;
 
   /* container shadow · honey-tinted depth · matches world CTA shadow recipe.
    * Opacity stays the same in both modes · against dark cloud-bright (0.24)
    * the honey glow at 22% reads as soft warmth · against light cream-bright
    * (0.96) the same opacity reads as paper-shadow. The token resolves to
    * slightly brighter honey in old-horai which compensates. */
-  --blink-shadow-container: 0 8px 32px -4px oklch(0.82 0.140 85 / 0.22);
+  --blink-shadow-container: 0 8px 32px -4px oklch(0.82 0.140 85 / 0.22) !important;
 }
 
 /* World CTA detail · 2px honey-dim border + pill radius on every button.
  * Dialect doesn't expose a --blink-button-border var · we apply directly. */
-.preview-blink-scope .blink-action-button {
+.purupuru-blink-scope .blink-action-button {
   border: 2px solid var(--puru-honey-dim);
   border-radius: var(--radius-full);
   font-weight: 600; /* echoes world CTA fontWeight: 700 · slightly less bold for buttons in a stack */
 }
-.preview-blink-scope .blink-action-button:hover {
+.purupuru-blink-scope .blink-action-button:hover {
   border-color: var(--puru-honey-base);
 }
 
 /* Card container · borrow the world's honey-glow shadow at higher specificity */
-.preview-blink-scope .x-light,
-.preview-blink-scope .x-dark,
-.preview-blink-scope .dial-light {
+.purupuru-blink-scope .x-light,
+.purupuru-blink-scope .x-dark,
+.purupuru-blink-scope .dial-light {
   box-shadow: 0 8px 32px -4px oklch(0.82 0.140 85 / 0.22);
 }
 
 /* Make the icon area corners match the card for a unified look */
-.preview-blink-scope img {
+.purupuru-blink-scope img {
   border-top-left-radius: var(--blink-border-radius-rounded-2xl);
   border-top-right-radius: var(--blink-border-radius-rounded-2xl);
+}
+
+/* ──────────────────────────────────────────────────────────────────
+ * Demo-surface ONLY · /demo route (recording target)
+ * ──────────────────────────────────────────────────────────────────
+ *
+ * The "This Action has not yet been registered" warning Dialect injects
+ * for un-registered Actions is correct safety surface for /preview (the
+ * dev/ops surface) but breaks atmospheric register on /demo (the public
+ * recording target). Hide it only here.
+ *
+ * Dialect's warning container is the element carrying both
+ * .border-stroke-warning and .bg-transparent-warning (its border + bg
+ * use the warning vars). Targeting both classes scopes the hide to JUST
+ * the warning box, not e.g. an error state or future warning surfaces.
+ *
+ * The class .demo-blink-scope is added to /demo's wrapper in addition to
+ * .purupuru-blink-scope so the dev surface keeps the safety banner.
+ */
+.demo-blink-scope .border-stroke-warning,
+.demo-blink-scope .bg-transparent-warning {
+  display: none !important;
 }

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Geist_Mono } from "next/font/google";
+import { Agentation } from "agentation";
 import { AnimatedFavicon } from "@/components/AnimatedFavicon";
 import "./globals.css";
 
@@ -66,6 +67,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col font-puru-body text-puru-ink-base">
         <AnimatedFavicon />
         {children}
+        {process.env.NODE_ENV === "development" && <Agentation />}
       </body>
     </html>
   );
