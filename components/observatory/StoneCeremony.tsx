@@ -6,76 +6,95 @@
 // flag isn't set in localStorage. Premium reveal · zen restraint ·
 // Disney 12-principles applied to a single hero asset.
 //
-// Motion spec authored by KANSEI (studio synthesis · 2026-05-10).
+// Reveal motion spec authored by KANSEI (studio synthesis · 2026-05-10).
+// Migration-exit motion spec authored by KANSEI (2026-05-11).
+// Spatial integration audited by ARTISAN (ALEXANDER · 2026-05-11).
+// Spawn-pattern UX audited by THE ARCADE (BARTH · 2026-05-11).
 // See `lib/ceremony/stone-copy.ts` for per-element content.
 //
-// ── Stage sequence (1700ms total reveal · indefinite dwell · 520ms exit) ──
+// ── Reveal sequence (1700ms total · indefinite dwell) ────────────────
 //
 //   Hush          0–180ms   Page dims, scrim fades, world canvas blurs.
 //   Anticipation  180–360ms Stone-shaped void settles where the stone will be.
-//   Crack         360–540ms A single hairline of element light traces upward
-//                            from below the void. The "kiln opens."
-//   Rise          540–1240ms Stone enters from translateY(36px) along a
-//                            14px lateral arc + slight rotate(-1.5deg)
-//                            settling to 0deg. Slow-in/slow-out.
-//   Settle        1240–1480ms Asymmetric squash (scaleY 0.96 → 1.015 → 1)
-//                            + scaleX inverse — Disney follow-through.
-//   Inscribe      1300–1700ms Eyebrow → name → flavor lines stagger-fade in
-//                            with 60–80ms cascade (overlaps Settle).
+//   Crack         360–540ms A single hairline of element light traces upward.
+//   Rise          540–1240ms Stone enters with arc + rotate, settles to 0.
+//   Settle        1240–1480ms Asymmetric squash · element-weighted.
+//   Inscribe      1300–1700ms Hairline → headline → flavor lines.
 //   Dwell         1700ms+    Three desynchronized loops:
-//                              • stone breath — translateY only (NOT scale)
+//                              • stone breath — translateY only
 //                              • inner glow — period = breath × 1.7
-//                              • drift particles — randomized per-element
-//                            The triple-incommensurate-period rule is what
-//                            makes the stone read as "alive object" instead
-//                            of "animated card."
+//                              • drift particles — element-specific
 //
-//   Exit (520ms · "deposit" not "dismissal")
-//     Text fades first (0–80ms) — type was the frame.
-//     Stone arcs upward then plunges + scales toward world (80–340ms).
-//     Scrim un-blurs underneath (240–460ms).
-//     Bloom at landing (340–520ms).
+// ── Migration exit (720ms total · "deposit IS spawn") ────────────────
 //
-// Disney 12 principles applied (Kansei spec §6):
-//   Anticipation     ✓ Hush + Crack
-//   Squash & stretch ✓ Settle (asymmetric, restrained)
-//   Slow-in/out      ✓ ease-puru-flow on every entry curve
-//   Follow-through   ✓ Inscribe overlaps Settle; exit text leads
-//   Arc              ✓ Rise lateral; exit lifts before plunge
-//   Secondary action ✓ glow + particles + type, all subordinate to breath
-//   Staging          ✓ scrim + blur + centered, nothing competes
-//   Timing           ✓ 1700ms reveal, 520ms exit · dwell-able, decisive
-//   Exaggeration     ✓ restrained · overshoot capped at 1.015
-//   Solid drawing    ✓ rotate(-1.5deg) on rise gives volume
-//   Appeal           ✓ asset carries · motion stays out of the way
+//   On tap → handleDismiss → phase: "dwell" → "migrating".
 //
-// What this deliberately does NOT do (Kansei spec §7):
-//   ✗ No theatrical entrance · no light rays, no confetti, no flash
-//   ✗ No scale-based breath · translate only (HoloCard discipline)
-//   ✗ No card chrome · no glass card frame, no XP bar — the stone
-//     alone on scrim. Type rests the eye, not a frame.
+//   Anticipation 0–60ms     Stone scales 1.0→0.94, halo intensity +15%,
+//                            breath halts. Text fades simultaneously.
+//   Launch       60–110ms   Stone scales 0.94→1.06 (squash-release),
+//                            halo flares to 1.4× radius.
+//   Travel       110–520ms  Asymmetric Bezier arc to wedge target.
+//                            Scale 1.06 → 0.78 → 0.16 (slow up, fast down).
+//                            Rotation 0° → -8° → +4° for solidity.
+//                            Scrim backdrop-filter releases in parallel.
+//   Crystallize  480–520ms  40ms held at apex-of-plunge.
+//   Landing      520–600ms  Bloom + voice line + (deferred) sprite emerge.
+//   Bloom-decay  600–720ms  Outer ripple fades.
+//
+//   Element-tuned travel duration multiplier (KANSEI §2):
+//     fire 0.85× · wood 1.10× · earth 1.00× · metal 0.95× · water 1.15×
+//
+//   Phase machine: dwell → migrating → landed → done
+//
+//   The scrim's backdrop-filter ANIMATES from blur(20px) → blur(0)
+//   instead of unmounting (ARTISAN: prevents Safari repaint flash on
+//   filter unmount). Scrim opacity rides the same release.
+//
+// What this deliberately does NOT do:
+//   ✗ No card chrome — stone alone on scrim, type rests the eye below
+//   ✗ No theatrical entrance — no light rays, confetti, flash
+//   ✗ No scale-based dwell breath — translate only (HoloCard discipline)
+//   ✗ No particle/sparkle handoff at landing — the stone IS the sprite
+//
+// Persistence: a successful dismiss marks
+// `localStorage.puru-stone-shown-{element}=1`. ObservatoryClient checks
+// this before mounting; subsequent visits to ?welcome=fire skip
+// straight to the world. Per-element so a user who later mints a
+// second element gets the ceremony again.
+//
+// Deferred to follow-up work (operator dogfood the arc first):
+//   - Ghost-YOU sprite for guest users (ARCADE+ARTISAN recommended ·
+//     keeps the spawn promise honored for the 80% guest cohort)
+//   - Sprite displacement around landing bloom (ARTISAN spec §6 ·
+//     "nearby sprites step back to make room")
+//   - YOU sprite auto-pulse for 2.4s post-spawn (ARCADE Q2)
+//   - Profile preload + ceremony-aware spawnYou variant (ARTISAN Q4)
 
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import Image from "next/image";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Element } from "@/lib/score";
 import {
-  CEREMONY_BRIDGE_LINE,
   CEREMONY_DISMISS_LINE,
   STONE_COPY,
   hasStoneCeremonyBeenShown,
   markStoneCeremonyShown,
 } from "@/lib/ceremony/stone-copy";
+import { resolveWedgeViewportPoint } from "@/lib/ceremony/wedge-target";
 
 interface Props {
   element: Element;
+  /** Ref to the PentagramCanvas pane container — the migration target
+   *  is computed against its bounding rect on dismiss. If the ref is
+   *  null or the pane isn't rendered, the migration falls back to a
+   *  scale-down-and-fade in place (graceful degradation). */
+  pentagramPaneRef: React.RefObject<HTMLElement | null>;
   onDismiss: () => void;
 }
 
 // ── Per-element ambient signatures ──────────────────────────────────
-// Kansei spec §4. Each element has its own particle behavior and glow
-// modulation amplitude — wood spores rise outward, fire flickers up,
-// earth dust falls, metal barely moves, water drifts sideways.
+// Each element has its own particle behavior, glow modulation, and
+// migration-exit timing.
 
 interface AmbientSig {
   /** Mote count — kept low; noise erodes ceremony. */
@@ -92,54 +111,21 @@ interface AmbientSig {
   glowMod: number;
   /** Settle squash intensity multiplier — earth heavier, fire snappier. */
   squashWeight: number;
+  /** Migration travel duration multiplier — KANSEI spec §2.
+   *  Element temperament expressed through arc timing.
+   *  fire eager · wood meandering · earth heavy · metal sharp · water flowing. */
+  migrateMul: number;
+  /** Vertical apex of migration arc in viewport units (vh).
+   *  How high the stone lifts before plunging to the wedge. */
+  migrateApexVh: number;
 }
 
 const AMBIENT: Record<Element, AmbientSig> = {
-  wood: {
-    count: 6,
-    driftY: -1, // upward · spore drift
-    swayX: 12,
-    durRange: [10, 14],
-    sizeRange: [2, 3.5],
-    glowMod: 0.27,
-    squashWeight: 1,
-  },
-  fire: {
-    count: 7,
-    driftY: -1, // upward · fast
-    swayX: 6,
-    durRange: [6, 9],
-    sizeRange: [2, 4],
-    glowMod: 0.32,
-    squashWeight: 0.9, // snappier settle
-  },
-  earth: {
-    count: 6,
-    driftY: 1, // FALLING · settling dust
-    swayX: 8,
-    durRange: [12, 16],
-    sizeRange: [2, 3.5],
-    glowMod: 0.25,
-    squashWeight: 1.15, // heaviest settle
-  },
-  metal: {
-    count: 2, // barely move
-    driftY: -1,
-    swayX: 4,
-    durRange: [16, 22],
-    sizeRange: [1.5, 2.5],
-    glowMod: 0, // flat — no modulation
-    squashWeight: 1,
-  },
-  water: {
-    count: 5,
-    driftY: -1,
-    swayX: 18, // drifts sideways more than up
-    durRange: [11, 15],
-    sizeRange: [2, 3],
-    glowMod: 0.22,
-    squashWeight: 1.05, // tiny ripple bounce
-  },
+  wood:  { count: 6, driftY: -1, swayX: 12, durRange: [10, 14], sizeRange: [2, 3.5], glowMod: 0.27, squashWeight: 1.0,  migrateMul: 1.10, migrateApexVh: 20 },
+  fire:  { count: 7, driftY: -1, swayX:  6, durRange: [ 6,  9], sizeRange: [2, 4],   glowMod: 0.32, squashWeight: 0.9,  migrateMul: 0.85, migrateApexVh: 16 },
+  earth: { count: 6, driftY:  1, swayX:  8, durRange: [12, 16], sizeRange: [2, 3.5], glowMod: 0.25, squashWeight: 1.15, migrateMul: 1.00, migrateApexVh: 14 },
+  metal: { count: 2, driftY: -1, swayX:  4, durRange: [16, 22], sizeRange: [1.5, 2.5], glowMod: 0,    squashWeight: 1.0,  migrateMul: 0.95, migrateApexVh: 24 },
+  water: { count: 5, driftY: -1, swayX: 18, durRange: [11, 15], sizeRange: [2, 3],   glowMod: 0.22, squashWeight: 1.05, migrateMul: 1.15, migrateApexVh: 18 },
 };
 
 interface Mote {
@@ -150,14 +136,8 @@ interface Mote {
   swaySign: 1 | -1;
 }
 
-// Deterministic LCG so SSR matches CSR without crypto/useId overhead.
-// Element seeds shift the constellation per element.
 const ELEMENT_SEEDS: Record<Element, number> = {
-  wood: 11,
-  fire: 27,
-  earth: 43,
-  metal: 59,
-  water: 71,
+  wood: 11, fire: 27, earth: 43, metal: 59, water: 71,
 };
 
 function buildMotes(seed: number, sig: AmbientSig): Mote[] {
@@ -175,18 +155,77 @@ function buildMotes(seed: number, sig: AmbientSig): Mote[] {
   }));
 }
 
-export function StoneCeremony({ element, onDismiss }: Props) {
+// Phase machine — drives the post-tap sequence.
+type Phase = "dwell" | "migrating" | "landed" | "done";
+
+// Migration target captured on dismiss. Stays stable through the arc
+// even if the canvas resizes (ARTISAN: snapshot on tap is correct
+// for the 720ms window). dx/dy are deltas FROM screen-center to the
+// wedge target — they feed motion.div's translate via x/y.
+interface MigrationTarget {
+  dx: number;
+  dy: number;
+  apexY: number; // negative — how high the arc peaks
+}
+
+const BASE_MIGRATE_MS = 410; // KANSEI baseline · earth = 1.00×
+const LANDED_HOLD_MS = 320; // bloom + voice line dwell before unmount
+//                            ~80ms landing + ~120ms bloom-decay + breathing
+//                            room to read the voice line · KANSEI §1
+
+export function StoneCeremony({ element, pentagramPaneRef, onDismiss }: Props) {
   const copy = STONE_COPY[element];
   const sig = AMBIENT[element];
   const reduce = useReducedMotion();
-  const [closing, setClosing] = useState(false);
+  const [phase, setPhase] = useState<Phase>("dwell");
+  const targetRef = useRef<MigrationTarget | null>(null);
   const motes = useMemo(() => buildMotes(ELEMENT_SEEDS[element], sig), [element, sig]);
 
+  const migrateMs = Math.round(BASE_MIGRATE_MS * sig.migrateMul);
+  const totalExitMs = migrateMs + LANDED_HOLD_MS;
+
   const handleDismiss = useCallback(() => {
-    if (closing) return;
-    setClosing(true);
+    if (phase !== "dwell") return;
     markStoneCeremonyShown(element);
-  }, [closing, element]);
+
+    // Compute migration target. The stone itself is positioned at
+    // viewport-center via flex; the target is the wedge vertex on
+    // the pentagram canvas. dx/dy are the deltas the motion.div
+    // needs to translate to land on-target.
+    const wedgePoint = resolveWedgeViewportPoint(
+      pentagramPaneRef.current,
+      element,
+    );
+    if (wedgePoint) {
+      const screenCx = window.innerWidth / 2;
+      const screenCy = window.innerHeight / 2;
+      const dx = wedgePoint.x - screenCx;
+      const dy = wedgePoint.y - screenCy;
+      // Apex = up by sig.migrateApexVh, slightly biased toward the
+      // target side so the arc CURVES rather than peaks symmetrically
+      // (KANSEI §2 element-tuning · water/wood lean lateral).
+      const apexY = -window.innerHeight * (sig.migrateApexVh / 100);
+      targetRef.current = { dx, dy, apexY };
+    } else {
+      // Pentagram pane not available — graceful fallback. Stone
+      // scales-down-and-fades in place. ARTISAN doctrine: never
+      // animate to garbage coordinates.
+      targetRef.current = null;
+    }
+
+    setPhase("migrating");
+
+    // Schedule landed → done. We don't wait on framer's onAnimationComplete
+    // because the migration is a coordinated multi-element exit — the
+    // scrim fade, the bloom, and the voice line all need synchronized
+    // wallclock timing. Setting these as setTimeouts is more readable
+    // and avoids per-element-callback timing drift.
+    window.setTimeout(() => setPhase("landed"), migrateMs);
+    window.setTimeout(() => {
+      setPhase("done");
+      onDismiss();
+    }, totalExitMs);
+  }, [phase, element, pentagramPaneRef, sig.migrateApexVh, migrateMs, totalExitMs, onDismiss]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -200,373 +239,398 @@ export function StoneCeremony({ element, onDismiss }: Props) {
   }, [handleDismiss]);
 
   const breathSec = copy.breathDurMs / 1000;
-  // Glow period = breath × 1.7 — incommensurate-period rule (Kansei §3).
   const glowSec = breathSec * 1.7;
 
+  // Don't render after the phase machine completes — onDismiss has
+  // already fired and the parent will unmount us.
+  if (phase === "done") return null;
+
+  const isExiting = phase === "migrating" || phase === "landed";
+
   return (
-    <AnimatePresence onExitComplete={onDismiss}>
-      {!closing && (
-        <motion.div
-          key="ceremony"
-          // cursor-pointer on the scrim signals the whole surface is
-          // clickable — matches the "tap to enter the world" affordance
-          // without making it the only target.
-          className="fixed inset-0 z-50 flex cursor-pointer flex-col items-center justify-center"
-          // ── Hush + Anticipation backdrop ──────────────────────────
-          // Live blur on whatever's behind (the actual observatory canvas)
-          // + opaque scrim with element-tinted center glow. The blur
-          // fades in and the scrim deepens during the Hush beat
-          // (0–180ms). Scrim must be near-opaque so the activity rail
-          // and weather tile don't compete with the ceremony — the
-          // world is behind a curtain right now.
-          style={{
-            backdropFilter: "blur(20px) saturate(0.5)",
-            WebkitBackdropFilter: "blur(20px) saturate(0.5)",
-            background: `radial-gradient(circle at 50% 55%, color-mix(in oklch, var(--puru-cloud-shadow) 88%, transparent) 0%, var(--puru-cloud-shadow) 65%, var(--puru-cloud-shadow) 100%), radial-gradient(circle at 50% 50%, color-mix(in oklch, var(--puru-${element}-vivid) 22%, transparent) 0%, transparent 55%)`,
-          }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: reduce ? 0.16 : 0.18, ease: [0.22, 1, 0.36, 1] }}
-          onClick={handleDismiss}
-        >
-          {/* ── Drift particles · element-specific ambient motion ─── */}
-          {!reduce && sig.count > 0 && (
-            <div className="pointer-events-none absolute inset-0 overflow-hidden">
-              {motes.map((m, i) => {
-                // driftY: -1 = up (spawn below, exit top), +1 = falling
-                const startBottom = sig.driftY < 0 ? "-4%" : undefined;
-                const startTop = sig.driftY > 0 ? "-4%" : undefined;
-                const yKeyframes = sig.driftY < 0
-                  ? [0, -1.2 * 800] // upward exit (rough · viewport-relative)
-                  : [0, 0.6 * 800]; // settling fall
-                return (
-                  <motion.span
-                    key={i}
-                    className="absolute rounded-full"
-                    style={{
-                      left: `${m.startX}%`,
-                      bottom: startBottom,
-                      top: startTop,
-                      width: m.size,
-                      height: m.size,
-                      background: `var(--puru-${element}-vivid)`,
-                      boxShadow: `0 0 ${m.size * 3.5}px var(--puru-${element}-vivid)`,
-                      filter: "blur(0.5px)",
-                    }}
-                    initial={{ y: 0, x: 0, opacity: 0 }}
-                    animate={{
-                      y: yKeyframes,
-                      // Sine sway via two-segment keyframe — element swayX
-                      x: [0, m.swaySign * sig.swayX, -m.swaySign * sig.swayX * 0.6, 0],
-                      opacity: [0, 0.55, 0.45, 0],
-                    }}
-                    transition={{
-                      duration: m.dur,
-                      delay: m.delay + 0.6,
-                      repeat: Infinity,
-                      ease: "linear",
-                      times: [0, 0.18, 0.78, 1],
-                    }}
-                  />
-                );
-              })}
-            </div>
-          )}
-
-          {/* ── Card group · the stone is part of the dismiss surface
-                (most natural "ready to enter" gesture). Only the type
-                stack below stops propagation — those words are meant
-                to be dwelt on, not click-targets. */}
-          <motion.div className="relative flex flex-col items-center">
-            {/* ── Crack — Anticipation beat (360–540ms) ───────────── */}
-            {/* A single hairline of element light traces upward from
-                below the void. The "kiln opens." Peaks at 460ms, fades
-                by 540ms when the stone arrives. */}
-            {!reduce && (
+    <motion.div
+      key="ceremony"
+      // cursor-pointer on the scrim signals the whole surface is
+      // clickable. During exit, switch to default to avoid the user
+      // tapping a stone that's mid-flight.
+      className={`fixed inset-0 z-50 flex flex-col items-center justify-center ${isExiting ? "cursor-default" : "cursor-pointer"}`}
+      // backdrop-filter rides phase-driven inline style (motion's
+      // animate target type doesn't include backdropFilter). The
+      // CSS transition on the style keeps the blur change smooth
+      // without unmounting the scrim (ARTISAN §3 · prevents Safari
+      // repaint flash).
+      style={{
+        background: `radial-gradient(circle at 50% 55%, color-mix(in oklch, var(--puru-cloud-shadow) 88%, transparent) 0%, var(--puru-cloud-shadow) 65%, var(--puru-cloud-shadow) 100%), radial-gradient(circle at 50% 50%, color-mix(in oklch, var(--puru-${element}-vivid) 22%, transparent) 0%, transparent 55%)`,
+        backdropFilter:
+          phase === "landed"
+            ? "blur(0px) saturate(1)"
+            : phase === "migrating"
+              ? "blur(8px) saturate(0.7)"
+              : "blur(20px) saturate(0.5)",
+        WebkitBackdropFilter:
+          phase === "landed"
+            ? "blur(0px) saturate(1)"
+            : phase === "migrating"
+              ? "blur(8px) saturate(0.7)"
+              : "blur(20px) saturate(0.5)",
+        transition: `backdrop-filter ${phase === "landed" ? LANDED_HOLD_MS : 240}ms cubic-bezier(0.22, 1, 0.36, 1), -webkit-backdrop-filter ${phase === "landed" ? LANDED_HOLD_MS : 240}ms cubic-bezier(0.22, 1, 0.36, 1)`,
+      }}
+      initial={{ opacity: 0 }}
+      animate={{
+        opacity: phase === "landed" ? 0 : 1,
+      }}
+      transition={{
+        duration: phase === "landed" ? LANDED_HOLD_MS / 1000 : reduce ? 0.16 : 0.24,
+        ease: [0.22, 1, 0.36, 1],
+      }}
+      onClick={handleDismiss}
+      onPointerDown={isExiting ? (e) => e.stopPropagation() : undefined}
+    >
+      {/* ── Drift particles · element-specific ambient motion ─── */}
+      {!reduce && sig.count > 0 && !isExiting && (
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          {motes.map((m, i) => {
+            const startBottom = sig.driftY < 0 ? "-4%" : undefined;
+            const startTop = sig.driftY > 0 ? "-4%" : undefined;
+            const yKeyframes = sig.driftY < 0 ? [0, -1.2 * 800] : [0, 0.6 * 800];
+            return (
               <motion.span
-                aria-hidden
-                className="pointer-events-none absolute left-1/2 -translate-x-1/2"
+                key={i}
+                className="absolute rounded-full"
                 style={{
-                  bottom: "55%",
-                  width: 1.5,
-                  height: 80,
-                  background: `linear-gradient(to top, transparent, var(--puru-${element}-vivid), color-mix(in oklch, var(--puru-honey-bright) 60%, white) 80%, transparent)`,
-                  boxShadow: `0 0 14px var(--puru-${element}-vivid)`,
-                  transformOrigin: "bottom",
+                  left: `${m.startX}%`,
+                  bottom: startBottom,
+                  top: startTop,
+                  width: m.size,
+                  height: m.size,
+                  background: `var(--puru-${element}-vivid)`,
+                  boxShadow: `0 0 ${m.size * 3.5}px var(--puru-${element}-vivid)`,
+                  filter: "blur(0.5px)",
                 }}
-                initial={{ opacity: 0, scaleY: 0.3 }}
+                initial={{ y: 0, x: 0, opacity: 0 }}
                 animate={{
-                  opacity: [0, 0.95, 0],
-                  scaleY: [0.3, 1, 1.1],
+                  y: yKeyframes,
+                  x: [0, m.swaySign * sig.swayX, -m.swaySign * sig.swayX * 0.6, 0],
+                  opacity: [0, 0.55, 0.45, 0],
                 }}
                 transition={{
-                  duration: 0.18,
-                  delay: 0.36,
-                  ease: [0.16, 1, 0.3, 1],
-                  times: [0, 0.55, 1],
+                  duration: m.dur,
+                  delay: m.delay + 0.6,
+                  repeat: Infinity,
+                  ease: "linear",
+                  times: [0, 0.18, 0.78, 1],
                 }}
               />
-            )}
+            );
+          })}
+        </div>
+      )}
 
-            {/* ── Anticipation void · settles where the stone will be ── */}
-            {!reduce && (
-              <motion.div
-                aria-hidden
-                className="pointer-events-none absolute"
-                style={{
-                  width: 220,
-                  height: 220,
-                  background: `radial-gradient(circle at 50% 50%, color-mix(in oklch, oklch(0.04 0.008 80) 35%, transparent) 0%, transparent 70%)`,
-                  filter: "blur(12px)",
-                  transform: "translateY(-30px)",
-                }}
-                initial={{ opacity: 0, scale: 0.92 }}
-                animate={{ opacity: [0, 0.4, 0], scale: [0.92, 1, 1] }}
-                transition={{
-                  duration: 0.36,
-                  delay: 0.18,
-                  ease: [0.4, 0, 0.6, 1],
-                  times: [0, 0.5, 1],
-                }}
-              />
-            )}
+      {/* ── Card group · stops at dwell · the stone migrates out
+            during exit. */}
+      <motion.div className="relative flex flex-col items-center">
+        {/* Reveal-only beats: Crack + Anticipation void. Hidden once
+            exit begins — they're stage-setting, not part of departure. */}
+        {!reduce && !isExiting && (
+          <motion.span
+            aria-hidden
+            className="pointer-events-none absolute left-1/2 -translate-x-1/2"
+            style={{
+              bottom: "55%",
+              width: 1.5,
+              height: 80,
+              background: `linear-gradient(to top, transparent, var(--puru-${element}-vivid), color-mix(in oklch, var(--puru-honey-bright) 60%, white) 80%, transparent)`,
+              boxShadow: `0 0 14px var(--puru-${element}-vivid)`,
+              transformOrigin: "bottom",
+            }}
+            initial={{ opacity: 0, scaleY: 0.3 }}
+            animate={{ opacity: [0, 0.95, 0], scaleY: [0.3, 1, 1.1] }}
+            transition={{ duration: 0.18, delay: 0.36, ease: [0.16, 1, 0.3, 1], times: [0, 0.55, 1] }}
+          />
+        )}
 
-            {/* ── Stone · the hero asset ───────────────────────────── */}
-            {/* Outer wrapper: Rise (translateY + lateral arc + rotate)
-                + Settle squash. Inner wrapper: continuous breath.
-                Sized large — the stone is the entire show. The flavor
-                copy reads at first glance below. */}
-            <motion.div
-              className="relative h-[420px] w-[360px] sm:h-[500px] sm:w-[420px]"
-              initial={{
-                opacity: 0,
-                y: reduce ? 0 : 36,
-                rotate: reduce ? 0 : -1.5,
-                scale: reduce ? 1 : 0.94,
+        {!reduce && !isExiting && (
+          <motion.div
+            aria-hidden
+            className="pointer-events-none absolute"
+            style={{
+              width: 220, height: 220,
+              background: `radial-gradient(circle at 50% 50%, color-mix(in oklch, oklch(0.04 0.008 80) 35%, transparent) 0%, transparent 70%)`,
+              filter: "blur(12px)",
+              transform: "translateY(-30px)",
+            }}
+            initial={{ opacity: 0, scale: 0.92 }}
+            animate={{ opacity: [0, 0.4, 0], scale: [0.92, 1, 1] }}
+            transition={{ duration: 0.36, delay: 0.18, ease: [0.4, 0, 0.6, 1], times: [0, 0.5, 1] }}
+          />
+        )}
+
+        {/* ── Stone — the hero asset · migrates to wedge on exit ─── */}
+        <motion.div
+          className="relative h-[300px] w-[260px] sm:h-[360px] sm:w-[300px]"
+          // Reveal entry · pose-to-pose Rise + Settle.
+          initial={{
+            opacity: 0,
+            y: reduce ? 0 : 36,
+            x: 0,
+            rotate: reduce ? 0 : -1.5,
+            scale: reduce ? 1 : 0.94,
+          }}
+          animate={
+            isExiting && targetRef.current
+              ? {
+                  // ── Migration arc · KANSEI §2 ──
+                  // x/y as keyframe arrays trace the asymmetric Bezier:
+                  //   start (0,0) → apex (mid + apexY) → wedge (dx, dy)
+                  // times asymmetric: 0 → 0.42 (rise) → 1 (plunge).
+                  // Scale collapses 1.06 → 0.78 → 0.16 over the same
+                  // segments. Rotation -8° → +4° wobble for solidity.
+                  x: [0, targetRef.current.dx * 0.42, targetRef.current.dx],
+                  y: [0, targetRef.current.apexY + targetRef.current.dy * 0.42, targetRef.current.dy],
+                  scale: [1.06, 0.78, 0.16],
+                  rotate: [0, -8, 4],
+                  opacity: phase === "landed" ? 0 : 1,
+                }
+              : isExiting
+                ? {
+                    // Fallback: scale + fade in place when no target.
+                    scale: 0.4,
+                    opacity: 0,
+                    y: 0,
+                    x: 0,
+                    rotate: 0,
+                  }
+                : {
+                    // Reveal Rise + Settle keyframes.
+                    opacity: [0, 1, 1, 1, 1],
+                    y: [36, 0, 0, 0, 0],
+                    x: [0, 6, -3, 0, 0],
+                    rotate: [-1.5, 0, 0, 0, 0],
+                    scaleY: [0.94, 1, 1 - 0.04 * sig.squashWeight, 1 + 0.015 * sig.squashWeight, 1],
+                    scaleX: [0.94, 1, 1 + 0.03 * sig.squashWeight, 1 - 0.008 * sig.squashWeight, 1],
+                  }
+          }
+          transition={
+            isExiting
+              ? {
+                  duration: migrateMs / 1000,
+                  ease: "easeInOut",
+                  times: targetRef.current ? [0, 0.42, 1] : undefined,
+                  opacity: { duration: 0.16, delay: phase === "landed" ? 0 : (migrateMs - 80) / 1000 },
+                }
+              : reduce
+                ? { duration: 0.18, delay: 0.06, ease: "easeOut" }
+                : {
+                    duration: 0.94,
+                    delay: 0.54,
+                    ease: [0.34, 1.04, 0.42, 1],
+                    times: [0, 0.3, 0.74, 0.86, 1],
+                  }
+          }
+          style={{ transformOrigin: "50% 100%" }}
+        >
+          {/* Halo behind stone · independent glow modulation period
+              (incommensurate-period rule, KANSEI §3). During exit
+              the halo travels with the stone but at 1.3× scale so
+              it appears to "consume" the stone visually. */}
+          <motion.div
+            aria-hidden
+            className="pointer-events-none absolute -inset-12"
+            style={{
+              background: `radial-gradient(circle at 50% 60%, color-mix(in oklch, var(--puru-${element}-vivid) 38%, transparent) 0%, color-mix(in oklch, var(--puru-honey-base) 24%, transparent) 26%, transparent 65%)`,
+              filter: "blur(14px)",
+            }}
+            initial={{ opacity: 0 }}
+            animate={
+              isExiting
+                ? { opacity: phase === "landed" ? 0 : 0.6, scale: 1.3 }
+                : reduce || sig.glowMod === 0
+                  ? { opacity: 0.55 }
+                  : {
+                      opacity: [0.4, 0.4 + sig.glowMod, 0.4, 0.4 + sig.glowMod * 0.7, 0.4],
+                    }
+            }
+            transition={
+              isExiting
+                ? { duration: 0.16, ease: "easeOut" }
+                : reduce || sig.glowMod === 0
+                  ? { duration: 0.4, delay: 0.6 }
+                  : {
+                      duration: glowSec, delay: 1.0,
+                      repeat: Infinity, ease: [0.45, 0.05, 0.55, 0.95],
+                    }
+            }
+          />
+
+          {/* Inner: the stone breathes via translateY only (during dwell).
+              During exit, the breath is frozen — the stone has more
+              important business. */}
+          <motion.div
+            className="absolute inset-0 flex items-end justify-center"
+            animate={reduce || isExiting ? undefined : { y: [0, -3, 0] }}
+            transition={
+              reduce || isExiting
+                ? undefined
+                : { duration: breathSec, delay: 1.6, repeat: Infinity, ease: [0.45, 0.05, 0.55, 0.95] }
+            }
+          >
+            <Image
+              src={`/art/stones/transparent/${element}.png`}
+              alt={`${copy.headline} stone`}
+              width={420}
+              height={500}
+              priority
+              className="h-auto w-[220px] sm:w-[260px]"
+              style={{
+                filter: `drop-shadow(0 18px 28px color-mix(in oklch, var(--puru-${element}-vivid) 32%, transparent)) drop-shadow(0 6px 10px oklch(0.06 0.008 80 / 0.45))`,
               }}
-              animate={
-                reduce
-                  ? { opacity: 1, y: 0, rotate: 0, scale: 1 }
-                  : {
-                      // Rise (540ms duration starting at 540ms delay) +
-                      // lateral arc + Settle squash (1240–1480ms) all
-                      // expressed as a single keyframe sequence on a
-                      // 940ms total duration so motion can interpolate
-                      // smoothly without two competing animate calls.
-                      opacity: [0, 1, 1, 1, 1],
-                      y: [36, 0, 0, 0, 0],
-                      x: [0, 6, -3, 0, 0],
-                      rotate: [-1.5, 0, 0, 0, 0],
-                      // Settle squash · scaleX/Y inverse · Disney
-                      // follow-through · element-weighted intensity.
-                      scaleY: [
-                        0.94,
-                        1,
-                        1 - 0.04 * sig.squashWeight,
-                        1 + 0.015 * sig.squashWeight,
-                        1,
-                      ],
-                      scaleX: [
-                        0.94,
-                        1,
-                        1 + 0.03 * sig.squashWeight,
-                        1 - 0.008 * sig.squashWeight,
-                        1,
-                      ],
-                    }
-              }
-              transition={
-                reduce
-                  ? { duration: 0.18, delay: 0.06, ease: "easeOut" }
-                  : {
-                      duration: 0.94,
-                      delay: 0.54,
-                      ease: [0.34, 1.04, 0.42, 1],
-                      times: [0, 0.3, 0.74, 0.86, 1],
-                    }
-              }
-              style={{ transformOrigin: "50% 100%" }}
-            >
-              {/* Halo behind stone · independent glow modulation period.
-                  Inset negative so the glow extends past the stone box
-                  for a felt-not-seen warm bloom. */}
-              <motion.div
-                aria-hidden
-                className="pointer-events-none absolute -inset-12"
-                style={{
-                  background: `radial-gradient(circle at 50% 60%, color-mix(in oklch, var(--puru-${element}-vivid) 38%, transparent) 0%, color-mix(in oklch, var(--puru-honey-base) 24%, transparent) 26%, transparent 65%)`,
-                  filter: "blur(14px)",
-                }}
-                initial={{ opacity: 0 }}
-                animate={
-                  reduce || sig.glowMod === 0
-                    ? { opacity: 0.55 }
-                    : {
-                        // 1.7× breath period · incommensurate
-                        opacity: [
-                          0.4,
-                          0.4 + sig.glowMod,
-                          0.4,
-                          0.4 + sig.glowMod * 0.7,
-                          0.4,
-                        ],
-                      }
-                }
-                transition={
-                  reduce || sig.glowMod === 0
-                    ? { duration: 0.4, delay: 0.6 }
-                    : {
-                        duration: glowSec,
-                        delay: 1.0,
-                        repeat: Infinity,
-                        ease: [0.45, 0.05, 0.55, 0.95],
-                      }
-                }
-              />
-
-              {/* Inner: the stone breathes via translateY only */}
-              <motion.div
-                className="absolute inset-0 flex items-end justify-center"
-                animate={reduce ? undefined : { y: [0, -3, 0] }}
-                transition={
-                  reduce
-                    ? undefined
-                    : {
-                        duration: breathSec,
-                        delay: 1.6, // start dwell breath after Settle
-                        repeat: Infinity,
-                        ease: [0.45, 0.05, 0.55, 0.95],
-                      }
-                }
-              >
-                <Image
-                  src={`/art/stones/transparent/${element}.png`}
-                  alt={`${copy.headline} stone`}
-                  width={420}
-                  height={500}
-                  priority
-                  className="h-auto w-[300px] sm:w-[360px]"
-                  style={{
-                    filter: `drop-shadow(0 18px 28px color-mix(in oklch, var(--puru-${element}-vivid) 32%, transparent)) drop-shadow(0 6px 10px oklch(0.06 0.008 80 / 0.45))`,
-                  }}
-                />
-              </motion.div>
-            </motion.div>
-
-            {/* ── Inscribe · type stack below the stone ──────────── */}
-            {/* Eyebrow · headline · two-line flavor. Each fades in with
-                60–80ms cascade, beginning at 1300ms so it overlaps the
-                Settle beat (Disney follow-through).
-                Wrapper stops click propagation: words are meant to be
-                dwelt on, not click-targets. The dismiss button below
-                + the stone above + the scrim around all dismiss. */}
-            {/* Type stack uses default cursor — these words are for
-                reading, not for clicking. The cursor reverts on the
-                scrim so it still reads as click-to-dismiss everywhere
-                else. */}
-            <div
-              className="flex cursor-default flex-col items-center"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Single hairline above eyebrow (Kansei §8 zen-translation
-                  of the laurel-wreath ornament). One stroke, element-tinted,
-                  says "this matters" without theater. */}
-              <motion.span
-                aria-hidden
-                className="mt-6 block h-px w-6"
-                style={{
-                  background: `color-mix(in oklch, var(--puru-${element}-vivid) 40%, transparent)`,
-                }}
-                initial={{ opacity: 0, scaleX: 0.4 }}
-                animate={{ opacity: 1, scaleX: 1 }}
-                transition={{ duration: 0.4, ease: "easeOut", delay: reduce ? 0.16 : 1.3 }}
-              />
-
-              {/* Bridge line · direct echo of the Blink mint POST
-                  response ("Your Fire stone is in the world") that
-                  the user just clicked through with the "See yourself
-                  in the world" button. This IS the missing Z5→Z6
-                  arrival callback the user-journey-map identifies. */}
-              <motion.div
-                className="mt-3 font-puru-mono text-[10px] uppercase tracking-[0.32em] text-puru-ink-soft/70"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.36, ease: [0.22, 1, 0.36, 1], delay: reduce ? 0.18 : 1.36 }}
-              >
-                {CEREMONY_BRIDGE_LINE}
-              </motion.div>
-
-              {/* Single headline · element name in display Yuruka.
-                  The kanji is intentionally NOT duplicated next to the
-                  title — the stone itself already carries it, and the
-                  eyebrow names the element verbally. */}
-              <motion.h2
-                className="mt-2 font-puru-display text-[2.75rem] leading-none text-puru-ink-rich"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1], delay: reduce ? 0.22 : 1.42 }}
-              >
-                {copy.headline}
-              </motion.h2>
-
-              <div className="mt-5 flex flex-col items-center gap-1.5 px-6 text-center">
-                {copy.flavor.map((line, i) => (
-                  <motion.p
-                    key={i}
-                    className="text-base text-puru-ink-base sm:text-lg"
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{
-                      duration: 0.36,
-                      ease: [0.22, 1, 0.36, 1],
-                      delay: reduce ? 0.26 + i * 0.04 : 1.5 + i * 0.08,
-                    }}
-                  >
-                    {line}
-                  </motion.p>
-                ))}
-              </div>
-            </div>
-
-            {/* ── Dismiss prompt · the only "instruction" copy ──────
-                Slow breath-pulse on opacity so the prompt is
-                discoverable without shouting. The whole scrim is
-                clickable but this prompt is inside the card group's
-                stopPropagation zone — its own onClick mirrors the
-                scrim's so the user can tap the affordance directly,
-                tap anywhere on the scrim, or hit Escape/Enter/Space.
-                Also rendered as a button for keyboard + a11y. */}
-            <motion.button
-              type="button"
-              onClick={handleDismiss}
-              className="group mt-10 cursor-pointer font-puru-mono text-[10px] uppercase tracking-[0.32em] text-puru-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-puru-honey-base"
-              initial={{ opacity: 0 }}
-              animate={reduce ? { opacity: 0.75 } : { opacity: 1 }}
-              transition={{ duration: 0.6, ease: "easeOut", delay: reduce ? 0.36 : 1.85 }}
-              aria-label={CEREMONY_DISMISS_LINE}
-            >
-              <motion.span
-                animate={reduce ? undefined : { opacity: [0.55, 0.85, 0.55] }}
-                transition={
-                  reduce
-                    ? undefined
-                    : {
-                        duration: 3.2,
-                        delay: 2.4,
-                        repeat: Infinity,
-                        ease: [0.45, 0.05, 0.55, 0.95],
-                      }
-                }
-                className="inline-block transition-colors group-hover:text-puru-ink-rich"
-              >
-                {CEREMONY_DISMISS_LINE}
-              </motion.span>
-            </motion.button>
+            />
           </motion.div>
         </motion.div>
-      )}
-    </AnimatePresence>
+
+        {/* ── Type stack · fades immediately on exit ─────────────── */}
+        <motion.div
+          className="flex cursor-default flex-col items-center"
+          onClick={(e) => e.stopPropagation()}
+          animate={isExiting ? { opacity: 0, y: -4 } : { opacity: 1, y: 0 }}
+          transition={{ duration: 0.12, ease: "easeOut" }}
+        >
+          <motion.span
+            aria-hidden
+            className="mt-6 block h-px w-6"
+            style={{ background: `color-mix(in oklch, var(--puru-${element}-vivid) 40%, transparent)` }}
+            initial={{ opacity: 0, scaleX: 0.4 }}
+            animate={{ opacity: 1, scaleX: 1 }}
+            transition={{ duration: 0.4, ease: "easeOut", delay: reduce ? 0.16 : 1.3 }}
+          />
+
+          {/* Operator note 2026-05-11: bridge eyebrow dropped (too much
+              to read). The Blink button "See yourself in the world"
+              already carried that promise — ceremony doesn't repeat. */}
+
+          <motion.h2
+            className="mt-3 font-puru-display text-[2.75rem] leading-none text-puru-ink-rich"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1], delay: reduce ? 0.16 : 1.36 }}
+          >
+            {copy.headline}
+          </motion.h2>
+
+          <div className="mt-5 flex flex-col items-center gap-1.5 px-6 text-center">
+            {copy.flavor.map((line, i) => (
+              <motion.p
+                key={i}
+                className="text-base text-puru-ink-base sm:text-lg"
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  duration: 0.36, ease: [0.22, 1, 0.36, 1],
+                  delay: reduce ? 0.22 + i * 0.04 : 1.44 + i * 0.08,
+                }}
+              >
+                {line}
+              </motion.p>
+            ))}
+          </div>
+
+          <motion.button
+            type="button"
+            onClick={handleDismiss}
+            className="group mt-10 cursor-pointer font-puru-mono text-[10px] uppercase tracking-[0.32em] text-puru-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-puru-honey-base"
+            initial={{ opacity: 0 }}
+            animate={reduce ? { opacity: 0.75 } : { opacity: 1 }}
+            transition={{ duration: 0.6, ease: "easeOut", delay: reduce ? 0.32 : 1.8 }}
+            aria-label={CEREMONY_DISMISS_LINE}
+          >
+            <motion.span
+              animate={reduce ? undefined : { opacity: [0.55, 0.85, 0.55] }}
+              transition={
+                reduce
+                  ? undefined
+                  : { duration: 3.2, delay: 2.3, repeat: Infinity, ease: [0.45, 0.05, 0.55, 0.95] }
+              }
+              className="inline-block transition-colors group-hover:text-puru-ink-rich"
+            >
+              {CEREMONY_DISMISS_LINE}
+            </motion.span>
+          </motion.button>
+        </motion.div>
+      </motion.div>
+
+      {/* ── Landing voice line · "{element}. you're in." ──────────
+          Lands at the wedge target during the bloom phase. ARCADE
+          spec: completes the second-person voice arc and gives the
+          dashboard voice permission to be clinical because you've
+          already been spoken to as you. Six syllables, 320ms hold,
+          fade-out. Anchored at the wedge in viewport coords so it
+          appears AT the landing point, not center. */}
+      <AnimatePresence>
+        {phase === "landed" && targetRef.current && (
+          <motion.div
+            key="landing-voice"
+            className="pointer-events-none fixed font-puru-display text-[1.5rem] leading-none text-puru-ink-rich"
+            style={{
+              left: `calc(50vw + ${targetRef.current.dx}px)`,
+              top: `calc(50vh + ${targetRef.current.dy + 28}px)`,
+              transform: "translate(-50%, 0)",
+              textShadow: `0 0 12px color-mix(in oklch, var(--puru-${element}-vivid) 60%, transparent)`,
+            }}
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 0 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+          >
+            {copy.headline}. you're in.
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Landing bloom · two-layer · KANSEI §5 ──────────────────
+          Inner element-vivid burst (sharp impact) + outer honey
+          ripple (the world received you). Anchored at wedge target
+          in viewport coords. The bloom decoupled from the stone's
+          terminal opacity so the arrival "lands" even if scale is
+          mid-collapse (KANSEI §9: position-trigger, not scale-trigger). */}
+      <AnimatePresence>
+        {phase === "landed" && targetRef.current && (
+          <>
+            <motion.div
+              key="bloom-inner"
+              aria-hidden
+              className="pointer-events-none fixed rounded-full"
+              style={{
+                left: `calc(50vw + ${targetRef.current.dx}px)`,
+                top: `calc(50vh + ${targetRef.current.dy}px)`,
+                width: 200, height: 200,
+                transform: "translate(-50%, -50%)",
+                background: `radial-gradient(circle at 50% 50%, color-mix(in oklch, var(--puru-${element}-vivid) 60%, transparent) 0%, color-mix(in oklch, var(--puru-${element}-vivid) 25%, transparent) 30%, transparent 70%)`,
+                filter: "blur(8px)",
+              }}
+              initial={{ opacity: 0, scale: 0.4 }}
+              animate={{ opacity: [0.95, 0.6, 0], scale: [0.4, 1, 1.2] }}
+              transition={{ duration: 0.6, ease: "easeOut", times: [0, 0.4, 1] }}
+            />
+            <motion.div
+              key="bloom-outer"
+              aria-hidden
+              className="pointer-events-none fixed rounded-full"
+              style={{
+                left: `calc(50vw + ${targetRef.current.dx}px)`,
+                top: `calc(50vh + ${targetRef.current.dy}px)`,
+                width: 480, height: 480,
+                transform: "translate(-50%, -50%)",
+                background: `radial-gradient(circle at 50% 50%, color-mix(in oklch, var(--puru-honey-base) 30%, transparent) 0%, color-mix(in oklch, var(--puru-honey-tint) 15%, transparent) 35%, transparent 70%)`,
+                filter: "blur(16px)",
+              }}
+              initial={{ opacity: 0, scale: 0.6 }}
+              animate={{ opacity: [0.5, 0.35, 0], scale: [0.6, 1.2, 1.8] }}
+              transition={{ duration: 0.7, ease: "easeOut", times: [0, 0.3, 1], delay: 0.04 }}
+            />
+          </>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }
 

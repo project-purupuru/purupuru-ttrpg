@@ -51,6 +51,12 @@ export function ObservatoryClient() {
   const [playing, setPlaying] = useState(false);
   const [sfxEnabled, setSfxEnabled] = useState(true);
   const focusCardRef = useRef<HTMLElement>(null);
+  // Pentagram pane container ref — passed to StoneCeremony so the
+  // exit migration can compute its target wedge in viewport coords.
+  // The PentagramCanvas mounts inside this div and Pixi sizes itself
+  // to the host's CSS box, so the canvas's internal geometry maps
+  // 1:1 to this element's getBoundingClientRect().
+  const pentagramPaneRef = useRef<HTMLDivElement>(null);
   // Timestamp of the most-recent sprite-click. Used by the
   // outside-click-closes-focus listener to ignore the same click that
   // *opened* the card via Pixi's pointertap (Pixi's federated event and
@@ -226,6 +232,7 @@ export function ObservatoryClient() {
       {ceremonyElement && (
         <StoneCeremony
           element={ceremonyElement}
+          pentagramPaneRef={pentagramPaneRef}
           onDismiss={() => setCeremonyElement(null)}
         />
       )}
@@ -264,7 +271,7 @@ export function ObservatoryClient() {
         <KpiStrip distribution={distribution} />
       </div>
       <main className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[1fr_440px]">
-        <div className="relative min-h-0">
+        <div ref={pentagramPaneRef} className="relative min-h-0">
           <PentagramCanvas
             onSpriteClick={handleSpriteClick}
             focusedTrader={focused?.trader ?? null}
