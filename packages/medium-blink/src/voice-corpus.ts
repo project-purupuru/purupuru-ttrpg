@@ -129,11 +129,15 @@ export const QUIZ_CORPUS: ReadonlyArray<QuizQuestion> = [
 // language · "tide" wrapped around it was extra metaphor that didn't land
 // for users who haven't been initiated into the world's voice yet).
 export const ARCHETYPE_REVEALS: Record<Element, string> = {
-  WOOD: "You start things. You grow into what's next.",
-  FIRE: "You move quick. The room moves with you.",
-  EARTH: "You stay steady. People find their ground with you.",
-  METAL: "You see clearly. You notice what people leave out.",
-  WATER: "You flow with what moves. You feel before you think.",
+  // 2-beat structure per element · trait + consequence (the thing the trait
+  // does in the world · matches "way to navigate" register operator confirmed
+  // in journey-map · gives reveal length parity with the corridor questions ·
+  // ARTISAN R4 spec 2026-05-11).
+  WOOD: "You start things before they're ready. That's how they become real.",
+  FIRE: "You move first and the room moves with you. Quiet is hard for you.",
+  EARTH: "You stay when others move on. People come back to you to remember themselves.",
+  METAL: "You hear what people aren't saying. The cut is the gift.",
+  WATER: "You feel before you think, and you're usually right. You read the room without trying.",
 }
 
 // Step indicator · plain "Question X of Y" · rendered as the description

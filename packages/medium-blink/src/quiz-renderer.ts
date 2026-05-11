@@ -206,18 +206,15 @@ export const renderQuizResult = (params: {
     label: "Claim Your Stone",
     links: {
       actions: [
+        // SINGLE-DECISION moment (Eileen proof #3 · trust crossing).
+        // Secondary "See Today's World" CTA was dropped 2026-05-11 per
+        // R4 WEAVER+ROSENZU audit · the world-bridge lives AFTER the mint
+        // via the POST response's links.next (mint route) · ritual first,
+        // world second is the correct sequencing.
         {
-          // claim → real mint flow (sprint-3 wires real claim_genesis_stone tx)
-          // type:"transaction" so wallet adapter prompts for sig at click time
           type: "transaction",
           label: "Claim Your Stone",
           href: claimHref,
-        },
-        {
-          // ambient → chains to next inline action (no wallet needed)
-          type: "post",
-          label: "See Today's World",
-          href: `${config.baseUrl}/api/actions/today`,
         },
       ],
     },

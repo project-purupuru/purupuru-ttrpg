@@ -288,10 +288,40 @@ export async function POST(request: Request) {
   const reveal =
     ARCHETYPE_REVEALS[archetype] ?? "Your stone is yours."
 
+  // 10. Loop-closure bridge · post-mint links.next points at the Observatory
+  // with ?welcome={element} query param. The observatory page reads this and
+  // pre-seeds the activityStream with a "you just arrived" row 4-6s after
+  // mount · proof #4 ("I am not alone") lands when the user's stone visibly
+  // joins the lobby. WEAVER R4 audit · ritual first (this response · mint),
+  // world second (the bridge below).
+  const OBSERVATORY_URL =
+    process.env.OBSERVATORY_URL ?? "https://purupuru-blink.vercel.app"
+  const welcomeUrl = `${OBSERVATORY_URL}/?welcome=${archetype.toLowerCase()}`
+
   return NextResponse.json(
     {
       transaction: txResult.base64Tx,
       message: reveal,
+      links: {
+        next: {
+          type: "inline",
+          action: {
+            icon: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://purupuru-quiz.vercel.app"}/art/stones/${archetype.toLowerCase()}.png`,
+            title: `Your ${archetype.charAt(0) + archetype.slice(1).toLowerCase()} stone is in the world.`,
+            description: "The lobby is watching. See yourself among the others who arrived today.",
+            label: "See yourself in the world",
+            links: {
+              actions: [
+                {
+                  type: "external-link",
+                  label: "See yourself in the world",
+                  href: welcomeUrl,
+                },
+              ],
+            },
+          },
+        },
+      },
     },
     { headers: ACTION_CORS_HEADERS },
   )

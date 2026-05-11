@@ -115,3 +115,13 @@ export const mockActivityStream: ActivityStream = {
     return buffer.slice(-n).reverse();
   },
 };
+
+// Demo-bridge seed · pushes a curated JoinActivity into the stream so the
+// post-mint loop closure ("your stone joined the lobby") is visible during
+// demo recording when the real indexer (zerker's radar repo) isn't yet wired
+// to push StoneClaimed events. Called by ObservatoryClient when ?welcome=
+// query param is present. WEAVER+ROSENZU R4 audit · proof #4 needs visible
+// arrival.
+export function seedActivityEvent(event: ActivityEvent): void {
+  emit(event);
+}

@@ -167,9 +167,9 @@ describe("renderQuizStep · steps 2-8", () => {
 })
 
 describe("renderQuizResult · archetype reveal + mint button", () => {
-  it("returns 2 buttons (claim + ambient)", () => {
+  it("returns single claim CTA · trust-crossing moment (Eileen proof #3)", () => {
     const response = renderQuizResult({ archetype: "FIRE", config: testConfig })
-    expect(response.links?.actions.length).toBe(2)
+    expect(response.links?.actions.length).toBe(1)
   })
 
   it("first button links to /api/actions/mint/genesis-stone", () => {
