@@ -25,7 +25,7 @@ describe("loadSponsoredPayer", () => {
 
     const loaded = loadSponsoredPayer({
       SPONSORED_PAYER_SECRET_BS58: bs58Secret,
-    } as NodeJS.ProcessEnv)
+    } as unknown as NodeJS.ProcessEnv)
 
     expect(loaded.publicKey.toBase58()).toBe(fixture.publicKey.toBase58())
   })
@@ -36,7 +36,7 @@ describe("loadSponsoredPayer", () => {
 
     const loaded = loadSponsoredPayer({
       SPONSORED_PAYER_SECRET_JSON: jsonSecret,
-    } as NodeJS.ProcessEnv)
+    } as unknown as NodeJS.ProcessEnv)
 
     expect(loaded.publicKey.toBase58()).toBe(fixture.publicKey.toBase58())
   })
@@ -48,13 +48,13 @@ describe("loadSponsoredPayer", () => {
     const loaded = loadSponsoredPayer({
       SPONSORED_PAYER_SECRET_BS58: bs58.encode(fixtureBs58.secretKey),
       SPONSORED_PAYER_SECRET_JSON: JSON.stringify(Array.from(fixtureJson.secretKey)),
-    } as NodeJS.ProcessEnv)
+    } as unknown as NodeJS.ProcessEnv)
 
     expect(loaded.publicKey.toBase58()).toBe(fixtureBs58.publicKey.toBase58())
   })
 
   it("throws on no env set (fail-closed)", () => {
-    expect(() => loadSponsoredPayer({} as NodeJS.ProcessEnv)).toThrow(
+    expect(() => loadSponsoredPayer({} as unknown as NodeJS.ProcessEnv)).toThrow(
       /no sponsored-payer secret/i,
     )
   })
@@ -62,7 +62,7 @@ describe("loadSponsoredPayer", () => {
   it("throws on bs58 wrong byte length", () => {
     const tooShort = bs58.encode(Buffer.from([1, 2, 3, 4]))
     expect(() =>
-      loadSponsoredPayer({ SPONSORED_PAYER_SECRET_BS58: tooShort } as NodeJS.ProcessEnv),
+      loadSponsoredPayer({ SPONSORED_PAYER_SECRET_BS58: tooShort } as unknown as NodeJS.ProcessEnv),
     ).toThrow(/decoded to 4 bytes/i)
   })
 
@@ -70,7 +70,7 @@ describe("loadSponsoredPayer", () => {
     expect(() =>
       loadSponsoredPayer({
         SPONSORED_PAYER_SECRET_JSON: "not-json",
-      } as NodeJS.ProcessEnv),
+      } as unknown as NodeJS.ProcessEnv),
     ).toThrow(/not valid JSON/i)
   })
 
@@ -78,7 +78,7 @@ describe("loadSponsoredPayer", () => {
     expect(() =>
       loadSponsoredPayer({
         SPONSORED_PAYER_SECRET_JSON: "[1,2,3]",
-      } as NodeJS.ProcessEnv),
+      } as unknown as NodeJS.ProcessEnv),
     ).toThrow(/64-element byte array/i)
   })
 })
