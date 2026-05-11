@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import { type Element } from "@/lib/score";
 import { populationStore } from "@/lib/sim/population";
 import type { PuruhaniIdentity } from "@/lib/sim/types";
+import { timeAgo } from "@/lib/time/format";
 import { PuruhaniAvatar } from "./PuruhaniAvatar";
 
 /**
@@ -34,15 +35,6 @@ const STONE_NAME: Record<Element, string> = {
   water: "Water Stone",
   metal: "Metal Stone",
 };
-
-function timeAgo(iso: string, nowMs: number): string {
-  const diff = nowMs - new Date(iso).getTime();
-  if (diff < 5_000) return "just now";
-  if (diff < 60_000) return `${Math.floor(diff / 1_000)}s ago`;
-  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
-  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
-  return `${Math.floor(diff / 86_400_000)}d ago`;
-}
 
 function shortAddress(addr: string): string {
   // Solana base58 convention — 4…4 (Phantom-style).

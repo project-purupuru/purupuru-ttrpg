@@ -12,8 +12,11 @@
  *   - Initial seed (~14 sprites) populates synchronously on first subscribe,
  *     with backdated joinedAt timestamps so the activity rail shows "5m ago"
  *     style history when the user lands rather than 14 "just now" rows.
- *   - YOU spawns ~1500ms after start so the viewer sees themselves arrive
- *     after the initial cluster has visibly settled. Marked isYou=true.
+ *   - YOU is NOT auto-spawned. The connected-wallet flow in
+ *     ObservatoryClient calls `spawnYou()` when (a) a wallet is
+ *     connected AND (b) a real radar mint event matches it — so the
+ *     YOU sprite always lands in the same element wedge as the user's
+ *     actual claimed stone. Guests never trigger a spawn.
  *   - Trickle: every 6-18s a new sprite joins, up to MAX_POPULATION. Pace
  *     is slow enough that the activity rail's history isn't flushed before
  *     the viewer can read it.
@@ -40,11 +43,21 @@ export interface PopulationStore {
   subscribe(cb: (spawn: SpawnedPuruhani) => void): () => void;
   distribution(): Record<Element, number>;
   youTrader(): string | null;
+  /**
+   * Spawn the YOU sprite for the connected wallet. Idempotent — once a
+   * YOU sprite exists this is a no-op (returns null). Bypasses the
+   * MAX_POPULATION cap so the user's avatar always lands.
+   */
+  spawnYou(opts: {
+    trader: string;
+    element: Element;
+    identity: PuruhaniIdentity;
+    joinedAt?: string;
+  }): SpawnedPuruhani | null;
 }
 
 const MAX_POPULATION = 80;
 const INITIAL_SEED_COUNT = 20;
-const YOU_SPAWN_DELAY_MS = 1500;
 const TRICKLE_MIN_MS = 3_000;
 const TRICKLE_MAX_MS = 9_000;
 // Rank-ordered population share — leader clearly dominates, then taper.
@@ -57,7 +70,6 @@ const subscribers = new Set<(s: SpawnedPuruhani) => void>();
 let nextSeed = 1;
 let youTrader: string | null = null;
 let trickleHandle: ReturnType<typeof setTimeout> | null = null;
-let youHandle: ReturnType<typeof setTimeout> | null = null;
 let started = false;
 
 function pickElement(): Element {
@@ -143,13 +155,9 @@ function start(): void {
     buffer.push(entry);
   }
 
-  // YOU spawn — fires once, AFTER the initial cluster has visually
-  // settled on the canvas. Subscribers receive this event so the
-  // canvas plays a pop-in for the YOU sprite and the rail shows a
-  // fresh "you claimed X Stone" row.
-  youHandle = setTimeout(() => {
-    spawnNow({ isYou: true });
-  }, YOU_SPAWN_DELAY_MS);
+  // YOU is not auto-spawned — see spawnYou() and the wallet-connect
+  // effect in ObservatoryClient. Pre-connect / guest sessions never
+  // see a YOU sprite.
 
   scheduleTrickle();
 }
@@ -180,6 +188,24 @@ export const populationStore: PopulationStore = {
   youTrader() {
     return youTrader;
   },
+  spawnYou(opts) {
+    if (typeof window === "undefined") return null;
+    if (youTrader !== null) return null;
+    // Bypass MAX_POPULATION — YOU always lands. The real claim is
+    // canonical; the cap is a soft visual budget for ambient sprites.
+    const seed = nextSeed++;
+    const entry: SpawnedPuruhani = {
+      seed,
+      trader: opts.trader,
+      identity: opts.identity,
+      primaryElement: opts.element,
+      joinedAt: opts.joinedAt ?? new Date().toISOString(),
+      isYou: true,
+    };
+    youTrader = opts.trader;
+    emit(entry);
+    return entry;
+  },
 };
 
 // Test-only — allow resetting between unit tests. Not wired up by the app.
@@ -190,7 +216,5 @@ export function __resetPopulation(): void {
   youTrader = null;
   if (trickleHandle !== null) clearTimeout(trickleHandle);
   trickleHandle = null;
-  if (youHandle !== null) clearTimeout(youHandle);
-  youHandle = null;
   started = false;
 }

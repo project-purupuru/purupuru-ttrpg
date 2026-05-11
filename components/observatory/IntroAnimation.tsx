@@ -3,8 +3,13 @@
 /**
  * Intro / entry screen.
  *
+ * The overlay's bg-puru-cloud-base layer is solid from frame 0 — the
+ * observatory mounts behind it but is never visible until the exit
+ * fade. Only the contents (logo, then buttons) animate in over the
+ * solid backdrop.
+ *
  * Three stages:
- *   1. `logo`     — fade-in, wordmark centered, holds briefly.
+ *   1. `logo`     — wordmark fades + softly scales in over solid bg.
  *   2. `buttons`  — buttons fade in below; logo shifts up via flex
  *                   reflow as the column grows.
  *   3. `exit`     — whole overlay fades out and unmounts; parent's
@@ -33,6 +38,8 @@ import { useEffect, useState } from "react";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 const LOGO_TO_BUTTONS_DELAY_MS = 1200;
+/** Brief beat to acknowledge the connected wallet before auto-exiting. */
+const CONNECTED_AUTO_ENTER_MS = 500;
 
 type Stage = "logo" | "buttons" | "exit";
 
@@ -56,6 +63,19 @@ export function IntroAnimation({ onDone }: { onDone: () => void }) {
     return () => window.clearTimeout(t);
   }, [stage, reduce]);
 
+  // Auto-enter on wallet connect — once the logo stage finishes and we're
+  // showing the action panel, a connected wallet (whether auto-connected
+  // from a prior session or just approved via the modal) triggers exit
+  // without requiring an extra click. Brief beat first so the user sees
+  // the "connected · 4abc…" acknowledgment before fade-out.
+  useEffect(() => {
+    if (reduce) return;
+    if (!connected) return;
+    if (stage !== "buttons") return;
+    const t = window.setTimeout(() => setStage("exit"), CONNECTED_AUTO_ENTER_MS);
+    return () => window.clearTimeout(t);
+  }, [connected, stage, reduce]);
+
   if (reduce) return null;
 
   const handleEnter = () => setStage("exit");
@@ -68,16 +88,20 @@ export function IntroAnimation({ onDone }: { onDone: () => void }) {
       {stage !== "exit" && (
         <motion.div
           key="intro"
-          initial={{ opacity: 0 }}
+          initial={{ opacity: 1 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.6, ease: EASE }}
-          className="pointer-events-auto fixed inset-0 z-30 flex flex-col items-center justify-center gap-10 bg-puru-cloud-base px-6"
+          transition={{ duration: 0.7, ease: EASE }}
+          className="pointer-events-auto fixed inset-0 z-30 flex flex-col items-center justify-center gap-12 bg-puru-cloud-base px-6 md:gap-14"
         >
-          {/* Wordmark — always rendered. Reflow when buttons mount
-              naturally pushes it up since the flex column is justify-
-              center. */}
-          <div>
+          {/* Wordmark — fades + softly scales in over the solid bg.
+              Reflow when buttons mount naturally pushes it up since
+              the flex column is justify-center. */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.94 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.9, delay: 0.15, ease: EASE }}
+          >
             <Image
               src="/brand/purupuru-wordmark.svg"
               alt="purupuru"
@@ -94,7 +118,7 @@ export function IntroAnimation({ onDone }: { onDone: () => void }) {
               priority
               className="hidden dark:block"
             />
-          </div>
+          </motion.div>
 
           {/* Action panel — appears after the logo holds, fades + slides
               in from below. */}
@@ -109,25 +133,16 @@ export function IntroAnimation({ onDone }: { onDone: () => void }) {
                 className="flex w-full max-w-xs flex-col gap-2.5"
               >
                 {connected ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={handleEnter}
-                      className="rounded-puru-sm border border-puru-fire-vivid bg-puru-fire-tint px-6 py-3.5 font-puru-mono text-xs uppercase tracking-[0.22em] text-puru-fire-vivid shadow-puru-tile transition-colors hover:bg-puru-fire-pastel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-puru-fire-vivid"
-                    >
-                      Enter →
-                    </button>
-                    <p className="text-center font-puru-mono text-2xs uppercase tracking-[0.22em] text-puru-ink-dim">
-                      connected · {truncated}
-                    </p>
-                  </>
+                  <p className="text-center font-puru-mono text-2xs uppercase tracking-[0.22em] text-puru-ink-dim">
+                    connected · {truncated} · entering…
+                  </p>
                 ) : (
                   <>
                     <button
                       type="button"
                       onClick={handleConnect}
                       disabled={connecting}
-                      className="rounded-puru-sm border border-puru-surface-border bg-puru-cloud-bright px-6 py-3.5 font-puru-mono text-xs uppercase tracking-[0.22em] text-puru-ink-rich shadow-puru-tile transition-colors hover:border-puru-fire-vivid hover:bg-puru-fire-tint hover:text-puru-fire-vivid focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-puru-fire-vivid disabled:cursor-not-allowed disabled:opacity-60"
+                      className="rounded-puru-sm border border-puru-ink-soft bg-puru-cloud-bright px-6 py-3.5 font-puru-mono text-xs uppercase tracking-[0.22em] text-puru-ink-rich shadow-puru-tile transition-[background-color,border-color,box-shadow] hover:border-puru-ink-rich hover:bg-puru-cloud-dim hover:shadow-puru-tile-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-puru-ink-soft disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {connecting ? "Connecting…" : "Connect Wallet"}
                     </button>

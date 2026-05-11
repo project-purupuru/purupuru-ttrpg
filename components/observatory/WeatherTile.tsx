@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { WeatherState, Precipitation } from "@/lib/weather";
 import type { Element } from "@/lib/score";
+import { timeAgo } from "@/lib/time/format";
 import { KpiCell } from "./KpiCell";
 import {
   Sun,
@@ -32,16 +33,6 @@ const PRECIP_ICON: Record<Precipitation, Icon> = {
   snow: CloudSnow,
   storm: CloudLightning,
 };
-
-const SECOND = 1000;
-const MINUTE = 60 * SECOND;
-
-function syncedAgo(iso: string, now: number): string {
-  const diff = now - new Date(iso).getTime();
-  if (diff < 5 * SECOND) return "just now";
-  if (diff < MINUTE) return `${Math.floor(diff / SECOND)}s ago`;
-  return `${Math.floor(diff / MINUTE)}m ago`;
-}
 
 export function WeatherTile({
   state,
@@ -80,7 +71,7 @@ export function WeatherTile({
               aria-hidden
             />
             <span className="inline-block min-w-[5.25em] text-right tabular-nums">
-              {now === null ? "—" : syncedAgo(state.observed_at, now)}
+              {now === null ? "—" : timeAgo(state.observed_at, now)}
             </span>
           </span>
         </div>

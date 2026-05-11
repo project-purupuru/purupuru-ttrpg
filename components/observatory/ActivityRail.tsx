@@ -5,21 +5,22 @@ import { useEffect, useState } from "react";
 import { activityStream, type ActivityEvent } from "@/lib/activity";
 import { populationStore } from "@/lib/sim/population";
 import type { PuruhaniIdentity } from "@/lib/sim/types";
+import { timeAgo } from "@/lib/time/format";
 import { PuruhaniAvatar } from "./PuruhaniAvatar";
+
+/**
+ * Solscan tx URL for a radar mint signature. Cluster is hardcoded to
+ * devnet to match `SolanaWalletProvider`'s DEFAULT_RPC; if/when the
+ * provider moves to mainnet, pull the cluster off `NEXT_PUBLIC_SOLANA_CLUSTER`
+ * (or similar) here.
+ */
+function solscanTxUrl(signature: string): string {
+  return `https://solscan.io/tx/${signature}?cluster=devnet`;
+}
 
 // Uniform leading icon slot · all rows share this size so text starts
 // at the same x-coordinate.
 const ICON_SIZE = 40;
-
-const SECOND = 1000;
-const MINUTE = 60 * SECOND;
-
-function timeAgo(iso: string, now: number): string {
-  const diff = now - new Date(iso).getTime();
-  if (diff < 5 * SECOND) return "just now";
-  if (diff < MINUTE) return `${Math.floor(diff / SECOND)}s ago`;
-  return `${Math.floor(diff / MINUTE)}m ago`;
-}
 
 const titleCase = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -107,12 +108,16 @@ export function ActivityRail() {
             };
             const actor = resolve(e);
             const isYou = connectedWallet !== null && e.actor === connectedWallet;
-            return (
-              <li
-                key={e.id}
-                className="puru-row puru-row-fresh relative flex items-center gap-3 px-5 py-3"
-                style={rowStyle}
-              >
+            // On-chain rows (radar mints) link to Solscan; off-chain
+            // mock rows have no external destination so they render as
+            // plain content. Captured as a tuple so both fields stay
+            // narrowed across the JSX boundary (TS doesn't back-propagate
+            // `txInfo !== null` to `e.kind === "mint"` on its own).
+            const txInfo = e.kind === "mint"
+              ? { url: solscanTxUrl(e.signature), sig: e.signature }
+              : null;
+            const rowContent = (
+              <>
                 {actor ? (
                   <PuruhaniAvatar
                     seed={actor.pfp}
@@ -154,6 +159,25 @@ export function ActivityRail() {
                 <span className="inline-block min-w-[4.5em] shrink-0 self-start text-right font-puru-body text-2xs uppercase tracking-[0.18em] tabular-nums text-puru-ink-dim">
                   {timeAgo(e.at, now)}
                 </span>
+              </>
+            );
+            return (
+              <li key={e.id} style={rowStyle}>
+                {txInfo ? (
+                  <a
+                    href={txInfo.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={`view transaction on Solscan: ${txInfo.sig.slice(0, 8)}…`}
+                    className="puru-row puru-row-fresh relative flex items-center gap-3 px-5 py-3 transition-colors hover:bg-puru-cloud-bright focus-visible:bg-puru-cloud-bright focus-visible:outline-none"
+                  >
+                    {rowContent}
+                  </a>
+                ) : (
+                  <div className="puru-row puru-row-fresh relative flex items-center gap-3 px-5 py-3">
+                    {rowContent}
+                  </div>
+                )}
               </li>
             );
           })}

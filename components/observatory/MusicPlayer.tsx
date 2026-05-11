@@ -159,16 +159,17 @@ export function MusicPlayer({
         </div>
 
         {/* Controls — play/pause is the prominent action; skip is a
-            quieter secondary. Both use the fire-vivid focus ring to
-            stay consistent with the rest of the observatory's
-            interactive surfaces. */}
+            quieter secondary. All three share an ink/cloud hover
+            treatment (lift to cloud-bright + darker border + sharpened
+            ink) so the music player reads in the same neutral register
+            as the rest of the UI chrome. */}
         <div className="flex shrink-0 items-center gap-1.5">
           <button
             type="button"
             onClick={togglePlay}
             aria-label={playing ? "pause soundtrack" : "play soundtrack"}
             aria-pressed={playing}
-            className="flex h-7 w-7 items-center justify-center rounded-puru-sm border border-puru-surface-border bg-puru-cloud-base text-puru-ink-rich transition-colors hover:border-puru-fire-vivid hover:bg-puru-fire-tint hover:text-puru-fire-vivid focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-puru-fire-vivid"
+            className="flex h-7 w-7 items-center justify-center rounded-puru-sm border border-puru-surface-border bg-puru-cloud-base text-puru-ink-rich transition-colors hover:border-puru-ink-soft hover:bg-puru-cloud-bright focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-puru-ink-soft"
           >
             {playing ? (
               <Pause weight="fill" size={12} />
@@ -180,7 +181,7 @@ export function MusicPlayer({
             type="button"
             onClick={nextTrack}
             aria-label="next track"
-            className="flex h-7 w-7 items-center justify-center rounded-puru-sm border border-puru-surface-border bg-puru-cloud-base text-puru-ink-soft transition-colors hover:border-puru-fire-vivid hover:bg-puru-fire-tint hover:text-puru-fire-vivid focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-puru-fire-vivid"
+            className="flex h-7 w-7 items-center justify-center rounded-puru-sm border border-puru-surface-border bg-puru-cloud-base text-puru-ink-soft transition-colors hover:border-puru-ink-soft hover:bg-puru-cloud-bright hover:text-puru-ink-rich focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-puru-ink-soft"
           >
             <SkipForward weight="fill" size={11} />
           </button>
@@ -190,7 +191,7 @@ export function MusicPlayer({
             aria-label={sfxEnabled ? "mute sfx chimes" : "enable sfx chimes"}
             aria-pressed={sfxEnabled}
             title={sfxEnabled ? "sfx on" : "sfx muted"}
-            className={`flex h-7 w-7 items-center justify-center rounded-puru-sm border border-puru-surface-border bg-puru-cloud-base transition-colors hover:border-puru-fire-vivid hover:bg-puru-fire-tint hover:text-puru-fire-vivid focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-puru-fire-vivid ${
+            className={`flex h-7 w-7 items-center justify-center rounded-puru-sm border border-puru-surface-border bg-puru-cloud-base transition-colors hover:border-puru-ink-soft hover:bg-puru-cloud-bright hover:text-puru-ink-rich focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-puru-ink-soft ${
               sfxEnabled ? "text-puru-ink-soft" : "text-puru-ink-dim"
             }`}
           >

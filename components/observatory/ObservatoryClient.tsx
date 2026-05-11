@@ -1,11 +1,13 @@
 "use client";
 
+import { useWallet } from "@solana/wallet-adapter-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { weatherFeed } from "@/lib/weather";
 import type { WeatherState } from "@/lib/weather";
 import type { Element } from "@/lib/score";
 import type { PuruhaniIdentity } from "@/lib/sim/types";
 import { activityStream } from "@/lib/activity";
+import type { MintActivity } from "@/lib/activity";
 import { populationStore } from "@/lib/sim/population";
 import { getSonifier } from "@/lib/audio/sonify";
 import Image from "next/image";
@@ -73,13 +75,49 @@ export function ObservatoryClient() {
     document.documentElement.dataset.theme = weather.is_night ? "old-horai" : "day-horai";
   }, [weather.is_night]);
 
-  // The post-mint welcome-bridge seed (was: seedActivityEvent on
-  // ?welcome=<element>) was removed 2026-05-10 once the radar indexer
-  // wired real StoneClaimed events into the stream. The user's actual
-  // mint now arrives via radar-source's poll (≤5s after tx confirmation)
-  // and gets tagged YOU via the connected wallet — see ActivityRail's
-  // useWallet() integration. Visitor lands on observatory, sees their
-  // real claim land in the rail with the YOU badge within seconds.
+  // YOU sprite — spawned only when (a) a wallet is connected AND (b) a
+  // real radar StoneClaimed event matches the wallet. Lands in the
+  // wedge of the actually-claimed element, not a random one. Guest
+  // sessions never trigger this so no YOU pill appears on the canvas
+  // or YOU badge in the rail.
+  //
+  // First-fire flow:
+  //   1. publicKey changes → effect runs.
+  //   2. Scan existing radar events for any matching mint; if found,
+  //      spawn YOU immediately (handles page-load-after-claim case).
+  //   3. Otherwise subscribe; on first matching mint, spawn YOU and
+  //      unsubscribe.
+  //
+  // populationStore.spawnYou is idempotent — repeated calls with the
+  // same wallet are no-ops, so re-running this effect on a re-connect
+  // doesn't double-spawn.
+  const { publicKey } = useWallet();
+  useEffect(() => {
+    if (!publicKey) return;
+    const wallet = publicKey.toBase58();
+    const trigger = (m: MintActivity): void => {
+      populationStore.spawnYou({
+        trader: m.actor,
+        element: m.element,
+        identity: m.identity,
+        joinedAt: m.at,
+      });
+    };
+    const existing = activityStream
+      .recent(200)
+      .find((e): e is MintActivity => e.kind === "mint" && e.actor === wallet);
+    if (existing) {
+      trigger(existing);
+      return;
+    }
+    const unsub = activityStream.subscribe((e) => {
+      if (e.kind !== "mint") return;
+      if (e.actor !== wallet) return;
+      trigger(e);
+      unsub();
+    });
+    return unsub;
+  }, [publicKey]);
 
   // Sonifier lifecycle — runs only while BOTH music is playing AND sfx
   // is enabled. Cleanup unsubscribes and suspends the AudioContext, so
