@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "active_cycle": "cycle-103-provider-unification",
+  "active_cycle": null,
   "cycles": [
     {
       "id": "cycle-036",
@@ -1061,7 +1061,7 @@
     {
       "id": "cycle-103-provider-unification",
       "label": "Provider Boundary Unification — collapse 3 HTTP boundaries to cheval substrate",
-      "status": "active",
+      "status": "archived",
       "created": "2026-05-11T09:12:26Z",
       "prd": "grimoires/loa/cycles/cycle-103-provider-unification/prd.md",
       "sdd": "grimoires/loa/cycles/cycle-103-provider-unification/sdd.md",
