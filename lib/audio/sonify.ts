@@ -39,7 +39,14 @@ const REVERB_SECONDS = 1.8;
 
 export interface PlayEventOpts {
   element: Element;
-  kind: "join";
+  /**
+   * Activity kind. `"join"` is a mock populationStore spawn; `"mint"` is
+   * a real on-chain `StoneClaimed` from the radar indexer (PRD AC-12.9).
+   * Both currently share the same voice — claiming a stone IS joining
+   * that element's clan. Diverge here if future design wants on-chain
+   * mints to feel sonically distinct.
+   */
+  kind: "join" | "mint";
   /** 0..1, scales final voice gain. Defaults to 0.6. */
   velocity?: number;
 }
@@ -52,11 +59,20 @@ interface VoiceShape {
   gainPeak: number;
 }
 
+// Warm chime — sine, base octave, soft attack, long decay. The "discovery
+// glow" voice from the previous quiz_completed shape — fits a new clan
+// member emerging. Shared by join + mint (both are "claim" events).
+const JOIN_VOICE: VoiceShape = {
+  type: "sine",
+  octaveMul: 1,
+  attackS: 0.03,
+  decayS: 1.0,
+  gainPeak: 0.5,
+};
+
 const VOICE_BY_KIND: Record<PlayEventOpts["kind"], VoiceShape> = {
-  // Warm chime — sine, base octave, soft attack, long decay. The "discovery
-  // glow" voice from the previous quiz_completed shape — fits a new clan
-  // member emerging.
-  join: { type: "sine", octaveMul: 1, attackS: 0.030, decayS: 1.00, gainPeak: 0.50 },
+  join: JOIN_VOICE,
+  mint: JOIN_VOICE,
 };
 
 export class WuxingSonifier {

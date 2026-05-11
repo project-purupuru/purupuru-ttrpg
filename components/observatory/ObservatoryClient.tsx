@@ -5,8 +5,7 @@ import { weatherFeed } from "@/lib/weather";
 import type { WeatherState } from "@/lib/weather";
 import type { Element } from "@/lib/score";
 import type { PuruhaniIdentity } from "@/lib/sim/types";
-import { activityStream, seedActivityEvent } from "@/lib/activity";
-import { ELEMENTS as ALL_ELEMENTS } from "@/lib/score";
+import { activityStream } from "@/lib/activity";
 import { populationStore } from "@/lib/sim/population";
 import { getSonifier } from "@/lib/audio/sonify";
 import Image from "next/image";
@@ -74,29 +73,13 @@ export function ObservatoryClient() {
     document.documentElement.dataset.theme = weather.is_night ? "old-horai" : "day-horai";
   }, [weather.is_night]);
 
-  // Post-mint loop closure · when the user arrives via mint route's
-  // links.next bridge (?welcome=<element>), seed one curated JoinActivity
-  // 5s after mount so the visitor's just-arrived stone visibly joins the
-  // rail. Demo-bridge for proof #4 ("I am not alone") · stand-in until
-  // zerker's radar indexer wires real StoneClaimed events into the stream.
-  // Fires once per visit · guarded by introDone to land after the intro.
-  useEffect(() => {
-    if (!introDone || typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    const welcome = params.get("welcome")?.toLowerCase();
-    if (!welcome || !ALL_ELEMENTS.includes(welcome as Element)) return;
-    const timer = window.setTimeout(() => {
-      seedActivityEvent({
-        id: `welcome-${Date.now()}`,
-        kind: "join",
-        origin: "off-chain",
-        element: welcome as Element,
-        actor: "you" as never,
-        at: new Date().toISOString(),
-      });
-    }, 5000);
-    return () => window.clearTimeout(timer);
-  }, [introDone]);
+  // The post-mint welcome-bridge seed (was: seedActivityEvent on
+  // ?welcome=<element>) was removed 2026-05-10 once the radar indexer
+  // wired real StoneClaimed events into the stream. The user's actual
+  // mint now arrives via radar-source's poll (≤5s after tx confirmation)
+  // and gets tagged YOU via the connected wallet — see ActivityRail's
+  // useWallet() integration. Visitor lands on observatory, sees their
+  // real claim land in the rail with the YOU badge within seconds.
 
   // Sonifier lifecycle — runs only while BOTH music is playing AND sfx
   // is enabled. Cleanup unsubscribes and suspends the AudioContext, so

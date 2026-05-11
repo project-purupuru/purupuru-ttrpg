@@ -52,9 +52,14 @@ export function WeatherTile({
    * dividers, no rounded corners or tile shadow. */
   flush?: boolean;
 }) {
-  const [now, setNow] = useState<number>(() => Date.now());
+  // `now` is null during SSR + first paint so server and client both render
+  // the same "—" placeholder for the "X ago" span. useEffect runs only on
+  // the client, populating real Date.now() and the 1s tick from there.
+  // Prevents hydration mismatch (was: server "8m ago" vs client "6s ago").
+  const [now, setNow] = useState<number | null>(null);
 
   useEffect(() => {
+    setNow(Date.now());
     const tick = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(tick);
   }, []);
@@ -75,7 +80,7 @@ export function WeatherTile({
               aria-hidden
             />
             <span className="inline-block min-w-[5.25em] text-right tabular-nums">
-              {syncedAgo(state.observed_at, now)}
+              {now === null ? "—" : syncedAgo(state.observed_at, now)}
             </span>
           </span>
         </div>

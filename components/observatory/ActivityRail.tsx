@@ -1,5 +1,6 @@
 "use client";
 
+import { useWallet } from "@solana/wallet-adapter-react";
 import { useEffect, useState } from "react";
 import { activityStream, type ActivityEvent } from "@/lib/activity";
 import { populationStore } from "@/lib/sim/population";
@@ -28,14 +29,28 @@ const indefiniteArticle = (el: string): string => (el === "earth" ? "an" : "a");
 export function ActivityRail() {
   const [events, setEvents] = useState<ActivityEvent[]>(() => activityStream.recent());
   const [now, setNow] = useState<number>(() => Date.now());
-  const [youTrader, setYouTrader] = useState<string | null>(() => populationStore.youTrader());
+
+  // YOU detection is now driven by the connected Solana wallet. When a
+  // radar mint arrives with `actor === connectedWallet`, the rail
+  // renders the YOU badge in place of the @handle. Pre-connect, no
+  // events are flagged. (Mock populationStore spawns won't ever match
+  // a real wallet, so they're naturally never YOU under this scheme.)
+  const { publicKey } = useWallet();
+  const connectedWallet = publicKey?.toBase58() ?? null;
 
   useEffect(() => {
     const unsub = activityStream.subscribe((e) => {
-      setEvents((prev) => [e, ...prev].slice(0, 50));
-      // youTrader can become non-null after the YOU spawn — refresh on
-      // every event rather than poll.
-      setYouTrader(populationStore.youTrader());
+      // Re-sort by timestamp on every arrival. This is what keeps late-
+      // arriving events (specifically: the historical radar mints seeded
+      // by the radar-source poller's first fetch) inserted at their
+      // correct chronological position rather than at the top of the
+      // rail. Live mints + mock spawns still naturally rise to the top
+      // because their `at` is the newest at arrival time.
+      setEvents((prev) => {
+        const next = [e, ...prev];
+        next.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+        return next.slice(0, 50);
+      });
     });
     const tick = setInterval(() => setNow(Date.now()), 1000);
     return () => {
@@ -44,11 +59,12 @@ export function ActivityRail() {
     };
   }, []);
 
-  // Identity resolution now goes through the population store — every
-  // sprite on the map has a corresponding entry, so the rail can
-  // round-trip wallet → identity without a separate seeded registry.
-  const resolve = (wallet: string): PuruhaniIdentity | null => {
-    const entry = populationStore.current().find((p) => p.trader === wallet);
+  // Identity resolution — on-chain (radar) mints carry their identity
+  // inline on the event; off-chain (join) events resolve via population
+  // store. Both produce the same polished display treatment.
+  const resolve = (event: ActivityEvent): PuruhaniIdentity | null => {
+    if (event.kind === "mint") return event.identity;
+    const entry = populationStore.current().find((p) => p.trader === event.actor);
     return entry?.identity ?? null;
   };
 
@@ -89,8 +105,8 @@ export function ActivityRail() {
             const rowStyle = {
               color: `var(--puru-${e.element}-vivid)`,
             };
-            const actor = resolve(e.actor);
-            const isYou = youTrader !== null && e.actor === youTrader;
+            const actor = resolve(e);
+            const isYou = connectedWallet !== null && e.actor === connectedWallet;
             return (
               <li
                 key={e.id}
@@ -125,7 +141,7 @@ export function ActivityRail() {
                       <span className="ml-1.5 inline-flex items-center rounded-full bg-puru-ink-rich px-1.5 py-0.5 font-puru-mono text-[9px] font-bold leading-none tracking-[0.12em] text-puru-cloud-bright">
                         YOU
                       </span>
-                    ) : (
+                    ) : e.origin === "on-chain" ? null : (
                       <span className="ml-1 font-puru-body text-2xs text-puru-ink-dim">
                         @{actor?.username ?? e.actor.slice(0, 6).toLowerCase()}
                       </span>

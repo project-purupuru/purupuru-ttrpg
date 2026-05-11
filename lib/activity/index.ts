@@ -1,18 +1,25 @@
 /**
- * Activity stream — primary source is populationStore spawn events,
- * with a small side-channel for ad-hoc "seeded" events (post-mint
- * welcome bridge, etc.).
+ * Activity stream — multi-source: populationStore spawn events (mock,
+ * always on) plus the radar Solana indexer (real, opt-in via
+ * NEXT_PUBLIC_RADAR_URL). Ad-hoc `seedActivityEvent` side-channel for
+ * the post-mint welcome bridge.
  *
  * Architecture:
  *   - populationStore is the source of truth for "who is on the map".
  *   - subscribe() bridges populationStore spawns through toJoin() into
  *     the ActivityEvent shape, AND fans out any seedActivityEvent() calls
- *     to the same subscribers.
- *   - recent() merges populationStore-derived events + seeded extras,
- *     sorted newest-first by timestamp.
+ *     to the same subscribers, AND starts the radar poller (browser-only,
+ *     no-op if NEXT_PUBLIC_RADAR_URL is unset).
+ *   - recent() merges populationStore-derived events + seeded extras
+ *     (which now includes radar-source mints), sorted newest-first.
+ *
+ * Mock + real coexist intentionally (PRD AC-12.9 design choice 2026-05-10):
+ * the visual feed is richer when ambient mock spawns interleave with the
+ * sparse stream of real on-chain mints during a hackathon demo.
  */
 
 import { populationStore, type SpawnedPuruhani } from "@/lib/sim/population";
+import { startRadarPolling } from "./radar-source";
 import type { ActivityEvent, ActivityStream, JoinActivity } from "./types";
 
 export type { ActionKind, ActivityEvent, ActivityStream } from "./types";
@@ -39,11 +46,26 @@ let bridgeAttached = false;
 function attachBridge(): void {
   if (bridgeAttached) return;
   bridgeAttached = true;
+
   populationStore.subscribe((s) => {
     const e = toJoin(s);
     for (const cb of subscribers) {
       try {
         cb(e);
+      } catch {
+        // isolate subscriber errors
+      }
+    }
+  });
+
+  // Radar indexer source — opt-in via NEXT_PUBLIC_RADAR_URL. No-op
+  // (returns false) if the env var is unset, so the rail keeps working
+  // in pure-mock mode for local dev without any config.
+  startRadarPolling((mint) => {
+    extras.push(mint);
+    for (const cb of subscribers) {
+      try {
+        cb(mint);
       } catch {
         // isolate subscriber errors
       }
