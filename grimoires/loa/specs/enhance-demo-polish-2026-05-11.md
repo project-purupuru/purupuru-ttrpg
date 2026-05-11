@@ -36,6 +36,19 @@ Build clean · 24 medium-blink + 80 peripheral-events + 24 lib/blink + 7 world-s
 
 ## Operator Runway · Pre-Record Punch List
 
+### 🌐 DNS · purupuru.world setup (operator-side · pre-record polish)
+
+| Apex/sub | Target | Vercel project | Records |
+|---|---|---|---|
+| `purupuru.world` | Observatory (main app · replaces unfinished `world-purupuru`) | `purupuru-blink` | `A → 76.76.21.21` (Vercel apex) · add `purupuru.world` as custom domain in Vercel UI |
+| `blink.purupuru.world` | Quiz Blink (the on-ramp) | `purupuru-quiz` | `CNAME blink → cname.vercel-dns.com.` · add `blink.purupuru.world` as custom domain in Vercel UI |
+| (current `world-purupuru`) | Parked — find meaning + weight before subdomain claim | n/a | leave repo standing · revisit post-hackathon |
+
+Once DNS propagates · update env vars on each Vercel project:
+- `purupuru-blink` · set `NEXT_PUBLIC_APP_URL=https://purupuru.world`
+- `purupuru-quiz` · set `NEXT_PUBLIC_APP_URL=https://blink.purupuru.world`
+- Update lexicon.yaml + README references in the same PR
+
 ### 🔥 Operator-Only (must do before recording)
 
 | # | Action | Where | Time | Why |
