@@ -129,22 +129,42 @@ export const rootMetadata: Metadata = {
 }
 
 // Per-page override factory · keeps slug → metadata mapping single-line.
+// Next.js Metadata merging REPLACES the openGraph/twitter object rather than
+// shallow-merging individual fields · so we explicitly include `images` in
+// every per-page output to guarantee a single unified OG card across the
+// entire surface (operator R5 directive 2026-05-10).
 export function pageMetadata(slug: PageSlug): Metadata {
   const page = PAGE_COPY[slug]
   const title = page.titleAbsolute ? { absolute: page.title } : page.title
+  const flatTitle = typeof title === "string" ? title : title.absolute
+
+  const ogImage = {
+    url: SITE.ogImage,
+    width: SITE.ogWidth,
+    height: SITE.ogHeight,
+    alt: SITE.ogAlt,
+  }
 
   return {
     title,
     description: page.description,
     alternates: { canonical: page.path },
     openGraph: {
-      title: typeof title === "string" ? title : title.absolute,
+      type: "website",
+      siteName: SITE.name,
+      title: flatTitle,
       description: page.description,
       url: `${SITE.url}${page.path}`,
+      locale: "en_US",
+      images: [ogImage],
     },
     twitter: {
-      title: typeof title === "string" ? title : title.absolute,
+      card: SITE.twitterCard,
+      site: SITE.handle,
+      creator: SITE.handle,
+      title: flatTitle,
       description: page.description,
+      images: [SITE.ogImage],
     },
     ...(page.noindex
       ? { robots: { index: false, follow: false } }

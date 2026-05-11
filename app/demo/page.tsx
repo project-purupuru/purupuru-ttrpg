@@ -31,6 +31,7 @@
 
 import {
   Bell,
+  Bot,
   BookmarkPlus,
   Bookmark,
   CalendarClock,
@@ -265,12 +266,17 @@ function ViewsGlyph({ size = 18 }: { size?: number }) {
 }
 
 // Reusable post row (neighbors above/below the focal post).
+// `automatedBy` prop renders the X "Automated by @handle" badge below the
+// account row · used for in-world AI-agent posts that announce element
+// shifts / weather / world-updates in Gumi's voice. Models @aixbt_agent ·
+// drives cold scrollers toward the quiz via ambient world-pulse.
 function Post({
   avatar,
   name,
   handle,
   time,
   verified = false,
+  automatedBy,
   body,
   metrics,
 }: {
@@ -279,6 +285,7 @@ function Post({
   handle: string
   time: string
   verified?: boolean
+  automatedBy?: string
   body: React.ReactNode
   metrics: { reply: string; repost: string; like: string; views: string }
 }) {
@@ -289,27 +296,65 @@ function Post({
     >
       {avatar}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-x-1 text-[15px]">
-          <span
-            className="font-bold"
-            style={{ color: XC.textPrimary }}
-          >
-            {name}
-          </span>
-          {verified && <VerifiedBadge size={16} />}
-          <span style={{ color: XC.textSecondary }}>@{handle}</span>
-          <span style={{ color: XC.textSecondary }}>·</span>
-          <span style={{ color: XC.textSecondary }}>{time}</span>
-          <div className="ml-auto flex items-center gap-3">
-            <GrokDiamond size={16} />
-            <MoreHorizontal
-              size={18}
+        {automatedBy ? (
+          /* Agent layout · 3-row stacked head + "Automated by" badge ·
+             matches @aixbt_agent reference shape. Verified + grok/menu on
+             top row; handle on row 2; agent badge on row 3. */
+          <>
+            <div className="flex items-center gap-x-1 text-[15px]">
+              <span className="font-bold" style={{ color: XC.textPrimary }}>
+                {name}
+              </span>
+              {verified && <VerifiedBadge size={16} />}
+              <div className="ml-auto flex items-center gap-3">
+                <GrokDiamond size={16} />
+                <MoreHorizontal
+                  size={18}
+                  style={{ color: XC.textSecondary }}
+                />
+              </div>
+            </div>
+            <div
+              className="flex items-center gap-x-1 text-[14px]"
               style={{ color: XC.textSecondary }}
-            />
+            >
+              <span>@{handle}</span>
+              <span>·</span>
+              <span>{time}</span>
+            </div>
+            <div
+              className="mt-0.5 flex items-center gap-1.5 text-[13px]"
+              style={{ color: XC.textSecondary }}
+            >
+              <Bot size={14} strokeWidth={1.75} />
+              <span>
+                Automated by{" "}
+                <span style={{ color: XC.accent }}>@{automatedBy}</span>
+              </span>
+            </div>
+          </>
+        ) : (
+          /* Standard X single-row layout · name + verified + @handle + time
+             on one line · grok diamond + menu on far right. */
+          <div className="flex items-center gap-x-1 text-[15px]">
+            <span className="font-bold" style={{ color: XC.textPrimary }}>
+              {name}
+            </span>
+            {verified && <VerifiedBadge size={16} />}
+            <span style={{ color: XC.textSecondary }}>@{handle}</span>
+            <span style={{ color: XC.textSecondary }}>·</span>
+            <span style={{ color: XC.textSecondary }}>{time}</span>
+            <div className="ml-auto flex items-center gap-3">
+              <GrokDiamond size={16} />
+              <MoreHorizontal
+                size={18}
+                style={{ color: XC.textSecondary }}
+              />
+            </div>
           </div>
-        </div>
+        )}
         <div
-          className="mt-0.5 text-[15px] leading-[1.35]"
+          className={`${automatedBy ? "mt-1" : "mt-0.5"} text-[15px] leading-[1.35]`}
           style={{ color: XC.textPrimary }}
         >
           {body}
@@ -667,6 +712,29 @@ export default async function DemoPage({ searchParams }: PageProps) {
             verified
             body="the air is heavy today. maybe the metal hour rounds back early this year."
             metrics={{ reply: "12", repost: "4", like: "87", views: "2.1K" }}
+          />
+
+          {/* Ambient AI agent · tsuheji winds · automated by @puruworld.
+              Models the @aixbt_agent shape — automated world-pulse account
+              posting in Gumi's atmospheric voice. Drives cold scrollers
+              toward the quiz via ambient hints, NOT marketing register.
+              Positioned directly above the focal Blink so the eye reads:
+              ambient context → quiz card. Primes the moment. */}
+          <Post
+            avatar={
+              <ImageAvatar
+                src="/brand/characters/chibi-kaori.png"
+                alt="tsuheji winds"
+                size={40}
+              />
+            }
+            name="tsuheji winds"
+            handle="tsuhejiwinds"
+            time="32m"
+            verified
+            automatedBy="puruworld"
+            body="wood tide rising at dawn · 47 puruhani have read themselves in since first light"
+            metrics={{ reply: "8", repost: "21", like: "164", views: "3.8K" }}
           />
 
           {/* ─── FOCAL POST · the Blink ─── */}
