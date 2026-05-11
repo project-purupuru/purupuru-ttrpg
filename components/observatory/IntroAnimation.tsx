@@ -48,8 +48,6 @@ import {
 } from "@/lib/celestial/position";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
-// KANSEI ease — gentle overshoot for the button arc.
-const ARC_EASE = [0.34, 1.18, 0.42, 1] as const;
 const LOGO_TO_BUTTONS_DELAY_MS = 1200;
 /** Brief beat to acknowledge the connected wallet before auto-exiting. */
 const CONNECTED_AUTO_ENTER_MS = 500;
@@ -162,62 +160,56 @@ export function IntroAnimation({ onDone }: { onDone: () => void }) {
             />
           </motion.div>
 
-          {/* Action panel — arcs UP from below the logo, peaks above
-              the resting position, then settles. Operator note
-              2026-05-11: previous 0.6s fade-up was too snappy — the
-              arc gives the panel kinetic identity (it ENTERS the
-              world rather than appearing) and echoes the celestial
-              arc shape behind the wordmark. Synergy: the panel's
-              gesture mirrors the sky's gesture.
-
-              Motion shape (keyframe-explicit): y travels from +96 →
-              -14 → 0 over 1.6s. Mid-arc the panel is visibly above
-              its resting position so you read the gesture as an arc
-              not a slide. Opacity rises in the first third so the
-              shape is committed visually before settle. */}
-          <AnimatePresence>
-            {stage === "buttons" && (
-              <motion.div
-                key="actions"
-                initial={{ opacity: 0, y: 96 }}
-                animate={{ opacity: 1, y: [96, -14, 0] }}
-                exit={{ opacity: 0, y: 16 }}
-                transition={{
-                  duration: 1.6,
-                  ease: ARC_EASE,
-                  times: [0, 0.62, 1],
-                  // Opacity in just the first third — panel commits
-                  // visually before it reaches the apex.
-                  opacity: { duration: 0.55, ease: EASE },
-                }}
-                className="relative z-10 flex w-full max-w-xs flex-col gap-2.5"
-              >
-                {connected ? (
-                  <p className="text-center font-puru-mono text-2xs uppercase tracking-[0.22em] text-puru-ink-dim">
-                    connected · {truncated} · entering…
-                  </p>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={handleConnect}
-                      disabled={connecting}
-                      className="rounded-puru-sm border border-puru-ink-soft bg-puru-cloud-bright px-6 py-3.5 font-puru-mono text-xs uppercase tracking-[0.22em] text-puru-ink-rich shadow-puru-tile transition-[background-color,border-color,box-shadow] hover:border-puru-ink-rich hover:bg-puru-cloud-dim hover:shadow-puru-tile-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-puru-ink-soft disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {connecting ? "Connecting…" : "Connect Wallet"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleEnter}
-                      className="rounded-puru-sm px-6 py-2.5 font-puru-mono text-2xs uppercase tracking-[0.22em] text-puru-ink-dim transition-colors hover:text-puru-ink-rich focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-puru-surface-border"
-                    >
-                      Enter as guest
-                    </button>
-                  </>
-                )}
-              </motion.div>
+          {/* Action panel — ALWAYS rendered (just opacity-gated by
+              stage) so the flex column's height never changes when
+              buttons "appear." Mounting buttons via AnimatePresence
+              triggered a layout reflow that shifted the wordmark
+              upward — the eye reads that shift as the brand getting
+              displaced. Reserving the space avoids the reflow.
+              Operator note 2026-05-11: the celestial body is the
+              arc (sun/moon east→west across the sky); the buttons
+              should just enter naturally, no bouncy motion. */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{
+              opacity: stage === "buttons" ? 1 : 0,
+              y: stage === "buttons" ? 0 : 8,
+            }}
+            transition={{ duration: 0.7, ease: EASE }}
+            className="relative z-10 flex w-full max-w-xs flex-col gap-2.5"
+            // Block clicks until visible — keeps the buttons inert
+            // during the logo stage so an accidental click can't
+            // skip the intro entirely.
+            style={{ pointerEvents: stage === "buttons" ? "auto" : "none" }}
+            aria-hidden={stage !== "buttons"}
+          >
+            {connected ? (
+              <p className="text-center font-puru-mono text-2xs uppercase tracking-[0.22em] text-puru-ink-dim">
+                connected · {truncated} · entering…
+              </p>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={handleConnect}
+                  disabled={connecting || stage !== "buttons"}
+                  tabIndex={stage === "buttons" ? 0 : -1}
+                  className="rounded-puru-sm border border-puru-ink-soft bg-puru-cloud-bright px-6 py-3.5 font-puru-mono text-xs uppercase tracking-[0.22em] text-puru-ink-rich shadow-puru-tile transition-[background-color,border-color,box-shadow] hover:border-puru-ink-rich hover:bg-puru-cloud-dim hover:shadow-puru-tile-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-puru-ink-soft disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {connecting ? "Connecting…" : "Connect Wallet"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleEnter}
+                  disabled={stage !== "buttons"}
+                  tabIndex={stage === "buttons" ? 0 : -1}
+                  className="rounded-puru-sm px-6 py-2.5 font-puru-mono text-2xs uppercase tracking-[0.22em] text-puru-ink-dim transition-colors hover:text-puru-ink-rich focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-puru-surface-border disabled:cursor-default"
+                >
+                  Enter as guest
+                </button>
+              </>
             )}
-          </AnimatePresence>
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
