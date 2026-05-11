@@ -17,6 +17,13 @@
 //   Right sidebar (~350px) · search · Today's News · What's happening ·
 //     Who to follow · footer
 //
+// X palettes — both modes are X's actual chrome (verified against the
+// 2026-05-10 reference screenshot for light, and X's "Lights out"
+// dark mode for dark). Mode resolves from the puru-theme cookie set
+// by ObservatoryClient after the weather feed lands · pre-paint via
+// the inline ThemeBoot script · server-read here so the SSR HTML
+// already carries the right chrome.
+//
 // X light-mode palette (2026):
 //   bg              #ffffff
 //   surface (cards) #f7f9f9
@@ -28,7 +35,22 @@
 //   accent          #1d9bf0  (links · active underline · Post button)
 //   verified        #1d9bf0
 //   pill-active-bg  #eff3f4
+//
+// X dark-mode palette ("Lights out" · OLED black · 2026):
+//   bg              #000000
+//   surface (cards) #16181c
+//   hover           #1d1f23
+//   hairline        #2f3336
+//   text-primary    #e7e9ea
+//   text-secondary  #71767b
+//   text-tertiary   #5d6063
+//   accent          #1d9bf0  (carries across both modes — X's blue is
+//                              the one constant; matches the verified
+//                              badge color)
+//   pill-active-bg  #16181c
 
+import { cookies } from "next/headers"
+import { THEME_COOKIE, type ResolvedTheme } from "@/lib/theme/resolve"
 import {
   Bell,
   Bot,
@@ -72,20 +94,59 @@ type StylePreset = (typeof STYLE_PRESETS)[number]
 // and our custom inline SVG glyphs (e.g. ViewsGlyph) without TS friction.
 type IconType = React.ComponentType<{ size?: number; strokeWidth?: number }>
 
-// X light-mode tokens · inlined so the page is self-contained.
+// X palette · referenced as CSS custom properties so a single
+// theme-scoped style block on <main> drives the whole tree without
+// every helper component needing to take a `palette` prop. The hex
+// values live in X_LIGHT / X_DARK below; XC stays as the
+// var()-pointer surface that the helpers consume.
 const XC = {
-  bg: "#ffffff",
-  surface: "#f7f9f9",
-  hover: "#eff3f4",
-  hairline: "#eff3f4",
-  hairlineStrong: "#cfd9de",
-  textPrimary: "#0f1419",
-  textSecondary: "#536471",
-  textTertiary: "#7c8b96",
-  accent: "#1d9bf0",
-  accentText: "#ffffff",
-  pillActiveBg: "#eff3f4",
+  bg: "var(--x-bg)",
+  surface: "var(--x-surface)",
+  hover: "var(--x-hover)",
+  hairline: "var(--x-hairline)",
+  hairlineStrong: "var(--x-hairline-strong)",
+  textPrimary: "var(--x-text-primary)",
+  textSecondary: "var(--x-text-secondary)",
+  textTertiary: "var(--x-text-tertiary)",
+  accent: "var(--x-accent)",
+  accentText: "var(--x-accent-text)",
+  pillActiveBg: "var(--x-pill-active-bg)",
 } as const
+
+// Real hex values for both modes. The CSSProperties object below
+// gets spread onto <main style={...}> so the cascade lights up.
+const X_LIGHT = {
+  "--x-bg": "#ffffff",
+  "--x-surface": "#f7f9f9",
+  "--x-hover": "#eff3f4",
+  "--x-hairline": "#eff3f4",
+  "--x-hairline-strong": "#cfd9de",
+  "--x-text-primary": "#0f1419",
+  "--x-text-secondary": "#536471",
+  "--x-text-tertiary": "#7c8b96",
+  "--x-accent": "#1d9bf0",
+  "--x-accent-text": "#ffffff",
+  "--x-pill-active-bg": "#eff3f4",
+} as const
+
+const X_DARK = {
+  "--x-bg": "#000000",
+  "--x-surface": "#16181c",
+  "--x-hover": "#1d1f23",
+  "--x-hairline": "#2f3336",
+  "--x-hairline-strong": "#3e4144",
+  "--x-text-primary": "#e7e9ea",
+  "--x-text-secondary": "#71767b",
+  "--x-text-tertiary": "#5d6063",
+  "--x-accent": "#1d9bf0",
+  // On dark, the Post button (text on accent) stays white — matches X.
+  "--x-accent-text": "#ffffff",
+  "--x-pill-active-bg": "#16181c",
+} as const
+
+function xPaletteFor(theme: ResolvedTheme): React.CSSProperties {
+  return (theme === "old-horai" ? X_DARK : X_LIGHT) as React.CSSProperties
+}
 
 // X brand mark (operator-provided 2026-05-10).
 function XMark({ size = 28 }: { size?: number }) {
@@ -542,13 +603,46 @@ export default async function DemoPage({ searchParams }: PageProps) {
   const baseUrl =
     process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
   const targetUrl = params.url || `${baseUrl}/api/actions/quiz/start`
+
+  // Theme resolution priority for the X chrome:
+  //   1. ?style=x-dark | x-light — explicit operator override (kept
+  //      from before · the recording surface needs to lock to one
+  //      mode regardless of the visitor's system pref)
+  //   2. puru-theme cookie — set by ObservatoryClient after the
+  //      weather feed lands · cookie is the SSR-readable signal
+  //   3. x-light default — matches the prior behavior on cold
+  //      first visit before the inline ThemeBoot script can run
+  const cookieTheme = (await cookies()).get(THEME_COOKIE)?.value
+  const resolvedTheme: ResolvedTheme =
+    params.style === "x-dark"
+      ? "old-horai"
+      : params.style === "x-light"
+        ? "day-horai"
+        : cookieTheme === "old-horai"
+          ? "old-horai"
+          : "day-horai"
+
+  // Pass through to the focal Blink card · `default` lets BlinkPreview
+  // pick its own surface; `x-dark`/`x-light` force a Blink-side flip.
+  // We intentionally don't auto-flip the Blink — the cream/honey card
+  // is the focal artifact and its warmth is the contrast we want
+  // against either chrome.
   const stylePreset: StylePreset =
-    STYLE_PRESETS.find((p) => p === params.style) ?? "x-light"
+    STYLE_PRESETS.find((p) => p === params.style) ?? "default"
 
   return (
     <main
       className="min-h-dvh w-full overflow-y-auto font-puru-body"
-      style={{ backgroundColor: XC.bg, color: XC.textPrimary }}
+      // Spread the X palette as CSS custom properties so every helper
+      // component below — NavItem, Post, NewsItem, etc — picks up the
+      // resolved chrome through XC's var() pointers without any prop
+      // drilling. backgroundColor + color reference the same vars so
+      // the whole sheet flips in one place.
+      style={{
+        ...xPaletteFor(resolvedTheme),
+        backgroundColor: XC.bg,
+        color: XC.textPrimary,
+      }}
     >
       {/* 3-column always-on · recording surface · operator drives viewport.
           min-w-[1280px] keeps the layout structurally faithful even when the
@@ -618,7 +712,10 @@ export default async function DemoPage({ searchParams }: PageProps) {
           <header
             className="sticky top-0 backdrop-blur-md z-10"
             style={{
-              backgroundColor: `${XC.bg}d9`,
+              // 85% bg + transparent — was `${XC.bg}d9` (hex+alpha)
+              // before XC routed through var(); color-mix is the
+              // var()-friendly equivalent of the same opacity.
+              backgroundColor: `color-mix(in srgb, ${XC.bg} 85%, transparent)`,
               borderBottom: `1px solid ${XC.hairline}`,
             }}
           >

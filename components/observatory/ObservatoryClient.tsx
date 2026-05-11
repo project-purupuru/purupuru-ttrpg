@@ -10,6 +10,7 @@ import { activityStream } from "@/lib/activity";
 import type { MintActivity } from "@/lib/activity";
 import { populationStore } from "@/lib/sim/population";
 import { getSonifier } from "@/lib/audio/sonify";
+import { persistResolvedTheme } from "@/lib/theme/persist";
 import Image from "next/image";
 import { KpiStrip } from "./KpiStrip";
 import { ActivityRail } from "./ActivityRail";
@@ -62,18 +63,27 @@ export function ObservatoryClient() {
     setSfxEnabled((prev) => !prev);
   }, []);
 
-  // Auto theme — flip <html data-theme> on the user's local sunrise/sunset.
-  // "old-horai" is the existing dark token block; "day-horai" is a sentinel
-  // value that defeats the prefers-color-scheme:dark mirror (which only
-  // applies to :root:not([data-theme])) so system-dark users still get
-  // light during their local daytime. is_night stays undefined until the
-  // live feed lands its first fetch — we leave the attribute alone in that
-  // window so initial paint follows system preference.
+  // Auto theme — flip <html data-theme> on the user's local sunrise/sunset
+  // and persist the resolved value (cookie + localStorage with the
+  // sunrise/sunset cache) so the inline ThemeBoot script can resolve
+  // pre-paint on subsequent visits and navigations. ThemeBoot already
+  // set a best-guess data-theme before this effect runs; this branch
+  // is the authoritative correction once the weather feed lands.
+  // "day-horai" is a sentinel that defeats the prefers-color-scheme:dark
+  // mirror in globals.css (which only applies to :root:not([data-theme]))
+  // so a system-dark visitor still gets light during their local day.
   useEffect(() => {
     if (typeof document === "undefined") return;
     if (weather.is_night === undefined) return;
-    document.documentElement.dataset.theme = weather.is_night ? "old-horai" : "day-horai";
-  }, [weather.is_night]);
+    document.documentElement.dataset.theme = weather.is_night
+      ? "old-horai"
+      : "day-horai";
+    persistResolvedTheme({
+      isNight: weather.is_night,
+      sunriseIso: weather.sunrise,
+      sunsetIso: weather.sunset,
+    });
+  }, [weather.is_night, weather.sunrise, weather.sunset]);
 
   // YOU sprite — spawned only when (a) a wallet is connected AND (b) a
   // real radar StoneClaimed event matches the wallet. Lands in the
