@@ -716,10 +716,22 @@ export default async function DemoPage({ searchParams }: PageProps) {
 
           {/* Ambient AI agent · tsuheji winds · automated by @puruworld.
               Models the @aixbt_agent shape — automated world-pulse account
-              posting in Gumi's atmospheric voice. Drives cold scrollers
-              toward the quiz via ambient hints, NOT marketing register.
-              Positioned directly above the focal Blink so the eye reads:
-              ambient context → quiz card. Primes the moment. */}
+              posting in KAORI's voice (HERALD R5 voice-profile audit
+              2026-05-10): dawn-paced tending, short patient sentences,
+              periods only, verbs of attention (tends/listens/remembers),
+              hopeful-not-bright register. Drives cold scrollers toward the
+              quiz via ambient hints, never marketing CTAs.
+
+              Voice catalog for operator extension (per HERALD):
+                · Metal-hour shift: "The metal hour has come. Edges are
+                  settling, breath is sharper, and twelve souls have turned
+                  toward it without being asked."
+                · Dusk weather pivot: "Dusk is folding water into the
+                  valley. The wind has changed its mind about the storm,
+                  and the lanterns will hold tonight."
+                · Element-distribution: "Wood is the quiet majority this
+                  morning. Fire is two behind, earth is patient as ever,
+                  and metal is waking up slow." */}
           <Post
             avatar={
               <ImageAvatar
@@ -733,7 +745,7 @@ export default async function DemoPage({ searchParams }: PageProps) {
             time="32m"
             verified
             automatedBy="puruworld"
-            body="wood tide rising at dawn · 47 puruhani have read themselves in since first light"
+            body="The wood tide is rising. Forty-seven puruhani have read themselves in since first light, and the cedars are listening."
             metrics={{ reply: "8", repost: "21", like: "164", views: "3.8K" }}
           />
 
