@@ -1,7 +1,8 @@
-import type { Metadata, Viewport } from "next";
+import type { Viewport } from "next";
 import { Inter, Geist_Mono } from "next/font/google";
 import { Agentation } from "agentation";
 import { AnimatedFavicon } from "@/components/AnimatedFavicon";
+import { rootMetadata, jsonLdWebSite, SITE } from "@/lib/seo/metadata";
 import "./globals.css";
 
 const inter = Inter({
@@ -14,45 +15,14 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const PURU_ICON =
-  "https://thj-assets.s3.us-west-2.amazonaws.com/Purupuru/brand/project-purupuru-logo.png";
-const FAVICON_FALLBACK = "/art/jani/jani-wood.png";
-const SITE_NAME = "purupuru";
-const TITLE = "Tsuheji · purupuru";
-const DESCRIPTION = "the world, breathing — every puruhani in tsuheji, live";
-
 export const viewport: Viewport = {
-  themeColor: "#d4a80a",
+  themeColor: SITE.themeColor,
 };
 
-export const metadata: Metadata = {
-  title: TITLE,
-  description: DESCRIPTION,
-  applicationName: SITE_NAME,
-  manifest: "/manifest.webmanifest",
-  icons: {
-    icon: FAVICON_FALLBACK,
-    apple: PURU_ICON,
-  },
-  openGraph: {
-    type: "website",
-    siteName: SITE_NAME,
-    title: TITLE,
-    description: DESCRIPTION,
-    images: [{ url: PURU_ICON, width: 512, height: 512, alt: "purupuru" }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: TITLE,
-    description: DESCRIPTION,
-    images: [PURU_ICON],
-  },
-  appleWebApp: {
-    capable: true,
-    title: SITE_NAME,
-    statusBarStyle: "black-translucent",
-  },
-};
+// SEO + OG metadata single-source · `lib/seo/metadata.ts`.
+// Per-page overrides via `export const metadata = pageMetadata("<slug>")`
+// shallow-merge over these defaults.
+export const metadata = rootMetadata;
 
 export default function RootLayout({
   children,
@@ -65,6 +35,15 @@ export default function RootLayout({
       className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-puru-body text-puru-ink-base">
+        {/* WebSite + Organization JSON-LD · helps AI agents + search
+            crawlers map the surface · ties @puruworld X handle to the
+            canonical site. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(jsonLdWebSite),
+          }}
+        />
         <AnimatedFavicon />
         {children}
         {process.env.NODE_ENV === "development" && <Agentation />}

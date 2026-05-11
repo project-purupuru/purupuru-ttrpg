@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /preview
+Disallow: /demo
+Disallow: /api/
+
+Sitemap: https://purupuru.world/sitemap.xml

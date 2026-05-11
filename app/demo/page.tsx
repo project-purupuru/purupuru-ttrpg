@@ -55,7 +55,10 @@ import {
 } from "lucide-react"
 
 import { BlinkPreview } from "@/components/blink/blink-preview"
+import { pageMetadata } from "@/lib/seo/metadata"
 import "@/components/blink/blink-styles.css"
+
+export const metadata = pageMetadata("demo")
 
 interface PageProps {
   searchParams: Promise<{ url?: string; style?: string }>

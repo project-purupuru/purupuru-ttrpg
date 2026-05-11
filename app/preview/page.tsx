@@ -10,7 +10,10 @@
 import Link from "next/link"
 
 import { BlinkPreview } from "@/components/blink/blink-preview"
+import { pageMetadata } from "@/lib/seo/metadata"
 import "@/components/blink/blink-styles.css"
+
+export const metadata = pageMetadata("preview")
 
 interface ActionResponse {
   icon: string

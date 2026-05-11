@@ -1,0 +1,44 @@
+# purupuru
+
+> a warm world of five elements and five guardians · collect, craft, discover
+
+purupuru is the awareness layer of an on-chain ttrpg world built on Solana.
+The five wuxing elements (wood, fire, earth, metal, water) anchor identity,
+weather, and ritual. Players read themselves into the world through an
+8-question quiz, mint a Genesis Stone NFT marking their element, and
+appear in a live shared observatory that shows who's joining the world
+in real time.
+
+The web surface is bilingual with platform-portable Solana Actions
+("Blinks") that unfurl natively in X (Twitter), Phantom mobile, and
+Telegram — letting the world begin before the player enters the app.
+
+## surfaces
+
+- [/](https://purupuru.world/): the observatory · live shared canvas of arrivals, element distribution, weather, and day/night theme
+- [/quiz](https://purupuru.world/quiz): 8-question wuxing element read · mints a Genesis Stone NFT on Solana devnet
+- [/today](https://purupuru.world/today): ambient daily pulse · what element leads today + how many have joined
+- [/actions.json](https://purupuru.world/actions.json): Solana Actions registry · maps friendly URLs to API endpoints per the Solana Actions spec
+
+## canonical vocabulary
+
+- **wuxing**: the five-element system (wood, fire, earth, metal, water) that anchors world identity
+- **awareness layer**: the live observable surface of the world · arrivals, weather, element distribution
+- **Genesis Stone**: the on-chain NFT minted at quiz completion · ties a wallet to an element
+- **puruhani**: a player-character in the world · one per wallet
+- **Blink**: a Solana Action surface · the platform-portable presentation of a world ritual
+
+## technical
+
+- Network: Solana devnet (hackathon · mainnet post-ship)
+- Anchor program: `7u27WmTz2hZHvvhL89XcSCY3eFhxEfHjUN5MjzMY6v38`
+- Frontend: Next.js 16 App Router · React 19 · Tailwind 4
+- NFT metadata schema: Metaplex Token Metadata · `image` field at `purupuru.world/art/stones/{element}.png`
+- Identity: `@puruworld` on X · canonical site `purupuru.world`
+
+## context
+
+Built for the Solana Frontier hackathon (ship 2026-05-11). The full project
+operates on the principle that "the game begins before the player enters
+the app" — every on-chain ritual is paired with a presentation layer that
+makes the world visible in the social feeds people already inhabit.
