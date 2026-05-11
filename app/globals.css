@@ -190,12 +190,15 @@
   --overlay-blur:         12px;
   --overlay-blur-subtle:  8px;
 
-  /* Ceremony veil — the dimmer that goes BEHIND the element atmosphere
-     in the Stone Recognition Ceremony. Deliberately NOT cloud-shadow
-     (warm yellow-amber hue 85) which would mix with cool elements
-     into desert tan. Cool low-chroma ink so element vivid reads pure
-     against it. ALEXANDER + KANSEI spec 2026-05-11 (#ceremony-glow). */
-  --ceremony-veil: oklch(0.18 0.020 80 / 0.92);
+  /* Ceremony veil — the Hades-pattern dimmed sanctum. Operator decision
+     2026-05-11 (post-glow-iter): light mode is NOT a bright room — it's
+     a dimmed sanctum, just slightly warmer than dark mode. Element
+     color migrates entirely into (a) the stone's existing halo and
+     (b) the headline glyphs. Two-stop dimming (core + edge) gives
+     the focal vignette its own gradient so the eye finds the stone
+     in the brightest dim-zone. */
+  --ceremony-veil-core: oklch(0.14 0.012 70 / 0.96);
+  --ceremony-veil-edge: oklch(0.08 0.008 70 / 0.98);
 
   /* ── Spacing (4px grid) ────────────────────────────────────────────── */
   --space-2xs: 2px;
@@ -377,9 +380,10 @@
   --overlay-scrim-medium: oklch(0.08 0.008 80 / 0.6);
   --overlay-scrim-light:  oklch(0.12 0.01 80 / 0.82);
 
-  /* Ceremony veil — true shadow in dark mode so element chroma can
-     glow against it. Symmetric with light-mode cool ink veil. */
-  --ceremony-veil: oklch(0.06 0.006 80 / 0.94);
+  /* Ceremony veil — true shadow in dark mode. Core slightly elevated
+     so the focal vignette still reads against absolute dim at edges. */
+  --ceremony-veil-core: oklch(0.06 0.006 80 / 0.96);
+  --ceremony-veil-edge: oklch(0.03 0.004 80 / 0.99);
 
   --shadow-card:       0 2px 8px oklch(0.05 0.008 80 / 0.40);
   --shadow-card-hover: 0 8px 24px oklch(0.03 0.008 80 / 0.50);
@@ -463,7 +467,8 @@
 
     /* Ceremony veil — true shadow in dark mode (mirrors the explicit
        [data-theme="old-horai"] block above). */
-    --ceremony-veil: oklch(0.06 0.006 80 / 0.94);
+    --ceremony-veil-core: oklch(0.06 0.006 80 / 0.96);
+    --ceremony-veil-edge: oklch(0.03 0.004 80 / 0.99);
 
     --shadow-card:       0 2px 8px oklch(0.05 0.008 80 / 0.40);
     --shadow-card-hover: 0 8px 24px oklch(0.03 0.008 80 / 0.50);

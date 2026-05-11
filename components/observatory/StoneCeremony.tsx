@@ -277,15 +277,14 @@ export function StoneCeremony({ element, pentagramPaneRef, onDismiss }: Props) {
         //   dark:  oklch(0.06 0.006 80 / 0.94) true shadow
         // so element chroma reads the same atmospheric quality across both.
         background: `
-          radial-gradient(ellipse 80% 70% at 50% 55%,
-            transparent 0%,
-            color-mix(in oklch, var(--puru-${element}-vivid) 16%, transparent) 55%,
-            color-mix(in oklch, var(--puru-${element}-vivid) 30%, transparent) 100%
+          radial-gradient(ellipse 90% 80% at 50% 45%,
+            color-mix(in oklch, var(--puru-${element}-vivid) 8%, transparent) 0%,
+            transparent 60%
           ),
           radial-gradient(circle at 50% 55%,
-            color-mix(in oklch, var(--ceremony-veil) 55%, transparent) 0%,
-            color-mix(in oklch, var(--ceremony-veil) 85%, transparent) 50%,
-            var(--ceremony-veil) 100%
+            var(--ceremony-veil-core) 0%,
+            var(--ceremony-veil-edge) 70%,
+            var(--ceremony-veil-edge) 100%
           )
         `,
         backdropFilter:
@@ -527,8 +526,27 @@ export function StoneCeremony({ element, pentagramPaneRef, onDismiss }: Props) {
               The element-energy halo around the stone is the only
               ornament; the type stack rests below at clean spacing. */}
 
+          {/* Headline · element-color text matching the kanji glow on
+              the stone. Operator decision 2026-05-11 — color makes the
+              element identity legible at a glance and composes with the
+              molten kanji + element atmosphere. Drop-shadow gives the
+              text its own glow so it reads against any backdrop tint. */}
+          {/* Headline · element-vivid lifted toward white (92% mix) for
+              luminosity against the dim sanctum, with two-layer
+              shadow per ALEXANDER spec:
+                · 1px hard dark drop = legibility anchor (THE thing
+                  that makes it readable, not the bloom)
+                · 18px element glow at 55% = inner halo
+                · 36px element glow at 28% = soft outer bloom
+              Capped at 36px outer to avoid Photoshop-layer-style
+              over-glow that breaks the Hades restraint. */}
           <motion.h2
-            className="mt-12 font-puru-display text-[2.75rem] leading-none text-puru-ink-rich"
+            className="mt-12 font-puru-display text-[2.75rem] leading-none capitalize"
+            style={{
+              color: `color-mix(in oklch, var(--puru-${element}-vivid) 92%, white)`,
+              textShadow: `0 1px 0 oklch(0.04 0.006 80 / 0.85), 0 0 18px color-mix(in oklch, var(--puru-${element}-vivid) 55%, transparent), 0 0 36px color-mix(in oklch, var(--puru-${element}-vivid) 28%, transparent)`,
+              letterSpacing: "0.01em",
+            }}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1], delay: reduce ? 0.16 : 1.36 }}
@@ -536,11 +554,15 @@ export function StoneCeremony({ element, pentagramPaneRef, onDismiss }: Props) {
             {copy.headline}
           </motion.h2>
 
+          {/* Flavor · explicit warm cream so it reads against the dim
+              sanctum in BOTH modes. text-puru-ink-base would be dark
+              in light mode (invisible against the new dark veil). */}
           <div className="mt-5 flex flex-col items-center gap-1.5 px-6 text-center">
             {copy.flavor.map((line, i) => (
               <motion.p
                 key={i}
-                className="text-base text-puru-ink-base sm:text-lg"
+                className="text-base sm:text-lg"
+                style={{ color: "oklch(0.86 0.010 85)" }}
                 initial={{ opacity: 0, y: 4 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{
@@ -553,10 +575,13 @@ export function StoneCeremony({ element, pentagramPaneRef, onDismiss }: Props) {
             ))}
           </div>
 
+          {/* Dismiss prompt · explicit cream-dim color so it reads
+              against the dim sanctum in BOTH modes. */}
           <motion.button
             type="button"
             onClick={handleDismiss}
-            className="group mt-10 cursor-pointer font-puru-mono text-[10px] uppercase tracking-[0.32em] text-puru-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-puru-honey-base"
+            className="group mt-10 cursor-pointer font-puru-mono text-[10px] uppercase tracking-[0.32em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-puru-honey-base"
+            style={{ color: "oklch(0.72 0.010 85)" }}
             initial={{ opacity: 0 }}
             animate={reduce ? { opacity: 0.75 } : { opacity: 1 }}
             transition={{ duration: 0.6, ease: "easeOut", delay: reduce ? 0.32 : 1.8 }}
@@ -569,7 +594,7 @@ export function StoneCeremony({ element, pentagramPaneRef, onDismiss }: Props) {
                   ? undefined
                   : { duration: 3.2, delay: 2.3, repeat: Infinity, ease: [0.45, 0.05, 0.55, 0.95] }
               }
-              className="inline-block transition-colors group-hover:text-puru-ink-rich"
+              className="inline-block transition-colors group-hover:text-white"
             >
               {CEREMONY_DISMISS_LINE}
             </motion.span>
@@ -588,12 +613,13 @@ export function StoneCeremony({ element, pentagramPaneRef, onDismiss }: Props) {
         {phase === "landed" && targetRef.current && (
           <motion.div
             key="landing-voice"
-            className="pointer-events-none fixed font-puru-display text-[1.5rem] leading-none text-puru-ink-rich"
+            className="pointer-events-none fixed font-puru-display text-[1.5rem] leading-none"
             style={{
               left: `calc(50vw + ${targetRef.current.dx}px)`,
               top: `calc(50vh + ${targetRef.current.dy + 28}px)`,
               transform: "translate(-50%, 0)",
-              textShadow: `0 0 12px color-mix(in oklch, var(--puru-${element}-vivid) 60%, transparent)`,
+              color: `var(--puru-${element}-vivid)`,
+              textShadow: `0 0 14px color-mix(in oklch, var(--puru-${element}-vivid) 70%, transparent), 0 1px 0 oklch(0.06 0.008 80 / 0.4)`,
             }}
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}

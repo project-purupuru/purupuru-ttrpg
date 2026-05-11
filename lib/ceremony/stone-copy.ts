@@ -32,7 +32,13 @@
 import type { Element } from "@/lib/score";
 
 export interface StoneCopy {
-  /** Display headline — lowercase Yuruka display, the element name. */
+  /** Display headline — Title Case Yuruka display, the element name.
+   *  Operator decision 2026-05-11 · uppercase first letter so the
+   *  element name reads as a proper noun (you ARE Fire, not "you are
+   *  fire"), which composes with the Blink reveal voice
+   *  ("You are Fire. You move first..."). The headline color is
+   *  applied at the component level to match the element kanji glow
+   *  on the stone. */
   headline: string;
   /** Two-line flavor copy, period-terminated, second-person, lowercase.
    *  L1 = echo of ARCHETYPE_REVEALS · L2 = arrival in the world. */
@@ -60,7 +66,7 @@ export const CEREMONY_DISMISS_LINE = "tap when you're ready";
 
 export const STONE_COPY: Record<Element, StoneCopy> = {
   wood: {
-    headline: "wood",
+    headline: "Wood",
     flavor: [
       "you start things.",
       "this one's real now.",
@@ -68,7 +74,7 @@ export const STONE_COPY: Record<Element, StoneCopy> = {
     breathDurMs: 6000,
   },
   fire: {
-    headline: "fire",
+    headline: "Fire",
     flavor: [
       "you moved first.",
       "the room moved with you.",
@@ -76,7 +82,7 @@ export const STONE_COPY: Record<Element, StoneCopy> = {
     breathDurMs: 4000,
   },
   earth: {
-    headline: "earth",
+    headline: "Earth",
     flavor: [
       "you stay when others move on.",
       "this room will too.",
@@ -84,7 +90,7 @@ export const STONE_COPY: Record<Element, StoneCopy> = {
     breathDurMs: 5500,
   },
   metal: {
-    headline: "metal",
+    headline: "Metal",
     flavor: [
       "you hear what isn't said.",
       "the cut is the gift.",
@@ -92,7 +98,7 @@ export const STONE_COPY: Record<Element, StoneCopy> = {
     breathDurMs: 4500,
   },
   water: {
-    headline: "water",
+    headline: "Water",
     flavor: [
       "you feel before you think.",
       "feel where you've landed.",
