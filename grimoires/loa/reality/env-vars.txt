@@ -1,18 +1,25 @@
-# Environment Variables (Reality Snapshot · 2026-05-07)
+# Environment Variables · 2026-05-10
+# Extracted via grep "process.env.\w+" in app/, lib/, packages/
 
-NONE FOUND in application code (no application code exists).
+## Required (mint flow · per lib/blink/env-check.ts:24-58)
+CLAIM_SIGNER_SECRET_BS58       # ed25519 keypair · base58 64-byte secret · derives CLAIM_SIGNER_PUBKEY hardcoded in lib.rs
+SPONSORED_PAYER_SECRET_BS58    # Solana keypair · pays tx fees · ≥0.05 SOL devnet balance · separate from claim-signer
+                               # ALSO accepts SPONSORED_PAYER_SECRET_JSON (64-element byte array)         lib/blink/sponsored-payer.ts:42-71
+QUIZ_HMAC_KEY                  # 32-byte hex (64 chars) · openssl rand -hex 32                            lib/blink/env-check.ts:35
+KV_REST_API_URL                # Vercel KV REST endpoint · auto-set by Vercel KV provisioning             lib/blink/env-check.ts:42
+KV_REST_API_TOKEN              # Vercel KV REST auth token · auto-set                                     lib/blink/env-check.ts:47
 
-`.gitignore` references the standard Next.js env tier:
+## Optional / public
+SOLANA_RPC_URL                 # defaults to https://api.devnet.solana.com                                lib/blink/env-check.ts:51
+NEXT_PUBLIC_APP_URL            # canonical app URL · embedded in Action responses + OG images
+OBSERVATORY_URL                # post-mint links.next bridge target · ?welcome=<element>
+NEXT_PUBLIC_RADAR_URL          # observatory's indexer feed URL (zerker's radar)
+SCORE_API_URL                  # Score backend (currently unused · mock adapter active)
+VERCEL_URL                     # Vercel auto-set
+NODE_ENV                       # standard Node lifecycle var
 
-  .env, .env.local, .env.development.local, .env.test.local, .env.production.local, *.env
-
-`.env.example` is permitted (`!.env.example`) but does not yet exist.
-
-PRD does not enumerate runtime env vars in detail. Anticipated vars (forward-looking, from prd.md §3.3 + standard Solana Actions stack):
-
-  SOLANA_RPC_URL          [planned · devnet only v0]
-  WITNESS_PROGRAM_ID      [planned · anchor program deployment address]
-  BACKEND_FEE_PAYER_KEYPAIR  [planned · sponsored-payer for gasless witness]
-  SCORE_API_URL           [planned · score-puru integration]
-  SONAR_GRAPHQL_URL       [planned · Hasura subscription endpoint]
-  WEATHER_BOT_FEED        [planned · puruhpuruweather upstream]
+## Notes
+- See lib/blink/env-check.ts:checkMintEnv() for preflight that surfaces ALL missing vars in one error.
+- README.md and INSTALLATION.md document QUIZ_HMAC_KEY generation.
+- No DATABASE_URL · no Postgres · KV-only persistence (Vercel KV NX EX 300 nonce store).
+- No Helius / Triton RPC URL hardcoded · operator can swap via SOLANA_RPC_URL.

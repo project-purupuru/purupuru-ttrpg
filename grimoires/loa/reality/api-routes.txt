@@ -1,10 +1,32 @@
-# API Routes (Reality Snapshot · 2026-05-07)
+# API Routes Inventory · 2026-05-10
+# Source: grep "export async function (GET|POST|PUT|DELETE|PATCH)" in app/
 
-NONE FOUND.
+# Solana Actions endpoints (Blinks)
+GET    app/actions.json/route.ts                          # Solana Actions discovery manifest
+GET    app/api/actions/today/route.ts:35                  # ambient card · GET → ActionGetResponse
+GET    app/api/actions/quiz/start/route.ts:37             # Q1 entry-point card
+POST   app/api/actions/quiz/start/route.ts:55             # chain-link target → Q1 inline
+GET    app/api/actions/quiz/step/route.ts:129             # per-step quiz card render
+POST   app/api/actions/quiz/step/route.ts:146             # advance step (HMAC-validated state)
+GET    app/api/actions/quiz/result/route.ts:113           # archetype reveal card
+POST   app/api/actions/quiz/result/route.ts:129           # confirm reveal · advance to mint
+POST   app/api/actions/mint/genesis-stone/route.ts:119    # mint POST · sponsored-payer · KV nonce
+GET    app/api/actions/mint/genesis-stone/route.ts:331    # mint GET · pre-flight metadata
 
-The repo contains no application code. PRD describes a planned Solana Action endpoint at `apps/blink-emitter` (next.js), with at minimum:
+# Image / OG routes
+GET    app/api/og/route.tsx:129                           # placeholder OG card · element gradient SVG
 
-  GET  /api/actions/blink           [PLANNED · prd.md FR-8 stateless GET, wallet-agnostic per Solana Actions spec]
-  POST /api/actions/blink           [PLANNED · prd.md FR-4 corrected POST flow]
+# Top-level pages (App Router · render via GET)
+       app/page.tsx                                       # observatory landing
+       app/today/page.tsx                                 # ambient landing (direct-URL)
+       app/quiz/page.tsx                                  # quiz landing (direct-URL)
+       app/preview/page.tsx                               # local Blink preview surface
+       app/demo/page.tsx                                  # X-faithful 3-column recording surface
+       app/kit/page.tsx                                   # design kit playground
+       app/asset-test/page.tsx                            # asset URL probes
 
-These are forward-looking only. No file under `apps/`, `app/`, `src/`, or `pages/` exists.
+# Special files
+       app/opengraph-image.tsx                            # static OG (1200×630 PNG via next/og)
+       app/sitemap.ts                                     # SEO sitemap generator
+       app/layout.tsx                                     # root layout · theme + fonts
+       app/globals.css                                    # OKLCH token palette (Tailwind 4)

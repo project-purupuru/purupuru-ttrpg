@@ -1,39 +1,70 @@
-# Entry Points
+# Entry Points · 2026-05-11
 
-> Generated 2026-05-07. **Currently: none.** No application code = no entry points.
+## Application
 
-## Application Entry Points (planned)
+| Surface | Entry | Required env |
+|---------|-------|--------------|
+| Next.js dev server | `pnpm dev` (next dev · Turbopack) | none for browse · mint flow needs full env |
+| Next.js prod | `pnpm build && pnpm start` | full mint env |
+| Vercel deploy | `git push` to deploy branch | full mint env in Vercel project settings |
 
-After sprint-1 ships:
+## Solana Actions endpoints
 
-| Entry | Path (planned) | Purpose |
-|-------|----------------|---------|
-| Next.js app | `apps/blink-emitter/` | Solana Action GET/POST + OG image |
-| TS workspace package | `packages/peripheral-events/` | substrate library, no entry binary |
-| Anchor program | `programs/event-witness/` | devnet-deployed, called via the emitter |
-| CLI / scripts | TBD | likely dev-only at first |
+| Surface | URL | Method |
+|---------|-----|--------|
+| Quiz start | `/api/actions/quiz/start` | GET (Q1 card) · POST (chain-link) |
+| Quiz step N | `/api/actions/quiz/step?s=N&...` | GET (card) · POST (advance) |
+| Quiz result | `/api/actions/quiz/result?...` | GET (reveal) · POST (advance to mint) |
+| Mint stone | `/api/actions/mint/genesis-stone` | GET (preflight) · POST (build tx) |
+| Today (ambient) | `/api/actions/today` | GET |
+| Manifest | `/actions.json` | GET |
+| OG card | `/api/og?step=N | ?archetype=X` | GET (SVG) |
 
-## Repository Entry Points (current)
+## Pages
 
-| Entry | Path | Purpose |
-|-------|------|---------|
-| Repo root README | `README.md` | public-facing description, ghibli-warm voice |
-| Agent guidance | `CLAUDE.md` | repo-level Claude/agent prompt + status banner |
-| Loa framework | `.loa/` (submodule v1.116.1 elsewhere; this repo has v1.130.0 mounted) | Loa system zone |
-| Canonical PRD | `grimoires/loa/prd.md` | post-flatline-applied genesis spec (911 LOC) |
-| Companion SDD | `grimoires/loa/sdd.md` | this ride's architecture documentation |
+| Path | Component | Purpose |
+|------|-----------|---------|
+| `/` | `app/page.tsx` | Observatory landing |
+| `/today` | `app/today/page.tsx` | Ambient landing (direct-URL) |
+| `/quiz` | `app/quiz/page.tsx` | Quiz landing (direct-URL) |
+| `/preview` | `app/preview/page.tsx` | Local Blink preview surface |
+| `/demo` | `app/demo/page.tsx` | X-faithful 3-column recording surface |
+| `/kit` | `app/kit/page.tsx` | Design-token playground |
+| `/asset-test` | `app/asset-test/page.tsx` | Asset URL probes |
 
-## Required Env Vars (planned)
+## Test entry points
 
-None today. Sprint-1 will introduce (anticipated, not yet committed):
+```bash
+pnpm vitest run                                              # all unit
+pnpm vitest run --coverage                                   # with coverage
+pnpm test:watch                                              # watch
+pnpm test:e2e                                                # Playwright
+pnpm --filter @purupuru/peripheral-events test               # substrate only
+pnpm --filter @purupuru/medium-blink test                    # renderer only
+pnpm --filter @purupuru/world-sources test                   # score adapter only
+cd programs/purupuru-anchor && anchor test                   # Rust invariants (6)
+pnpm tsx scripts/sp3-mint-route-smoke.ts                     # local mint smoke
+BASE_URL=https://purupuru.world pnpm tsx scripts/sp3-mint-route-smoke.ts  # prod smoke
+```
 
-- `SOLANA_RPC_URL` — devnet
-- `WITNESS_PROGRAM_ID` — anchor program deployment address
-- `BACKEND_FEE_PAYER_KEYPAIR` — sponsored-payer signing keypair
-- `SCORE_API_URL` — score-puru integration
-- `SONAR_GRAPHQL_URL` — Hasura subscription endpoint
-- `WEATHER_BOT_FEED` — puruhpuruweather upstream
+## Build / typecheck / lint
 
-## Build / Run
+```bash
+pnpm install
+pnpm typecheck                  # tsc --noEmit
+pnpm lint                       # eslint
+pnpm build                      # next build
+cd programs/purupuru-anchor && anchor build
+```
 
-Not yet defined. Sprint-1 will add `package.json`, `bun.lockb` or `pnpm-lock.yaml`, and likely a `turbo.json` or `nx.json` for the monorepo.
+## Required env (mint flow · per lib/blink/env-check.ts)
+
+`CLAIM_SIGNER_SECRET_BS58` · `SPONSORED_PAYER_SECRET_BS58` (or `..._SECRET_JSON`) · `QUIZ_HMAC_KEY` · `KV_REST_API_URL` · `KV_REST_API_TOKEN`
+
+## Optional env
+
+`SOLANA_RPC_URL` · `NEXT_PUBLIC_APP_URL` · `OBSERVATORY_URL` · `NEXT_PUBLIC_RADAR_URL` · `SCORE_API_URL`
+
+## Pre-demo runbook
+
+`grimoires/loa/context/05-pre-demo-checklist.md` — end-to-end checklist including upgrade-authority freeze (`solana program set-upgrade-authority --final` · IRREVERSIBLE).

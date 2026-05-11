@@ -408,3 +408,9 @@ Beyond that, the user journey map calls out three rooms that need to land:
 ## Acknowledgments
 
 Built for Solana Frontier hackathon. Doctrine debts: Eileen (separation-as-moat), Gumi (quiz design + voice + stones), zerker (observatory + indexer).
+
+---
+
+<p align="center">
+  <sub><b>ridden by loa</b> — agent-driven development framework · <a href="https://github.com/0xHoneyJar/loa">github.com/0xHoneyJar/loa</a></sub>
+</p>

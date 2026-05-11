@@ -1,37 +1,64 @@
-# External Integrations
+# External Integrations · 2026-05-11
 
-> Generated 2026-05-07. **Currently: none integrated.** All integrations are planned for sprint-1+.
+## Solana (write-side)
 
-## Upstream Sources (read-side)
+| Integration | Cluster | Pubkey / endpoint | Purpose |
+|-------------|---------|-------------------|---------|
+| Anchor program `purupuru_anchor` | devnet | `7u27WmTz2hZHvvhL89XcSCY3eFhxEfHjUN5MjzMY6v38` | `claim_genesis_stone` ix |
+| Metaplex Token Metadata | devnet | `TOKEN_METADATA_PROGRAM_ID` (mainnet-pinned via `mpl-token-metadata` crate) | NFT metadata + master edition |
+| Ed25519 sysvar | runtime | `INSTRUCTIONS_SYSVAR_ID` | sysvar inspection for ed25519 sig verify pattern |
+| Solana RPC | devnet | `https://api.devnet.solana.com` (default · override via `SOLANA_RPC_URL`) | tx submit · balance check |
+| `@solana/web3.js@^1.95.0` | client lib | — | tx assembly |
+| `@coral-xyz/anchor@^0.31.1` | client lib | — | typed Program client |
+| `@solana/wallet-adapter-{phantom,react,react-ui}` | client | — | Phantom wallet integration |
 
-| Source | Repo / Surface | What this repo will read | Integration shape |
-|--------|----------------|--------------------------|-------------------|
-| `score-puru` API | `project-purupuru/score` (live) | Element affinity, wallet signals | HTTP REST · planned `ScoreAdapter` |
-| `sonar` GraphQL | `project-purupuru/sonar` (live) | Raw on-chain mint / transfer events | Hasura subscription · planned `SonarAdapter` |
-| `puruhpuruweather` | live X bot | Daily cosmic weather oracle | feed/parse · adapter TBD |
-| `project-purupuru/game` | codex+gumi parallel pair | Game-state events (battle, burn, transcendence) | future · post-hackathon |
+## Solana (read-side · indexer)
 
-## Downstream Mediums (write-side / fan-out)
+| Integration | Owner | Status |
+|-------------|-------|--------|
+| `project-purupuru/radar` (zerker's repo) | zerker | LIVE indexer subscribes to `StoneClaimed` events; observatory rail consumes via `NEXT_PUBLIC_RADAR_URL` |
 
-| Medium | Registry | Status |
-|--------|----------|--------|
-| `BLINK_DESCRIPTOR` (Solana Actions) | `0xHoneyJar/freeside-mediums/protocol` | **PR planned** — 5th MediumCapability variant alongside DISCORD_WEBHOOK / DISCORD_INTERACTION / CLI / TELEGRAM_STUB. `medium-registry@0.2.0` already shipped (cycle-R, 2026-05-04). |
-| Twitter card composer | future | post-hackathon |
-| Discord webhook | future | post-hackathon |
-| Telegram inline | future | post-hackathon |
+## Vercel KV (Upstash Redis-compatible)
 
-## On-Chain Surface
+- **Purpose**: nonce replay protection (`NX EX 300` atomic claim)
+- **Lib**: `@vercel/kv@^3.0.0`
+- **Env**: `KV_REST_API_URL` + `KV_REST_API_TOKEN` (auto-set by KV provisioning)
+- **Code**: `lib/blink/nonce-store.ts`
 
-- Solana **devnet** v0. The on-chain witness program (`programs/event-witness/`) will be deployed to devnet only.
-- Sponsored-payer model: backend keypair pays gas; user wallet signs as authority for the witness record.
-- Mainnet path deferred per PRD D-3.
+## Solana Actions (protocol)
 
-## Webhooks
+- **Spec**: Solana Actions v2.4 (Dialect)
+- **Lib**: `@dialectlabs/blinks@^0.22.5` (preview surface only · production endpoints implement spec directly)
+- **Discovery**: `app/actions.json/route.ts` (manifest)
+- **Endpoints**: `app/api/actions/{today,quiz/{start,step,result},mint/genesis-stone}/route.ts`
 
-None yet. Sponsorship for ingest webhooks (e.g. mint listeners) likely emerges in sprint-1.
+## Score read-adapter (currently mock)
 
-## Auth
+- **Lib**: `@purupuru/world-sources` (`packages/world-sources/src/score-adapter.ts`)
+- **Status**: interface stable · implementation = deterministic mock
+- **Future**: real Score backend via `SCORE_API_URL` env (currently unset / unused)
 
-- No app-side auth today.
-- The Solana Action endpoints are wallet-gated *implicitly* — the user must sign the returned tx with their wallet. There is no separate session.
-- `[[mibera-as-npc]] §6.1` prohibits session-key delegation.
+## IRL weather (mocked)
+
+- **Status**: weather oracle is a day-of-week stub per `app/api/actions/mint/genesis-stone/route.ts:4-9`
+- **Future**: real-world weather → element mapping in `lib/weather/`
+
+## Telegram (untested · structurally compatible)
+
+- **Status**: same `/api/actions/*` endpoints honor the Solana Actions spec; should unfurl in Telegram clients without code changes
+- **Verification**: not yet tested in Telegram client
+
+## Twitter (the v0 distribution)
+
+- **Status**: Blink unfurls in Twitter feed · LIVE
+- **Links**: tweet → quiz/start → quiz/step (chain) → quiz/result → mint/genesis-stone → Phantom
+
+## Voice / lore (substrate side)
+
+- `grimoires/the-speakers/taste.md` (Gumi-curated voice register)
+- `packages/medium-blink/src/voice-corpus.ts` (8 questions × 3 answers + 5 archetype reveals)
+- `grimoires/vocabulary/lexicon.yaml` (canonical product terms)
+
+## Eval harness
+
+- `evals/` (eval suites, graders, fixtures · Loa eval-running tooling)

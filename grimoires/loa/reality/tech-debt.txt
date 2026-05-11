@@ -1,13 +1,26 @@
-# Tech Debt Markers (Reality Snapshot · 2026-05-07)
+# Tech Debt Markers · 2026-05-10
+# Source: grep TODO|FIXME|HACK|XXX|@deprecated|@ts-ignore in app/ lib/ packages/ programs/ components/
+# Excluded: node_modules, __tests__, .next.OLD-*
 
-NONE FOUND in application code (no application code exists).
+## TODO (3 markers, all in one file)
+packages/medium-blink/src/quiz-config.ts:17    # "rotate-n" mode · TODO sprint-3 (needs random seed)
+packages/medium-blink/src/quiz-config.ts:18    # "tension-pick" Gumi-curated · TODO when she designs per-Q index sets
+packages/medium-blink/src/quiz-config.ts:81    # TODO sprint-3 · for now fall through to first-n
 
-The PRD itself flags openly-tracked debt and decisions:
+## FIXME / HACK / XXX
+(none in non-vendored source)
 
-  - SKP-001 (flatline blocker)  : MVD floor is OPEN · 4d clock · single-owner risk
-  - D-1 (operator decision)     : may rename target repo (project-purupuru/purupuru-ttrpg → ?)
-  - D-3 (operator decision)     : devnet locked v0 · mainnet deferred
-  - DISPUTED IMP-015            : ECS / PDA conflation · resolved by §3.5 split (kept here as scar)
-  - 3 disputed flatline items   : 2 folded, 1 operator-decided
+## @ts-ignore / @ts-expect-error
+(none in non-vendored source · only in stale .next.OLD-* build artifacts · see hygiene-report.md)
 
-These are proactive design-time markers, not in-code debt. There is no in-code TODO/FIXME/HACK/XXX yet because there is no in-code anything yet.
+## Sprint-3 backlog implied by TODOs
+- Quiz answer rotation (random / tension-pick modes) — currently first-n only
+- Real weather oracle (currently day-of-week stub per genesis-stone/route.ts:4-9)
+- HMAC mac verification on URL state (deferred per genesis-stone/route.ts:16-17)
+
+## Substrate-tier "currently mocked" markers (from PRD/SDD ratification + README §"What's mocked vs real")
+- packages/world-sources/src/score-adapter.ts — Score read-adapter is mock (interface stable)
+- lib/sim/, lib/activity/ — observatory feeds synthetic until indexer wires up
+- StoneClaimed indexer (zerker · project-purupuru/radar) NOT yet wired into observatory rail
+
+## Total tech-debt markers: 3 TODOs · 0 FIXME · 0 HACK · 0 @ts-ignore (in source)

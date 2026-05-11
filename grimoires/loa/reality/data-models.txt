@@ -1,19 +1,67 @@
-# Data Models (Reality Snapshot · 2026-05-07)
+# Data Models · 2026-05-10
+# Effect Schema discriminated unions · packages/peripheral-events/src/
 
-NONE FOUND.
+## Element + Affinity primitives
+Element                = S.Literal("WOOD","FIRE","EARTH","METAL","WATER")     # world-event.ts:11
+ElementByte            = S.Literal(1,2,3,4,5)                                  # stone-claimed.ts:20
+ElementAffinity        = S.Record({key: Element, value: S.Number})             # world-event.ts:23
+SolanaPubkey (branded) = S.String.pipe(S.brand("SolanaPubkey"))                # world-event.ts:15
+SolanaCluster          = S.Literal(0,1) // 0=devnet · 1=mainnet                # claim-message.ts:17
+OracleSource           = S.Literal("TREMOR","CORONA","BREATH")                 # world-event.ts:19
 
-No `.ts`, `.tsx`, `.rs`, `.sol`, `.py`, `.go`, `.proto`, schema, or migration files exist outside of the vendored `.claude/`, `.loa/`, `.beads/` directories.
+## WorldEvent · sealed discriminated union (4 v0 variants)
+MintEvent              = S.Struct({_tag, mintTx, walletId, element, ts, ...})  # world-event.ts:28
+WeatherEvent           = S.Struct({_tag, source, code, intensity, ts, ...})    # world-event.ts:39
+ElementShiftEvent      = S.Struct({_tag, fromElement, toElement, ts, ...})     # world-event.ts:50
+QuizCompletedEvent     = S.Struct({_tag, archetype, walletId, ts, ...})        # world-event.ts:61
+WorldEvent             = S.Union(Mint|Weather|ElementShift|QuizCompleted)      # world-event.ts:71
 
-PRD describes a planned (not-yet-implemented) Effect Schema discriminated union:
+## ClaimMessage · server-signed payload for genesis-stone mint
+ClaimNonce (branded)   = S.String.pipe(S.length(32), S.brand("ClaimNonce"))    # claim-message.ts:25
+QuizStateHash (branded)= S.String.pipe(S.length(64), S.brand("QuizStateHash")) # claim-message.ts:21
+ClaimMessage           = S.Struct({...})                                       # claim-message.ts:74
+SignedClaimMessage     = interface { message, signature, signerPubkey }        # claim-message.ts:225
+CLAIM_MESSAGE_SIGNED_BYTES = 98 (canonical encoding length)                    # claim-message.ts:146
 
-  WorldEvent = mint | weather_shift | element_surge   [PLANNED · prd.md tl;dr · 3 v0 variants]
-  eventId    = sha256(canonical_encoded + version + source)   [PLANNED · prd.md FR-1, FR-3]
+## Quiz state · HMAC-validated GET-chain URL state shape
+Answer, BaziQuizState, CompletedQuizState, QuizStep                            # bazi-quiz-state.ts
+QUIZ_COMPLETED_STEP    = constant                                              # bazi-quiz-state.ts
+signQuizState(), verifyQuizState()                                             # bazi-quiz-state.ts
 
-PRD also describes an off-chain ECS conceptual model and an on-chain PDA projection:
+## On-chain event mirror (indexer consumption · zerker)
+StoneClaimedIndexedFields = S.Struct({...})                                    # stone-claimed.ts:26
+StoneClaimedRaw           = S.Struct({...})                                    # stone-claimed.ts:36
+StoneClaimedSchema        = S.extend(IndexedFields, Raw)                       # stone-claimed.ts:46
+StoneClaimed              = type derived from StoneClaimedSchema               # stone-claimed.ts:50
 
-  WitnessRecord PDA · seeds = b'witness' · event_id · witness_wallet
-                    · data  = (witness, event_id, event_kind, ts, slot)
-                    · fee_payer = backend keypair (sponsored)
-  [PLANNED · prd.md §3.3]
+## Helper functions
+eventIdOf()            = canonical sha256(encoded + version + source)          # event-id.ts
+verifyEventId()                                                                # event-id.ts
+CURRENT_SCHEMA_VERSION = constant                                              # event-id.ts
+SourceTag              = "score" | "sonar" | "weather" | "test"                # event-id.ts:18
+archetypeFromAnswers() = derives Element archetype from answer votes           # bazi-resolver.ts:20
+quizStateHashOf()      = canonical hash of validated answers                   # bazi-resolver.ts:56
+elementToByte()        = Element → 1..5                                         # claim-message.ts:30
+byteToElement()        = 1..5 → Element                                         # claim-message.ts:45
+buildClaimMessage()    = constructs canonical 98-byte payload                  # claim-message.ts:90
+encodeClaimMessage()   = bytes encoder · stable across re-encodes              # claim-message.ts:164
+signClaimMessage()     = ed25519 sign canonical                                # claim-message.ts:240
+verifyClaimSignature() = ed25519 verify                                        # claim-message.ts:262
 
-These are forward-looking; no schema, type, or contract code exists yet.
+## On-chain (Rust · Anchor 0.31.1)
+fn claim_genesis_stone()                                                       # programs/.../lib.rs:131
+ClaimGenesisStone (Accounts struct)                                            # programs/.../lib.rs:242
+  - mint, mint_ata, metadata, master_edition, payer (mut)
+  - instructions_sysvar (#[account(address=INSTRUCTIONS_SYSVAR_ID)])           # programs/.../lib.rs:281
+  - token_program (#[account(address=anchor_spl::token::ID)])                  # programs/.../lib.rs:289
+  - token_metadata_program (#[account(address=TOKEN_METADATA_PROGRAM_ID)])     # programs/.../lib.rs:294
+
+## Score adapter (read-side · currently mock)
+packages/world-sources/src/score-adapter.ts (167 lines)                        # interface + mock impl
+
+## Voice corpus (Gumi-curated)
+8 questions × 3 answers = 24 slots · element coverage 4-5x per element        # voice-corpus.ts:1-26
+5 archetype reveals (one per element)
+
+## Quiz config
+QuizMode = "first-n" | "rotate-n" | "tension-pick"                             # quiz-config.ts:17 (TODO sprint-3)

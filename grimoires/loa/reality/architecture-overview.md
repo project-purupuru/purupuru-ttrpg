@@ -1,83 +1,109 @@
-# Architecture Overview
+# Architecture Overview · 2026-05-11
 
-> Generated 2026-05-07. Token-optimized for `/reality` agent consumption.
-> One-page system topology. Built from PRD + ride evidence.
+> One-page system topology for `/reality` agent consumption. Built from code + PRD r6 + SDD r2.
 
-## One-Sentence Description
-
-A medium-agnostic awareness layer that lifts purupuru's on-chain activity into ambient social feeds, starting with Solana Blinks, with a sealed Effect Schema substrate and a devnet-only Anchor witness program.
-
-## L1 / L2 / L3 / L4 Layering
+## The Two Layers (substrate vs presentation)
 
 ```
-L1 sources (existing, external)
-  - score-puru API (zerker · live)
-  - sonar Hasura GraphQL (live)
-  - puruhpuruweather X bot (live broadcast)
-  - project-purupuru/game (future · codex+gumi pair)
-
-L2 substrate (NEW · this repo · packages/peripheral-events)
-  - Effect Schema discriminated union: WorldEvent
-  - canonical eventId = sha256(canonical_encoded + version + source)
-  - ports + adapters (hexagonal at the substrate boundary)
-  - ECS off-chain shape (entities + components + systems)
-
-L3 medium-registry (existing + extension)
-  - @0xhoneyjar/medium-registry@0.2.0 (shipped cycle-R)
-  - existing variants: DISCORD_WEBHOOK / DISCORD_INTERACTION / CLI / TELEGRAM_STUB
-  - NEW · BLINK_DESCRIPTOR (5th variant · PR target freeside-mediums/protocol)
-
-L4 plural renderings
-  - apps/blink-emitter (next.js 15 · vercel · solana actions · devnet locked v0)
-  - future: twitter card composer, discord webhook, telegram inline
+PRESENTATION LAYER · agents present, never mutate
+  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+  │ Twitter Blink│  │ Telegram (*) │  │ Web Observatory│
+  │   /api/      │  │  /api/       │  │  app/page.tsx  │
+  │   actions/*  │  │  actions/*   │  │  (zerker/main) │
+  └──────┬───────┘  └──────┬───────┘  └──────┬─────────┘
+         │   READ-ONLY · agents present, never mutate    │
+         ▼                ▼                    ▼
+SUBSTRATE TRUTH · single source of authority
+  ┌────────────────────────────────────────────────────┐
+  │ Solana devnet                                       │
+  │   · purupuru_anchor program (claim_genesis_stone)   │
+  │   · Metaplex Token Metadata CPI (NFT mint)          │
+  │   · StoneClaimed events                             │
+  └────────────────────────────────────────────────────┘
+  ┌────────────────────────────────────────────────────┐
+  │ Off-chain primitives                                │
+  │   · @purupuru/peripheral-events (HMAC + Effect Schema)│
+  │   · Vercel KV nonce store (NX EX 300)               │
+  │   · Sponsored-payer keypair                          │
+  └────────────────────────────────────────────────────┘
 ```
 
-## Two-Frame Projection (PRD §3.5)
+(*) Telegram = untested · structurally compatible · same Action endpoints.
 
-The architecture explicitly separates two frames:
+## Tech Stack (verified vs package.json)
 
-- **Off-chain (ECS)**: pure-data Effect Schema components, pure-effect systems, full event shape lives here.
-- **On-chain (PDA)**: minimal anchor witness program, only writes `WitnessRecord` PDAs, no state mutation beyond that. Sponsored payer for gasless UX.
+- Next.js 16.2.6 (Turbopack · App Router)
+- React 19.2.4 · TypeScript 5
+- Tailwind 4 (`@tailwindcss/postcss`) · OKLCH palette
+- Pixi.js v8 (vanilla · no `@pixi/react`)
+- motion (UI animation only · not canvas)
+- Effect 3.10.x (`Schema` for substrate validation)
+- Anchor 0.31.1 + Rust + Metaplex Token Metadata
+- `@solana/web3.js` ^1.95.0 · `@coral-xyz/anchor` ^0.31.1
+- `@vercel/kv` ^3.0.0
+- `@dialectlabs/blinks` ^0.22.5 (preview only)
+- `@solana/wallet-adapter-{phantom,react,react-ui}`
+- `bs58`, `tweetnacl`, `node:crypto`
+- Vitest 3.x + Playwright 1.59 + Testing Library
 
-The `WitnessAttestationSystem` builds a tx, the backend co-signs as `fee_payer`, the user signs as `authority`, the indexer confirms PDA creation and feeds back into ECS.
+## Data Flow per User Action
 
-## Tech Stack (planned)
+| User action | Substrate write | Presentation read |
+|-------------|-----------------|--------------------|
+| Take quiz Q1-Q8 | none — HMAC-sealed URL state only | none |
+| Reach reveal | none — server recomputes archetype from validated answers | reveal card · stone PNG · aggregate ("23 others share today") |
+| Click "Claim Your Stone" | Anchor `claim_genesis_stone` ix → Metaplex CPI → SPL mint + metadata PDA · `StoneClaimed` event emitted | Phantom shows new NFT in collectibles |
+| Indexer consumes event | none | observatory rail row appears · KPI ticks |
 
-| Concern | Choice | Note |
-|---------|--------|------|
-| Substrate language | TypeScript + Effect-TS + Effect Schema | sealed schemas, ports + adapters |
-| Emitter framework | Next.js 15 | Solana Actions endpoints + OG render |
-| Hosting | Vercel | standard Solana Actions hosting target |
-| On-chain | Anchor (Solana) | devnet only v0; sponsored payer |
-| Tests | per FR-10 | cmp-boundary lint, golden tests, eventId stability tests |
-| Workspace | bun or pnpm monorepo | TBD; not yet scaffolded |
+## Three-Keypair Model (per SDD r2 §6.1 + lib.rs:25-29)
 
-## Doctrines That Constrain the Design
+| Keypair | Purpose | Authority |
+|---------|---------|-----------|
+| `sponsored-payer` | pays tx fees · separate Solana keypair | NO authority over mint |
+| `claim-signer` | ed25519 keypair · signs ClaimMessage · pubkey hardcoded in `lib.rs` | Signs the canonical 98-byte payload |
+| user wallet | Phantom · the actual mint authority | Receives the NFT |
 
-- `[[chathead-in-cache-pattern]]` — per-token `world_event_pointer`
-- `[[chat-medium-presentation-boundary]]` — substrate truth ≠ presentation (cmp-boundary lint enforces)
-- `[[environment-surfaces]]` — L2 singular, L4 plural
-- `[[puruhani-as-spine]]` — every event references a puruhani protagonist
-- `[[mibera-as-npc]] §6.1` — no payment via LLM verdicts, no session-key delegation
-- `[[metadata-as-integration-contract]]`, `[[wuxing]]`, `[[daily-ritual-loop]]`, `[[storytelling-game-social-convergence]]`, `[[freeside-modules-as-installables]]` (referenced in README)
+## Module Boundaries
 
-## Current Reality
+| Module | Type | Owner |
+|--------|------|-------|
+| `packages/peripheral-events/` | substrate (L2 sealed) | zksoju |
+| `packages/medium-blink/` | renderer (L3 pure functions) | zksoju + Gumi (voice) |
+| `packages/world-sources/` | read-adapter (mock) | zksoju · zerker (real) |
+| `programs/purupuru-anchor/` | on-chain | zksoju |
+| `app/api/actions/` | HTTP layer | zksoju |
+| `lib/blink/` | server-side mint helpers | zksoju |
+| `app/page.tsx` + `components/observatory/` | observatory UI | zerker (main branch) |
+| `lib/{score,activity,weather,celestial,sim}/` | observatory data sources | shared |
 
-```
-purupuru-ttrpg/
-  ├── .gitignore           [584 B]
-  ├── .loa-version.json    [Loa v1.130.0 strict]
-  ├── .loa.config.yaml     [persistence: standard, drift: code]
-  ├── CLAUDE.md            [repo-level agent guidance]
-  ├── README.md            [public description]
-  └── grimoires/loa/       [PRD + this ride's reality]
-```
+## Validation at Every Boundary
 
-Zero git commits. Zero application code. Sprint-1 not started. 4 days to Colosseum Frontier (2026-05-11).
+- HTTP → server: Effect Schema decode/encode roundtrip on URL state
+- Server → on-chain: ed25519 sig verify via instructions sysvar (verify-via-sysvar pattern)
+- KV nonce: NX EX 300 atomic claim (replay-safe)
+- On-chain → indexer: `StoneClaimed` event emission with stable schema
+- Indexer → observatory: read-only WebSocket / SSE feed
 
-## Where to Read Next
+## Architecture Doctrines
 
-- Requirements & vision → `grimoires/loa/prd.md`
-- Architecture detail → `grimoires/loa/sdd.md`
-- Drift & consistency → `grimoires/loa/drift-report.md`, `grimoires/loa/consistency-report.md`
-- Governance gaps → `grimoires/loa/governance-report.md`
+- **substrate truth ≠ presentation** — README + separation-of-concerns.md
+- **schemas describe shape; contracts include behavior + invariants** — `~/vault/wiki/concepts/schema-is-not-the-contract.md`
+- **mibera-as-npc §6.1** — "no payment via LLM verdicts · no session keys"
+- **chat-medium-presentation-boundary** — vault doctrine (substrate truth → presentation translation)
+
+## Hackathon-Honest Mocking (per README "What's mocked vs real")
+
+| Layer | Real | Mocked |
+|-------|------|--------|
+| Anchor program · mint · stone art · quiz illustrations | ✅ | — |
+| HMAC quiz state · sponsored-payer · KV nonce | ✅ | — |
+| Score adapter · observatory KPI feeds | 🟡 interface | mock |
+| `StoneClaimed` indexer (zerker · `project-purupuru/radar`) | 🔴 | — |
+| Web auth · profile claim · cross-platform Telegram | 🔴 / 🟡 | — |
+| `BLINK_DESCRIPTOR` upstream PR to freeside-mediums | 🔴 | — |
+
+## Sister Repos (referenced)
+
+- `project-purupuru/radar` — Solana indexer + StoneClaimed consumer (zerker)
+- `freeside-mediums` — `BLINK_DESCRIPTOR` upstream (deferred PR)
+- `project-purupuru/game` — game logic (parallel codex+gumi pair)

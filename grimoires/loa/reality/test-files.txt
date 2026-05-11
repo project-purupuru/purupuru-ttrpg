@@ -1,13 +1,45 @@
-# Test Files (Reality Snapshot · 2026-05-07)
+# Test Files · 2026-05-10
 
-NONE FOUND.
+## Top-level test trees
+tests/unit/         · *.test.ts             # general unit
+tests/integration/                          # cross-module integration
+tests/e2e/          · *.spec.ts             # Playwright E2E
+tests/property/                             # property-based
+tests/security/                             # security/fuzz
+tests/red-team/                             # adversarial
+tests/perf/  + tests/performance/           # perf tests
+tests/conformance/                          # conformance suites
+tests/edge-cases/                           # edge cases
+tests/typescript/   golden_resolution.ts    # type-resolution checks
+tests/python/                               # Python tests (Loa adapters)
+tests/bash/                                 # shell-script tests
+tests/lib/  + tests/helpers/  + tests/fixtures/
 
-No `*.test.ts`, `*.spec.ts`, `*_test.go`, `test_*.py`, or `*.test.tsx` files exist outside vendored dirs.
+## Package test suites
+packages/peripheral-events/tests/           # Effect Schema decode/encode roundtrips · HMAC · ClaimMessage
+packages/medium-blink/tests/                # quiz-renderer · voice-corpus shape · Solana Actions conformance
+packages/world-sources/tests/               # score-adapter mock + interface stability
+lib/blink/__tests__/                        # mint-flow unit tests · env-check · sponsored-payer
+programs/purupuru-anchor/tests/sp2-claim.ts # 6 invariant tests · `anchor test`
 
-PRD §test plan (FR-10) commits to:
-  - cmp-boundary lint
-  - golden tests for medium fanout
-  - canonical eventId hash stability tests
-  - Effect Schema round-trip parse tests
+## Eval harness
+evals/tasks/  · evals/suites/  · evals/tests/  · evals/graders/  · evals/fixtures/  · evals/baselines/
+evals/fixtures/hello-world-ts/  · evals/fixtures/buggy-auth-ts/   # Loa eval scenario fixtures
 
-These are sprint-1 deliverables, not yet present.
+## Notable test files
+tests/unit/pentagram.test.ts                # observatory pentagram canvas math
+tests/e2e/observatory.spec.ts               # observatory page E2E
+tests/typescript/golden_resolution.ts       # type-resolution golden file
+
+## Counts
+~82 *.test.ts/*.spec.ts files in non-vendored locations
+README.md cites 127 unit tests + 6 anchor invariants
+
+## Run commands
+pnpm vitest run                                    # all unit tests
+pnpm --filter @purupuru/peripheral-events test
+pnpm --filter @purupuru/medium-blink test
+cd programs/purupuru-anchor && anchor test         # 6 invariant tests on the program
+pnpm test:e2e                                      # Playwright
+pnpm tsx scripts/sp3-mint-route-smoke.ts           # local smoke
+BASE_URL=https://purupuru.world pnpm tsx scripts/sp3-mint-route-smoke.ts  # prod smoke
