@@ -137,11 +137,11 @@ flowchart LR
 > **Twitter is the v0 instance.** Same Action endpoints unfurl in Telegram and base app — one journey, many doorways. The chain layer (Solana for v0) and substrate (HMAC-sealed quiz state · Anchor program · Metaplex mint) stay constant; the presentation layer adapts per distribution.
 
 **Demo emphasis** (3-min recording target):
-- **Linger 45s · Quiz reveal** — the emotional payoff. Where recognition + reflection land · *"this is me · this gives me a way to navigate."*
-- **Linger 30s · Land in the lobby** — your stone joining · sprites of others drifting in their elements · clan counts ticking up · the activity feed of arrivals · sells "Strava for on-chain."
-- **Linger 20s · Live world tile** — the moat made visible. Today's leading element + who's here right now · the shot that distinguishes us from "just another quiz app."
-- **Montage 30s · Quiz** — accelerate Q1 → Q3 → Q6 → Q8 · texture without latency.
-- **Quick 15s · Mint moment** — Phantom popup · sign · confirm. Don't dwell.
+- **Linger 45s · Quiz reveal** · the emotional payoff. Where recognition + reflection land · *"this is me · this gives me a way to navigate."*
+- **Linger 30s · Land in the lobby** · your stone joining · sprites of others drifting in their elements · clan counts ticking up · the activity feed of arrivals · sells "Strava for on-chain."
+- **Linger 20s · Live world tile** · the moat made visible. Today's leading element + who's here right now · the shot that distinguishes us from "just another quiz app."
+- **Montage 30s · Quiz** · accelerate Q1 → Q3 → Q6 → Q8 · texture without latency.
+- **Quick 15s · Mint moment** · Phantom popup · sign · confirm. Don't dwell.
 
 **The IRL bridge (worth its own beat in the voiceover · 5-10s)**: today's actual sky maps onto the wuxing element it amplifies — sun → Fire · rain → Water · etc. The Observatory shows the user their local weather and which element it boosts. The offline world bleeds into the online one · this is the texture that makes the awareness layer feel grounded, not abstract.
 
@@ -259,13 +259,13 @@ The deck punchline is also the architecture: **substrate truth ≠ presentation*
 
 - **Next.js 16.2.6** (App Router · Turbopack)
 - **React 19.2.4** · **TypeScript 5** · **Tailwind 4** (via `@tailwindcss/postcss`)
-- **Pixi.js v8** (vanilla · no `@pixi/react`) — observatory canvas
+- **Pixi.js v8** (vanilla · no `@pixi/react`) · observatory canvas
 - **Anchor 0.31.1** + Rust + **Metaplex Token Metadata 5.1.x**
 - **`@coral-xyz/anchor`** TS client (vendored IDL at `lib/blink/anchor/`)
-- **Effect Schema** (`^3.10.0`) — substrate validation
+- **Effect Schema** (`^3.10.0`) · substrate validation
 - **`tweetnacl`** + Solana's `Ed25519Program` for the verify-via-sysvar pattern
-- **`@vercel/kv`** — nonce store
-- **`@dialectlabs/blinks`** — Blink renderer (preview page)
+- **`@vercel/kv`** · nonce store
+- **`@dialectlabs/blinks`** · Blink renderer (preview page)
 - **pnpm 10.x** · monorepo workspace
 
 ---
@@ -376,14 +376,15 @@ The single doc the operator runs through before recording at [`grimoires/loa/con
 
 ## Design references
 
-- [`grimoires/loa/prd.md`](grimoires/loa/prd.md) — PRD r6 · 941 lines · target audience · positioning · cut-tree · 12 functional requirements
-- [`grimoires/loa/sdd.md`](grimoires/loa/sdd.md) — SDD r2 · architecture · API contracts · security
-- [`grimoires/loa/context/06-user-journey-map.md`](grimoires/loa/context/06-user-journey-map.md) — full spatial map · 9 zones · trust crossings · what to emphasize
-- [`grimoires/loa/learning/anchor-program-walkthrough.md`](grimoires/loa/learning/anchor-program-walkthrough.md) — pedagogical tour of `lib.rs` + Solana/Anchor primer
-- [`grimoires/loa/context/prd-gap-map.md`](grimoires/loa/context/prd-gap-map.md) — what's done vs what's deferred · honest punch list
-- [`grimoires/vocabulary/lexicon.yaml`](grimoires/vocabulary/lexicon.yaml) — canonical product terms · forbidden synonyms · cold-audience registers · register guardrails
-- [`grimoires/loa/specs/enhance-demo-polish-2026-05-11.md`](grimoires/loa/specs/enhance-demo-polish-2026-05-11.md) — 3-min recording skeleton · beat-by-beat timing
-- [`grimoires/loa/specs/judges-framing-storyline-2026-05-11.md`](grimoires/loa/specs/judges-framing-storyline-2026-05-11.md) — pitch shape + voiceover script + Q&A landmines + deck-honest gates
+- [`grimoires/loa/prd.md`](grimoires/loa/prd.md) · PRD r6 · 941 lines · target audience · positioning · cut-tree · 12 functional requirements
+- [`grimoires/loa/sdd.md`](grimoires/loa/sdd.md) · SDD r2 · architecture · API contracts · security
+- [`grimoires/loa/context/06-user-journey-map.md`](grimoires/loa/context/06-user-journey-map.md) · full spatial map · 9 zones · trust crossings · what to emphasize
+- [`grimoires/loa/learning/anchor-program-walkthrough.md`](grimoires/loa/learning/anchor-program-walkthrough.md) · pedagogical tour of `lib.rs` + Solana/Anchor primer
+- [`grimoires/loa/context/prd-gap-map.md`](grimoires/loa/context/prd-gap-map.md) · what's done vs what's deferred · honest punch list
+- [`grimoires/vocabulary/lexicon.yaml`](grimoires/vocabulary/lexicon.yaml) · canonical product terms · forbidden synonyms · cold-audience registers · register guardrails
+- [`grimoires/loa/specs/enhance-demo-polish-2026-05-11.md`](grimoires/loa/specs/enhance-demo-polish-2026-05-11.md) · 3-min recording skeleton · beat-by-beat timing
+- [`grimoires/loa/specs/judges-framing-storyline-2026-05-11.md`](grimoires/loa/specs/judges-framing-storyline-2026-05-11.md) · pitch shape + voiceover script + Q&A landmines + deck-honest gates
+- [`grimoires/loa/ops/PROCESS.md`](grimoires/loa/ops/PROCESS.md) · agent-driven development workflow (Loa skills · PRD → SDD → Sprint → Implement → Review)
 
 ---
 

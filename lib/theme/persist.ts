@@ -7,6 +7,7 @@
 // sunrise/sunset can drift meaningfully). Path=/ so every route
 // inherits the same signal.
 
+import { setSafe } from "@/lib/storage-safe";
 import {
   SUNRISE_STORAGE_KEY,
   SUNSET_STORAGE_KEY,
@@ -42,15 +43,7 @@ export function persistResolvedTheme(opts: {
     ...secureFlag,
   ].join("; ");
 
-  try {
-    localStorage.setItem(THEME_STORAGE_KEY, theme);
-    if (opts.sunriseIso) {
-      localStorage.setItem(SUNRISE_STORAGE_KEY, opts.sunriseIso);
-    }
-    if (opts.sunsetIso) {
-      localStorage.setItem(SUNSET_STORAGE_KEY, opts.sunsetIso);
-    }
-  } catch {
-    // Quota / disabled storage — cookie still does the job.
-  }
+  setSafe(THEME_STORAGE_KEY, theme);
+  if (opts.sunriseIso) setSafe(SUNRISE_STORAGE_KEY, opts.sunriseIso);
+  if (opts.sunsetIso) setSafe(SUNSET_STORAGE_KEY, opts.sunsetIso);
 }

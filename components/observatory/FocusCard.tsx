@@ -3,7 +3,8 @@
 import Image from "next/image";
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { type Element } from "@/lib/score";
-import { populationStore } from "@/lib/sim/population";
+import { ELEMENT_KANJI } from "@/lib/domain/element";
+import { populationStore } from "@/lib/sim/population.system";
 import type { PuruhaniIdentity } from "@/lib/sim/types";
 import { timeAgo } from "@/lib/time/format";
 import { PuruhaniAvatar } from "./PuruhaniAvatar";
@@ -23,10 +24,6 @@ import { PuruhaniAvatar } from "./PuruhaniAvatar";
  * user clicked. (Previously read from scoreAdapter which uses an
  * independent address hash, producing wrong-element mismatches.)
  */
-
-const ELEMENT_KANJI: Record<Element, string> = {
-  wood: "木", fire: "火", earth: "土", water: "水", metal: "金",
-};
 
 const STONE_NAME: Record<Element, string> = {
   wood: "Wood Stone",

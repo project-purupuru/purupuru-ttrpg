@@ -4,14 +4,7 @@ import Image from "next/image";
 import { useMemo } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import type { Element } from "@/lib/score";
-
-const ELEMENT_KANJI: Record<Element, string> = {
-  wood: "木",
-  fire: "火",
-  earth: "土",
-  water: "水",
-  metal: "金",
-};
+import { ELEMENT_KANJI } from "@/lib/domain/element";
 
 // Canonical sheng-cycle display order — matches the pentagram canvas
 // vertex layout and the awareness-branch's WorldEvent order. Reads left-

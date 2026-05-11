@@ -1,6 +1,9 @@
-import type { Element } from "@/lib/score";
-import type { Precipitation, WeatherFeed, WeatherState } from "./types";
-import { mockWeatherFeed } from "./mock";
+import { Effect, Layer, Stream } from "effect";
+import { getSafe, setSafe } from "@/lib/storage-safe";
+import type { Element } from "@/lib/domain/element";
+import type { Precipitation, WeatherState } from "@/lib/domain/weather";
+import { INITIAL_WEATHER_STATE } from "@/lib/domain/weather";
+import { WeatherFeed } from "@/lib/ports/weather.port";
 
 /**
  * Live weather adapter — browser geolocation → IP fallback → Tokyo,
@@ -9,26 +12,24 @@ import { mockWeatherFeed } from "./mock";
  *
  * Public APIs used (no keys required):
  *   - Open-Meteo Forecast        https://open-meteo.com
- *   - Open-Meteo Geocoding (n/a — we use BigDataCloud for reverse)
  *   - BigDataCloud reverse geo   https://www.bigdatacloud.com/free-api/free-reverse-geocode-to-city-api
  *   - ipapi.co                   https://ipapi.co
  *
- * The feed boots into mock state so subscribers always have something to
- * render (SSR-safe, no flash of empty UI). First real emit lands as soon
- * as the geolocate + fetch chain resolves, then refreshes every 10 min.
+ * The feed boots with INITIAL_WEATHER_STATE so subscribers always have
+ * something to render (SSR-safe, no flash of empty UI). First real emit
+ * lands as soon as the geolocate + fetch chain resolves, then refreshes
+ * every 10 min.
  */
 
 const REFRESH_MS = 10 * 60 * 1000;
-const GEO_CACHE_KEY = "puru.weather.geo.v4"; // v4: aggressive 2-word cap on city name
+const GEO_CACHE_KEY = "puru.weather.geo.v4";
 const GEO_TIMEOUT_MS = 6_000;
 
 interface ResolvedLocation {
   lat: number;
   lon: number;
   name: string;
-  /** ISO 3166-1 alpha-2; drives temperature unit selection. */
   countryCode: string;
-  /** "browser" | "ip" | "fallback" — surfaced via WeatherState.source. */
   via: "browser" | "ip" | "fallback";
 }
 
@@ -40,9 +41,6 @@ const TOKYO: ResolvedLocation = {
   via: "fallback",
 };
 
-// Countries that officially use °F. Everywhere else gets °C. Bahamas, Belize,
-// and Cayman use both informally; rest of the world is metric. Keeping this
-// tight beats false positives.
 const FAHRENHEIT_COUNTRIES = new Set(["US", "LR", "MM"]);
 
 function unitFor(countryCode: string | undefined): "C" | "F" {
@@ -50,20 +48,6 @@ function unitFor(countryCode: string | undefined): "C" | "F" {
   return FAHRENHEIT_COUNTRIES.has(countryCode.toUpperCase()) ? "F" : "C";
 }
 
-// BigDataCloud sometimes returns the MSA string in `city`
-// (e.g. "Anaheim-Santa Ana-Garden Grove" or "Dallas/Fort Worth"). Split
-// on common joiners and keep the leading chunk; then squeeze long
-// 3+-word names down to ≤ 2 so the tile reads as one place.
-//
-// The squeeze rules, in order:
-//   1. Drop a trailing "City"/"Town"/"Village" if ≥ 2 words remain.
-//      ("New York City" → "New York", "Salt Lake City" → "Salt Lake")
-//   2. Drop a leading generic geographic word if 3+ words remain.
-//      ("Rancho Santa Margarita" → "Santa Margarita")
-//   3. Last resort: keep the last 2 words.
-//
-// Trade-off: legit hyphenated names (Stoke-on-Trent) shorten to "Stoke";
-// MSA noise + long Spanish/Catholic placenames are the more common case.
 const LEADING_GENERICS = new Set([
   "rancho", "mount", "mt", "lake", "fort", "ft", "cape", "port", "old", "new", "north", "south", "east", "west",
 ]);
@@ -90,15 +74,10 @@ function clamp(n: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, n));
 }
 
-// ───────────────────────────────────────────────────────────────
-// Geolocation chain
-// ───────────────────────────────────────────────────────────────
-
 function readCachedLocation(): ResolvedLocation | null {
-  if (typeof window === "undefined") return null;
+  const raw = getSafe(GEO_CACHE_KEY);
+  if (!raw) return null;
   try {
-    const raw = window.localStorage.getItem(GEO_CACHE_KEY);
-    if (!raw) return null;
     const parsed = JSON.parse(raw) as ResolvedLocation;
     if (typeof parsed.lat !== "number" || typeof parsed.lon !== "number") return null;
     if (typeof parsed.countryCode !== "string") return null;
@@ -109,12 +88,7 @@ function readCachedLocation(): ResolvedLocation | null {
 }
 
 function writeCachedLocation(loc: ResolvedLocation): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(GEO_CACHE_KEY, JSON.stringify(loc));
-  } catch {
-    // quota / private mode — non-fatal
-  }
+  setSafe(GEO_CACHE_KEY, JSON.stringify(loc));
 }
 
 function browserGeo(): Promise<{ lat: number; lon: number } | null> {
@@ -201,10 +175,6 @@ async function resolveLocation(): Promise<ResolvedLocation> {
   return TOKYO;
 }
 
-// ───────────────────────────────────────────────────────────────
-// Open-Meteo fetch + mappers
-// ───────────────────────────────────────────────────────────────
-
 interface OpenMeteoCurrent {
   time: string;
   temperature_2m: number;
@@ -240,21 +210,14 @@ async function fetchOpenMeteo(
   }
 }
 
-// WMO weather codes → Precipitation enum.
-// Reference: https://open-meteo.com/en/docs (Weather variable section).
 function mapPrecipitation(code: number): Precipitation {
-  if (code >= 95) return "storm";              // 95-99 thunderstorm
-  if (code >= 71 && code <= 77) return "snow"; // 71-77 snow fall
-  if (code === 85 || code === 86) return "snow"; // snow showers
+  if (code >= 95) return "storm";
+  if (code >= 71 && code <= 77) return "snow";
+  if (code === 85 || code === 86) return "snow";
   if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return "rain";
-  return "clear"; // 0-3 clear/cloudy, 45-48 fog → read as "clear sky" for our purposes
+  return "clear";
 }
 
-// Wuxing amplification — derived from real conditions so the canvas
-// tide responds to the user's sky. Priority: precipitation > temperature
-// extremes > season. Keeps the rule readable; one element per state.
-// Thresholds expressed in whichever unit the value is in so we don't
-// have to round-trip through a converter just to compare.
 function deriveAmplifiedElement(
   precip: Precipitation,
   temp: number,
@@ -262,23 +225,18 @@ function deriveAmplifiedElement(
   monthIndex: number,
 ): Element {
   if (precip === "rain" || precip === "storm") return "water";
-  if (precip === "snow") return "metal"; // white/sharp/cold reading
-  const hot = unit === "F" ? 79 : 26;    // ~26°C
-  const cold = unit === "F" ? 39 : 4;    // ~4°C
+  if (precip === "snow") return "metal";
+  const hot = unit === "F" ? 79 : 26;
+  const cold = unit === "F" ? 39 : 4;
   if (temp >= hot) return "fire";
   if (temp <= cold) return "water";
-  // Mild + clear: lean on season. Spring=wood, late-summer=earth, autumn=metal, winter=water, summer=fire.
-  if (monthIndex >= 2 && monthIndex <= 4) return "wood";   // Mar-May
-  if (monthIndex >= 5 && monthIndex <= 6) return "fire";   // Jun-Jul
-  if (monthIndex === 7) return "earth";                    // Aug (late summer)
-  if (monthIndex >= 8 && monthIndex <= 10) return "metal"; // Sep-Nov
-  return "water"; // Dec-Feb
+  if (monthIndex >= 2 && monthIndex <= 4) return "wood";
+  if (monthIndex >= 5 && monthIndex <= 6) return "fire";
+  if (monthIndex === 7) return "earth";
+  if (monthIndex >= 8 && monthIndex <= 10) return "metal";
+  return "water";
 }
 
-// 0-1 scalar that drives PentagramCanvas tide-flow amplitude. UV is the
-// best single proxy for "sun energy reaching here right now"; cloud cover
-// dampens it. At night we floor to a soft baseline so the canvas keeps
-// breathing — pentagram never goes flat.
 function deriveCosmicIntensity(
   uvIndex: number | null,
   cloudCoverPct: number,
@@ -290,7 +248,7 @@ function deriveCosmicIntensity(
   }
   const uv = uvIndex == null ? 4 : uvIndex;
   const sun = clamp(uv / 10, 0, 1);
-  const dampen = 1 - clamp(cloudCoverPct, 0, 100) / 100 / 1.6; // clouds reduce, but never below ~37%
+  const dampen = 1 - clamp(cloudCoverPct, 0, 100) / 100 / 1.6;
   return Math.round(clamp(sun * dampen + 0.15, 0.1, 1) * 100) / 100;
 }
 
@@ -326,11 +284,9 @@ function buildState(loc: ResolvedLocation, om: OpenMeteoResponse, unit: "C" | "F
   };
 }
 
-// ───────────────────────────────────────────────────────────────
-// Feed implementation
-// ───────────────────────────────────────────────────────────────
-
-let state: WeatherState = mockWeatherFeed.current();
+// Module-private state machine. Single instance per page; subscribers'
+// lifecycle starts the feed lazily and stops it when the last unsubscribes.
+let state: WeatherState = INITIAL_WEATHER_STATE;
 const subscribers = new Set<(s: WeatherState) => void>();
 let refreshHandle: ReturnType<typeof setInterval> | null = null;
 let location: ResolvedLocation | null = null;
@@ -351,7 +307,7 @@ async function refreshOnce(): Promise<void> {
   if (!location) return;
   const unit = unitFor(location.countryCode);
   const om = await fetchOpenMeteo(location.lat, location.lon, unit);
-  if (!om) return; // keep last good state
+  if (!om) return;
   emit(buildState(location, om, unit));
 }
 
@@ -374,16 +330,21 @@ function stop(): void {
   started = false;
 }
 
-export const liveWeatherFeed: WeatherFeed = {
-  subscribe(cb: (s: WeatherState) => void): () => void {
-    subscribers.add(cb);
-    if (subscribers.size === 1) void start();
-    return () => {
-      subscribers.delete(cb);
-      if (subscribers.size === 0) stop();
-    };
-  },
-  current(): WeatherState {
-    return state;
-  },
-};
+function subscribe(cb: (s: WeatherState) => void): () => void {
+  subscribers.add(cb);
+  if (subscribers.size === 1) void start();
+  return () => {
+    subscribers.delete(cb);
+    if (subscribers.size === 0) stop();
+  };
+}
+
+export const WeatherLive = Layer.succeed(WeatherFeed, {
+  current: Effect.sync(() => state),
+  stream: Stream.async<WeatherState>((emit) => {
+    const unsub = subscribe((s) => {
+      emit.single(s);
+    });
+    return Effect.sync(unsub);
+  }),
+});

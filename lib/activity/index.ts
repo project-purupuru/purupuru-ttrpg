@@ -18,7 +18,7 @@
  * sparse stream of real on-chain mints during a hackathon demo.
  */
 
-import { populationStore, type SpawnedPuruhani } from "@/lib/sim/population";
+import { populationStore, type SpawnedPuruhani } from "@/lib/sim/population.system";
 import { startRadarPolling } from "./radar-source";
 import type { ActivityEvent, ActivityStream, JoinActivity } from "./types";
 

@@ -3,7 +3,7 @@
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useEffect, useState } from "react";
 import { activityStream, type ActivityEvent } from "@/lib/activity";
-import { populationStore } from "@/lib/sim/population";
+import { populationStore } from "@/lib/sim/population.system";
 import type { PuruhaniIdentity } from "@/lib/sim/types";
 import { timeAgo } from "@/lib/time/format";
 import { PuruhaniAvatar } from "./PuruhaniAvatar";

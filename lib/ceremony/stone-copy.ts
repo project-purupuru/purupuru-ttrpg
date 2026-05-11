@@ -30,6 +30,7 @@
 // world" promise the Blink button just made.
 
 import type { Element } from "@/lib/score";
+import { getSafe, setSafe } from "@/lib/storage-safe";
 
 export interface StoneCopy {
   /** Display headline — Title Case Yuruka display, the element name.
@@ -43,9 +44,6 @@ export interface StoneCopy {
   /** Two-line flavor copy, period-terminated, second-person, lowercase.
    *  L1 = echo of ARCHETYPE_REVEALS · L2 = arrival in the world. */
   flavor: readonly [string, string];
-  /** Element-tuned breath rhythm — wood patient, fire fast, etc.
-   *  Sets both stone breath and inner glow modulation periods. */
-  breathDurMs: number;
 }
 
 // Bridge line shown above the stone for every element. Direct echo of
@@ -67,43 +65,23 @@ export const CEREMONY_DISMISS_LINE = "tap when you're ready";
 export const STONE_COPY: Record<Element, StoneCopy> = {
   wood: {
     headline: "Wood",
-    flavor: [
-      "you start things.",
-      "this one's real now.",
-    ],
-    breathDurMs: 6000,
+    flavor: ["you start things.", "this one's real now."],
   },
   fire: {
     headline: "Fire",
-    flavor: [
-      "you moved first.",
-      "the room moved with you.",
-    ],
-    breathDurMs: 4000,
+    flavor: ["you moved first.", "the room moved with you."],
   },
   earth: {
     headline: "Earth",
-    flavor: [
-      "you stay when others move on.",
-      "this room will too.",
-    ],
-    breathDurMs: 5500,
+    flavor: ["you stay when others move on.", "this room will too."],
   },
   metal: {
     headline: "Metal",
-    flavor: [
-      "you hear what isn't said.",
-      "the cut is the gift.",
-    ],
-    breathDurMs: 4500,
+    flavor: ["you hear what isn't said.", "the cut is the gift."],
   },
   water: {
     headline: "Water",
-    flavor: [
-      "you feel before you think.",
-      "feel where you've landed.",
-    ],
-    breathDurMs: 5000,
+    flavor: ["you feel before you think.", "feel where you've landed."],
   },
 };
 
@@ -114,20 +92,9 @@ export function stoneShownKey(element: Element): string {
 }
 
 export function hasStoneCeremonyBeenShown(element: Element): boolean {
-  if (typeof localStorage === "undefined") return false;
-  try {
-    return localStorage.getItem(stoneShownKey(element)) === "1";
-  } catch {
-    return false;
-  }
+  return getSafe(stoneShownKey(element)) === "1";
 }
 
 export function markStoneCeremonyShown(element: Element): void {
-  if (typeof localStorage === "undefined") return;
-  try {
-    localStorage.setItem(stoneShownKey(element), "1");
-  } catch {
-    // quota / disabled — ceremony will replay next visit, not the
-    // worst failure mode for a once-and-done celebration
-  }
+  setSafe(stoneShownKey(element), "1");
 }
