@@ -20,6 +20,7 @@ import { PentagramCanvas } from "./PentagramCanvas";
 import { FocusCard } from "./FocusCard";
 import { MusicPlayer } from "./MusicPlayer";
 import { MobileBottomPanel } from "./MobileBottomPanel";
+import { StoneCeremony, readWelcomeElement } from "./StoneCeremony";
 
 const ZERO_DISTRIBUTION: Record<Element, number> = {
   wood: 0, fire: 0, earth: 0, water: 0, metal: 0,
@@ -29,6 +30,14 @@ const ELEMENT_DISPLAY_ORDER: readonly Element[] = ["wood", "fire", "earth", "met
 
 export function ObservatoryClient() {
   const [introDone, setIntroDone] = useState(false);
+  // Stone Recognition Ceremony — element to celebrate, set after intro
+  // when the ?welcome=<element> URL param is present and the per-element
+  // shown flag isn't set in localStorage. Null means no ceremony to play
+  // (returning visit, no welcome param, or invalid element). The
+  // post-intro defer is intentional: the IntroAnimation logo flash
+  // gets to land before the ceremony scrim covers it.
+  const [ceremonyElement, setCeremonyElement] =
+    useState<Element | null>(null);
   const [distribution, setDistribution] = useState<Record<Element, number>>(ZERO_DISTRIBUTION);
   const [weather, setWeather] = useState<WeatherState>(weatherFeed.current());
   const [focused, setFocused] = useState<PuruhaniIdentity | null>(null);
@@ -201,7 +210,25 @@ export function ObservatoryClient() {
 
   return (
     <div className="flex h-dvh flex-col bg-puru-cloud-deep text-puru-ink-base">
-      {!introDone && <IntroAnimation onDone={() => setIntroDone(true)} />}
+      {!introDone && (
+        <IntroAnimation
+          onDone={() => {
+            setIntroDone(true);
+            // Read welcome only after the logo lands — defers cookie /
+            // localStorage access until after first paint AND lets the
+            // StoneCeremony scrim cover the post-intro state cleanly
+            // instead of competing with the intro fade.
+            const welcome = readWelcomeElement();
+            if (welcome) setCeremonyElement(welcome);
+          }}
+        />
+      )}
+      {ceremonyElement && (
+        <StoneCeremony
+          element={ceremonyElement}
+          onDismiss={() => setCeremonyElement(null)}
+        />
+      )}
       {/* Mobile-only compact header — brand wordmark + a tiny live pulse.
           The world stats live in the Stats tab below. Desktop's full
           KpiStrip takes over above lg via its own breakpoint. */}
