@@ -352,3 +352,107 @@ This makes /kickoff a **named promotion ceremony** in OperatorOS — studio synt
 The fix is migration, not rewrite. Seven phases (A-G), each one PR, mostly backwards-compatible. The /enhance skill stays upstream-canon unchanged. /kickoff becomes a composition that uses it.
 
 The biggest unlock: **once /kickoff is observable, every cross-repo handoff becomes auditable**. The operator can trace WHY one session's kickoff produced the build doc it did. The Anthropic NLA-grounded divergence detection (per cycle-rooms-observatory PRD) catches kickoffs where the stated rationale doesn't match what actually happened.
+
+---
+
+## Meta-observation · I just demonstrated the gap I wrote about
+
+Operator-flagged 2026-05-10 post-spec: this spec critiques `/kickoff` for studio-mode invocation, but **in this same session I myself wasn't consistently putting constructs into rooms.**
+
+Concrete trace from this session:
+
+| When I spawned a construct | Mechanism I used | Was it room mode? |
+|---|---|---|
+| R5 3-construct audit (KEEPER + ALEXANDER + ROSENZU) | `Agent(subagent_type=construct-X, run_in_background: true)` | **No** · studio-shaped Agent invocation |
+| HERALD KAORI voice extraction | Same `Agent(...)` pattern | **No** |
+| BEACON + ALEXANDER OG metadata audit | Same | **No** |
+
+What was missing in each case:
+- No `.run/compose/<run_id>/` directory created
+- No handoff packet emitted to `.run/compose/<run_id>/envelopes/`
+- No structured `why.rationale` + `why.tools_used` + `why.decisions_considered` cross-validation
+- No use of `construct-rooms-substrate` adapters
+- Constructs returned prose verdicts via the Agent tool's normal return path — useful, but not observable post-hoc by an observability station
+
+**Why this matters for the spec's credibility**: the gap analysis above is correct, but the spec missed that this isn't only a `/kickoff` problem. **Studio-shaped construct invocation is the prevailing pattern across all skills and ad-hoc agent calls today.** /kickoff is one instance. Every session that calls `Agent(subagent_type=construct-*)` is another instance.
+
+**Generalized version**: every construct invocation that **claims authority** (audit verdicts, design specs, voice profiles, framing decisions) should be in room mode — emit a packet, surface WHY at top, write to `.run/compose/`. Exploratory invocations (free research, brainstorming) can stay in studio mode.
+
+### GAP 9 · The `Agent()` tool itself is the studio-mode default
+
+**Current state**: when an agent (me) spawns a construct, the default tool is `Agent(subagent_type=construct-X, prompt=...)`. Studio-shaped: NL prompt in, NL response out, no packet, no observability.
+
+**Substrate-aligned**: when substrate is installed, the canonical invocation should be:
+```bash
+bash .claude/scripts/compose-dispatch.sh \
+  --composition <inline-or-yaml> \
+  --construct <slug> \
+  --persona <name> \
+  --inputs <packet-json>
+```
+
+OR (more agent-friendly):
+- The `Agent()` tool gains a `--substrate-room` flag that auto-wraps the call in compose-dispatch + emits a packet
+- OR a new `Room()` tool exists alongside `Agent()` as the canonical room-mode primitive
+
+**Upstream candidate** for `construct-rooms-substrate`:
+- Agent-tool integration layer so `Agent(subagent_type=construct-*, room: true)` becomes a substrate dispatch
+- Document studio vs room as a per-invocation choice the agent must make
+
+**Operator instruction worth codifying** in global CLAUDE.md / OperatorOS:
+- Rule: "if you're claiming authority via a construct, put it in a room"
+- Hard NO: "no studio-mode authority claims that drive build work"
+
+### What I should have done in this session
+
+For the R5 audit, the correct invocation would have been:
+
+```yaml
+# inline composition · spawn via compose-dispatch
+schema_version: 1
+pattern: parallel
+artifact_name: r5-demo-audit-verdict
+chain:
+  - construct: observer
+    persona: KEEPER
+    role: emotional-audit
+  - construct: artisan
+    persona: ALEXANDER
+    role: craft-audit
+  - construct: rosenzu
+    persona: LYNCH
+    role: spatial-audit
+```
+
+Each construct emits a handoff packet. The synthesis (SHIP-BLOCKING / SHIP-RECOMMENDED / POST-SHIP triage) reads the three packets and writes a final consolidated verdict.
+
+What I actually did: three parallel `Agent()` calls returning prose. The triage was correct. But **the audit trail is gone** — there's no `.run/compose/<run_id>/` for this audit. A future agent wanting to see WHY KEEPER flagged Phantom popup copy as SHIP-BLOCKING has to dig through git log + transcripts.
+
+### Implication for the migration plan
+
+Phase D shouldn't only target `/kickoff`. The generalized scope:
+
+```
+Phase D-global · room-mode promotion across all authority-claiming skills:
+  - /kickoff Phase 3 (this spec)
+  - /audit-sprint
+  - /review-sprint
+  - /flatline-review
+  - /bridgebuilder-review
+  - Any ad-hoc Agent(subagent_type=construct-*) call for audit work
+```
+
+Bigger lift, more honest framing. Worth its own PRD.
+
+### Updated cross-repo PR routing (with Gap 9)
+
+| Destination | What to PR | Updated |
+|---|---|---|
+| `construct-compositions/compositions/discovery/kickoff.yaml` | New composition file (Phase A) | unchanged |
+| `construct-rooms-substrate/docs/runtime/` | Skill-to-composition migration doc | **+ Agent-tool integration spec** |
+| `~/.claude/skills/kickoff/SKILL.md` | Substrate-aware + room promotion | unchanged |
+| `loa-constructs/grimoires/loa/prd-cycle-kickoff-substrate.md` | New PRD | **scope expanded** to all authority-claiming skills |
+| `~/.claude/CLAUDE.md` (OperatorOS) | **NEW** · "authority claim → room mode" rule | new |
+| `~/.claude/skills/audit-sprint/SKILL.md` + review-sprint + flatline-review + bridgebuilder-review | **NEW** · room-mode invocation for authority sub-skills | new |
+
+The substrate's value proposition becomes consistent: **rooms for authority, studios for exploration**, line enforceable.
