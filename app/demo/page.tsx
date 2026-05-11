@@ -297,18 +297,33 @@ function Post({
       {avatar}
       <div className="flex-1 min-w-0">
         {automatedBy ? (
-          /* Agent layout · single-row head (operator R5 call · matches the
-             standard X post header) + "Automated by" badge below. */
+          /* Agent layout · single-row head (matches standard X post header).
+             whitespace-nowrap on each text span prevents the longest names
+             (e.g. "tsuheji winds" + "@tsuhejiwinds") from wrapping when
+             flex auto-shrinks the items. */
           <>
             <div className="flex items-center gap-x-1 text-[15px]">
-              <span className="font-bold" style={{ color: XC.textPrimary }}>
+              <span
+                className="font-bold whitespace-nowrap"
+                style={{ color: XC.textPrimary }}
+              >
                 {name}
               </span>
               {verified && <VerifiedBadge size={16} />}
-              <span style={{ color: XC.textSecondary }}>@{handle}</span>
+              <span
+                className="whitespace-nowrap"
+                style={{ color: XC.textSecondary }}
+              >
+                @{handle}
+              </span>
               <span style={{ color: XC.textSecondary }}>·</span>
-              <span style={{ color: XC.textSecondary }}>{time}</span>
-              <div className="ml-auto flex items-center gap-3">
+              <span
+                className="whitespace-nowrap"
+                style={{ color: XC.textSecondary }}
+              >
+                {time}
+              </span>
+              <div className="ml-auto flex items-center gap-3 shrink-0">
                 <GrokDiamond size={16} />
                 <MoreHorizontal
                   size={18}
