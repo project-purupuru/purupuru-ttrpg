@@ -35,6 +35,15 @@
   max-width: 100%;
 }
 
+/* Hide Dialect's "powered by" attribution + logo at the card foot.
+ * Operator decision 2026-05-11 · the Blink card is the focal artifact
+ * inside our X-faithful demo render · the attribution row competes
+ * with the puruworld brand. Dialect renders it as
+ * `<div class="blink-powered-by ...">` at chunk-VCTADBOU.js:2010. */
+.purupuru-blink-scope .blink-powered-by {
+  display: none;
+}
+
 /* ──────────────────────────────────────────────────────────────────
  * Wuxing-tinted Dialect Blink theme · Layer B customization
  * ──────────────────────────────────────────────────────────────────
