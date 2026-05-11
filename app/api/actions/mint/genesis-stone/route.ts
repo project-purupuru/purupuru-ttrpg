@@ -290,10 +290,24 @@ export async function POST(request: Request) {
 
   // 10. Loop-closure bridge · post-mint links.next points at the Observatory
   // with ?welcome={element} query param. The observatory page reads this and
-  // pre-seeds the activityStream with a "you just arrived" row 4-6s after
-  // mount · proof #4 ("I am not alone") lands when the user's stone visibly
-  // joins the lobby. WEAVER R4 audit · ritual first (this response · mint),
-  // world second (the bridge below).
+  // plays the Stone Recognition Ceremony.
+  //
+  // BUG FIX 2026-05-11 (#bug-91e298): button type changed from
+  //   "external-link" → "inline-link"
+  // because @dialectlabs/blinks-core@0.20.7's runAction handler at
+  //   blinks-core/dist/index.js:308
+  // special-cases ONLY `component.type === "inline-link"` to return a
+  // navigate-without-POST directive. `external-link` at the
+  // component-level falls through to line 323+ which POSTs to the
+  // button's href — for us that meant POSTing to purupuru.world/?welcome=fire
+  // (a Next.js page, not an action endpoint), the renderer parsed the
+  // HTML response as a transaction, and signTransaction was called
+  // with garbage producing the "Signing failed." message Gumi saw
+  // demoing from X.
+  //
+  // `inline-link` per spec: renders as <a href> when execution status
+  // is idle/blocked, and at runtime returns the external-link
+  // directive immediately on click. No POST. No signing. Just navigate.
   const OBSERVATORY_URL =
     process.env.OBSERVATORY_URL ?? "https://purupuru.world"
   const welcomeUrl = `${OBSERVATORY_URL}/?welcome=${archetype.toLowerCase()}`
@@ -313,7 +327,7 @@ export async function POST(request: Request) {
             links: {
               actions: [
                 {
-                  type: "external-link",
+                  type: "inline-link",
                   label: "See yourself in the world",
                   href: welcomeUrl,
                 },

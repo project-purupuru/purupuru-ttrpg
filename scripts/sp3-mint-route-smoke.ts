@@ -43,6 +43,18 @@ interface MintResponse {
   transaction?: string
   message?: string
   error?: { message: string }
+  links?: {
+    next?: {
+      type: "inline" | "post"
+      action?: {
+        title?: string
+        links?: {
+          actions?: Array<{ type: string; label: string; href: string }>
+        }
+      }
+      href?: string
+    }
+  }
 }
 
 async function main() {
@@ -95,6 +107,25 @@ async function main() {
 
   console.log(`✓ Got base64 tx (${body.transaction.length} chars)`)
   console.log(`✓ Reveal message: "${body.message}"`)
+
+  // Bridge button regression guard (#bug-91e298 fix · 2026-05-11):
+  // The post-mint "See yourself in the world" button MUST use
+  // inline-link, not external-link. external-link causes the dialect
+  // renderer to POST to the welcome URL (a Next.js page) instead of
+  // navigating, which produces "Signing failed." in the wallet.
+  const bridgeAction = body.links?.next?.action?.links?.actions?.[0]
+  if (!bridgeAction) {
+    console.error("✗ Response missing links.next.action.links.actions[0]")
+    process.exit(1)
+  }
+  if (bridgeAction.type !== "inline-link") {
+    console.error(
+      `✗ Bridge button type is "${bridgeAction.type}" — must be "inline-link"`,
+    )
+    console.error(`  See app/api/actions/mint/genesis-stone/route.ts comment`)
+    process.exit(1)
+  }
+  console.log(`✓ Bridge button type=inline-link · href=${bridgeAction.href}`)
 
   // 5. Decode the tx + verify shape.
   const txBytes = Buffer.from(body.transaction, "base64")
