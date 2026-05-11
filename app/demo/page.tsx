@@ -566,12 +566,15 @@ export default async function DemoPage({ searchParams }: PageProps) {
             }}
           >
             <div className="flex items-center overflow-x-auto">
+              {/* ALEXANDER R4 audit · dropped fabricated "purupuru" custom tab.
+                  Naming our world in the X chrome telegraphs "this is mocked"
+                  before the Blink itself speaks. The Blink earns its place by
+                  being IN the feed, not by being named in the navigation. */}
               {[
                 { label: "For you", active: true },
                 { label: "Following" },
                 { label: "Solana" },
                 { label: "Web3" },
-                { label: "purupuru" },
                 { label: "+", icon: true },
               ].map((tab) => (
                 <div
@@ -697,9 +700,13 @@ export default async function DemoPage({ searchParams }: PageProps) {
               {/* The Blink card · cream/honey palette pops against X white bg ·
                   framed like X's quote-card embed (rounded + hairline border).
                   .demo-blink-scope hides the unregistered-Action warning. */}
+              {/* ALEXANDER R4 audit · honey-dim border (was XC.hairlineStrong
+                  gray which read as "X embed quote-card"). The warm ring
+                  registers as "this card is from elsewhere" — exactly the
+                  read we want. Honey-glow shadow does the rest. */}
               <div
                 className="purupuru-blink-scope demo-blink-scope mt-3 overflow-hidden rounded-2xl"
-                style={{ border: `1px solid ${XC.hairlineStrong}` }}
+                style={{ border: `1px solid var(--puru-honey-dim)` }}
               >
                 <BlinkPreview url={targetUrl} stylePreset={stylePreset} />
               </div>

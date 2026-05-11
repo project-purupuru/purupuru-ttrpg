@@ -295,7 +295,7 @@ export async function POST(request: Request) {
   // joins the lobby. WEAVER R4 audit · ritual first (this response · mint),
   // world second (the bridge below).
   const OBSERVATORY_URL =
-    process.env.OBSERVATORY_URL ?? "https://purupuru-blink.vercel.app"
+    process.env.OBSERVATORY_URL ?? "https://purupuru.world"
   const welcomeUrl = `${OBSERVATORY_URL}/?welcome=${archetype.toLowerCase()}`
 
   return NextResponse.json(
@@ -306,9 +306,9 @@ export async function POST(request: Request) {
         next: {
           type: "inline",
           action: {
-            icon: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://purupuru-quiz.vercel.app"}/art/stones/${archetype.toLowerCase()}.png`,
+            icon: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://purupuru.world"}/art/stones/${archetype.toLowerCase()}.png`,
             title: `Your ${archetype.charAt(0) + archetype.slice(1).toLowerCase()} stone is in the world.`,
-            description: "The lobby is watching. See yourself among the others who arrived today.",
+            description: "Eight answers became one element. The stone is yours to keep.",
             label: "See yourself in the world",
             links: {
               actions: [
@@ -334,9 +334,9 @@ export async function GET(request: Request) {
   return NextResponse.json(
     {
       icon: `${baseUrl}/api/og?action=mint`,
-      title: "Claim Your Genesis Stone",
+      title: "Claim your stone.",
       description:
-        "Take the 8-question quiz · find your element · claim the stone that reads you back.",
+        "Eight answers became one element. The stone is yours to keep.",
       label: "claim",
       links: {
         actions: [
