@@ -2,7 +2,7 @@
   "name": "Genesis Stone \u00b7 Fire",
   "symbol": "PGS",
   "description": "A Fire-element imprint of the awareness layer \u00b7 the day's tide read warmth when this stone was claimed \u00b7 purupuru world.",
-  "image": "https://purupuru-blink.vercel.app/art/stones/fire.png",
+  "image": "https://purupuru.world/art/stones/fire.png",
   "external_url": "https://purupuru.world",
   "attributes": [
     {
@@ -23,7 +23,7 @@
     "creators": [],
     "files": [
       {
-        "uri": "https://purupuru-blink.vercel.app/art/stones/fire.png",
+        "uri": "https://purupuru.world/art/stones/fire.png",
         "type": "image/png"
       }
     ]

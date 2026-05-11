@@ -2,7 +2,7 @@
   "name": "Genesis Stone \u00b7 Earth",
   "symbol": "PGS",
   "description": "An Earth-element imprint of the awareness layer \u00b7 the day's tide read steady when this stone was claimed \u00b7 purupuru world.",
-  "image": "https://purupuru-blink.vercel.app/art/stones/earth.png",
+  "image": "https://purupuru.world/art/stones/earth.png",
   "external_url": "https://purupuru.world",
   "attributes": [
     {
@@ -23,7 +23,7 @@
     "creators": [],
     "files": [
       {
-        "uri": "https://purupuru-blink.vercel.app/art/stones/earth.png",
+        "uri": "https://purupuru.world/art/stones/earth.png",
         "type": "image/png"
       }
     ]

@@ -2,7 +2,7 @@
   "name": "Genesis Stone \u00b7 Water",
   "symbol": "PGS",
   "description": "A Water-element imprint of the awareness layer \u00b7 the day's tide read deep when this stone was claimed \u00b7 purupuru world.",
-  "image": "https://purupuru-blink.vercel.app/art/stones/water.png",
+  "image": "https://purupuru.world/art/stones/water.png",
   "external_url": "https://purupuru.world",
   "attributes": [
     {
@@ -23,7 +23,7 @@
     "creators": [],
     "files": [
       {
-        "uri": "https://purupuru-blink.vercel.app/art/stones/water.png",
+        "uri": "https://purupuru.world/art/stones/water.png",
         "type": "image/png"
       }
     ]
