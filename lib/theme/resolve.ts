@@ -1,7 +1,7 @@
 // Theme resolution — single source of truth for "is the puru world night?"
 //
 // The observatory uses sunrise/sunset from the Open-Meteo weather feed
-// (`lib/weather/live.ts:297` deriveIsNight) to flip <html data-theme>
+// (`lib/live/weather.live.ts` deriveIsNight) to flip <html data-theme>
 // between "old-horai" (dark) and "day-horai" (light · sentinel that
 // defeats the prefers-color-scheme:dark mirror in globals.css).
 //

@@ -2,14 +2,12 @@
 
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { weatherFeed } from "@/lib/weather";
-import type { WeatherState } from "@/lib/weather";
+import { useWeather, sonifier } from "@/lib/runtime/react";
 import type { Element } from "@/lib/score";
 import type { PuruhaniIdentity } from "@/lib/sim/types";
 import { activityStream } from "@/lib/activity";
 import type { MintActivity } from "@/lib/activity";
 import { populationStore } from "@/lib/sim/population.system";
-import { getSonifier } from "@/lib/audio/sonify";
 import { persistResolvedTheme } from "@/lib/theme/persist";
 import Image from "next/image";
 import { KpiStrip } from "./KpiStrip";
@@ -39,7 +37,7 @@ export function ObservatoryClient() {
   const [ceremonyElement, setCeremonyElement] =
     useState<Element | null>(null);
   const [distribution, setDistribution] = useState<Record<Element, number>>(ZERO_DISTRIBUTION);
-  const [weather, setWeather] = useState<WeatherState>(weatherFeed.current());
+  const weather = useWeather();
   const [focused, setFocused] = useState<PuruhaniIdentity | null>(null);
   // `playing` drives the MusicPlayer's <audio> element. `sfxEnabled`
   // independently toggles the pentatonic sonifier — both must be true
@@ -153,7 +151,6 @@ export function ObservatoryClient() {
   // per AudioContext spec.
   useEffect(() => {
     if (!playing || !sfxEnabled) return;
-    const sonifier = getSonifier();
     void sonifier.start();
     const unsub = activityStream.subscribe((e) => {
       sonifier.play({ element: e.element, kind: e.kind });
@@ -186,17 +183,13 @@ export function ObservatoryClient() {
   // the numbers always equal the actual on-map sprite count per element.
   // Subscribing fires on every spawn (initial seed = no fires; YOU spawn
   // + each trickle = one fire) — cheap recompute, no polling needed.
-  // Weather drives the canvas + theme.
+  // Weather is driven separately via the useWeather hook.
   useEffect(() => {
     setDistribution(populationStore.distribution());
     const unsubPop = populationStore.subscribe(() => {
       setDistribution(populationStore.distribution());
     });
-    const unsubWeather = weatherFeed.subscribe(setWeather);
-    return () => {
-      unsubPop();
-      unsubWeather();
-    };
+    return unsubPop;
   }, []);
 
   // Leading clan — same computation as KpiStrip; powers the canvas-pane

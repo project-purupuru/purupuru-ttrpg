@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import type { WeatherState } from "@/lib/weather";
+import type { WeatherState } from "@/lib/domain/weather";
 import type { Element } from "@/lib/score";
 import { ActivityRail } from "./ActivityRail";
 import { WeatherTile } from "./WeatherTile";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { WeatherState, Precipitation } from "@/lib/weather";
+import type { WeatherState, Precipitation } from "@/lib/domain/weather";
 import type { Element } from "@/lib/score";
 import { ELEMENT_KANJI } from "@/lib/domain/element";
 import { timeAgo } from "@/lib/time/format";
