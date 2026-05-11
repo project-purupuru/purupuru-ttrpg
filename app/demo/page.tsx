@@ -693,8 +693,7 @@ export default async function DemoPage({ searchParams }: PageProps) {
                 className="mt-0.5 text-[15px] leading-[1.35]"
                 style={{ color: XC.textPrimary }}
               >
-                new quiz live — your friend cancels plans last minute. which
-                element answers?
+                eight questions to read you back.
               </p>
 
               {/* The Blink card · cream/honey palette pops against X white bg ·
