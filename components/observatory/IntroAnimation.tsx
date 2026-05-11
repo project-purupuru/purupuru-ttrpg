@@ -10,8 +10,8 @@
  *
  * Three stages:
  *   1. `logo`     — wordmark fades + softly scales in over solid bg.
- *   2. `buttons`  — buttons fade in below; logo shifts up via flex
- *                   reflow as the column grows.
+ *   2. `buttons`  — buttons arc up from below into their resting place,
+ *                   then logo shifts as the column grows.
  *   3. `exit`     — whole overlay fades out and unmounts; parent's
  *                   `onDone` fires from AnimatePresence's onExitComplete.
  *
@@ -21,6 +21,12 @@
  * as <truncated>" label.
  *
  * Reduced-motion: skips the whole animation, fires `onDone` immediately.
+ *
+ * Ambient celestial — sun by day, moon by night, positioned along an
+ * arc that mirrors the user's actual local time (read from the theme
+ * system's cached sunrise/sunset). Same source the main observatory
+ * uses, so the world's "what time is it" is consistent across surfaces:
+ *   intro → ceremony → observatory all see the same sky.
  *
  * Styling: follows the puru design system (cloud-base canvas,
  * fire-vivid primary accent, font-puru-mono uppercase tracking for
@@ -34,9 +40,16 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CELESTIAL } from "@/lib/world-purupuru-cdn";
+import {
+  resolveCelestialPosition,
+  type CelestialPosition,
+} from "@/lib/celestial/position";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
+// KANSEI ease — gentle overshoot for the button arc.
+const ARC_EASE = [0.34, 1.18, 0.42, 1] as const;
 const LOGO_TO_BUTTONS_DELAY_MS = 1200;
 /** Brief beat to acknowledge the connected wallet before auto-exiting. */
 const CONNECTED_AUTO_ENTER_MS = 500;
@@ -49,6 +62,15 @@ export function IntroAnimation({ onDone }: { onDone: () => void }) {
   const { setVisible } = useWalletModal();
   const connected = publicKey !== null;
   const [stage, setStage] = useState<Stage>("logo");
+  // Celestial position is computed client-side from cached
+  // sunrise/sunset + current time. Resolved in an effect to avoid
+  // SSR / hydration mismatches (Date.now() differs between server
+  // and client).
+  const [celestial, setCelestial] = useState<CelestialPosition | null>(null);
+
+  useEffect(() => {
+    setCelestial(resolveCelestialPosition());
+  }, []);
 
   // Reduced motion: skip the choreography entirely.
   useEffect(() => {
@@ -56,8 +78,7 @@ export function IntroAnimation({ onDone }: { onDone: () => void }) {
   }, [reduce, onDone]);
 
   // Read latest `connected` inside the timer body without making the
-  // logo-stage timer reset whenever the wallet state flips. Otherwise a
-  // mid-hold autoConnect resolution would restart the 1.2s timer.
+  // logo-stage timer reset whenever the wallet state flips.
   const connectedRef = useRef(connected);
   useEffect(() => {
     connectedRef.current = connected;
@@ -65,8 +86,7 @@ export function IntroAnimation({ onDone }: { onDone: () => void }) {
 
   // Advance the logo stage after the hold delay. If the wallet has already
   // auto-connected by then, skip the buttons stage entirely and exit
-  // straight to the app (logo → app). Otherwise show the connect/guest
-  // actions.
+  // straight to the app (logo → app).
   useEffect(() => {
     if (reduce) return;
     if (stage !== "logo") return;
@@ -76,10 +96,7 @@ export function IntroAnimation({ onDone }: { onDone: () => void }) {
     return () => window.clearTimeout(t);
   }, [stage, reduce]);
 
-  // Auto-enter when the user finishes connecting mid-buttons-stage. They
-  // clicked Connect Wallet, the modal opened, and now the wallet is live —
-  // exit after a brief beat showing the "connected · 4abc…" acknowledgment
-  // so they aren't asked for a second click.
+  // Auto-enter when the user finishes connecting mid-buttons-stage.
   useEffect(() => {
     if (reduce) return;
     if (!connected) return;
@@ -93,7 +110,9 @@ export function IntroAnimation({ onDone }: { onDone: () => void }) {
   const handleEnter = () => setStage("exit");
   const handleConnect = () => setVisible(true);
 
-  const truncated = publicKey ? `${publicKey.toBase58().slice(0, 4)}…${publicKey.toBase58().slice(-4)}` : "";
+  const truncated = publicKey
+    ? `${publicKey.toBase58().slice(0, 4)}…${publicKey.toBase58().slice(-4)}`
+    : "";
 
   return (
     <AnimatePresence onExitComplete={onDone}>
@@ -104,8 +123,18 @@ export function IntroAnimation({ onDone }: { onDone: () => void }) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.7, ease: EASE }}
-          className="pointer-events-auto fixed inset-0 z-30 flex flex-col items-center justify-center gap-12 bg-puru-cloud-base px-6 md:gap-14"
+          className="pointer-events-auto fixed inset-0 z-30 flex flex-col items-center justify-center gap-12 overflow-hidden bg-puru-cloud-base px-6 md:gap-14"
         >
+          {/* ── Ambient celestial · sun by day / moon by night ──────
+                Positioned along an east→west arc matching the user's
+                actual local time. Reads cached sunrise/sunset from
+                the theme system (same source as the observatory's
+                day/night flip), so all three surfaces see the same
+                sky. Soft breathing on opacity + scale; the body never
+                competes with the wordmark for the eye — it's the
+                room the brand sits inside. */}
+          {celestial && <CelestialBody position={celestial} />}
+
           {/* Wordmark — fades + softly scales in over the solid bg.
               Reflow when buttons mount naturally pushes it up since
               the flex column is justify-center. */}
@@ -113,6 +142,7 @@ export function IntroAnimation({ onDone }: { onDone: () => void }) {
             initial={{ opacity: 0, scale: 0.94 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.9, delay: 0.15, ease: EASE }}
+            className="relative z-10"
           >
             <Image
               src="/brand/purupuru-wordmark.svg"
@@ -132,17 +162,35 @@ export function IntroAnimation({ onDone }: { onDone: () => void }) {
             />
           </motion.div>
 
-          {/* Action panel — appears after the logo holds, fades + slides
-              in from below. */}
+          {/* Action panel — arcs UP from below the logo, peaks above
+              the resting position, then settles. Operator note
+              2026-05-11: previous 0.6s fade-up was too snappy — the
+              arc gives the panel kinetic identity (it ENTERS the
+              world rather than appearing) and echoes the celestial
+              arc shape behind the wordmark. Synergy: the panel's
+              gesture mirrors the sky's gesture.
+
+              Motion shape (keyframe-explicit): y travels from +96 →
+              -14 → 0 over 1.6s. Mid-arc the panel is visibly above
+              its resting position so you read the gesture as an arc
+              not a slide. Opacity rises in the first third so the
+              shape is committed visually before settle. */}
           <AnimatePresence>
             {stage === "buttons" && (
               <motion.div
                 key="actions"
-                initial={{ opacity: 0, y: 24 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.6, ease: EASE }}
-                className="flex w-full max-w-xs flex-col gap-2.5"
+                initial={{ opacity: 0, y: 96 }}
+                animate={{ opacity: 1, y: [96, -14, 0] }}
+                exit={{ opacity: 0, y: 16 }}
+                transition={{
+                  duration: 1.6,
+                  ease: ARC_EASE,
+                  times: [0, 0.62, 1],
+                  // Opacity in just the first third — panel commits
+                  // visually before it reaches the apex.
+                  opacity: { duration: 0.55, ease: EASE },
+                }}
+                className="relative z-10 flex w-full max-w-xs flex-col gap-2.5"
               >
                 {connected ? (
                   <p className="text-center font-puru-mono text-2xs uppercase tracking-[0.22em] text-puru-ink-dim">
@@ -173,5 +221,85 @@ export function IntroAnimation({ onDone }: { onDone: () => void }) {
         </motion.div>
       )}
     </AnimatePresence>
+  );
+}
+
+// ── Celestial body · sun or moon at time-mapped position ───────────
+//
+// Sized to feel atmospheric, not iconographic — large enough to read
+// as "the sky" but soft enough not to compete with the wordmark.
+// Day-mode sun is honey-warm and sits behind the type at low opacity
+// to avoid pulling the eye. Night-mode moon is paler + cooler.
+//
+// Breathing rhythm matches the rest of the puru system (~6s) — slow
+// enough that you don't notice it as motion, fast enough to read as
+// "alive" if you stare. Y-axis only (HoloCard discipline · no scale
+// breath that would pulse the silhouette).
+
+function CelestialBody({ position }: { position: CelestialPosition }) {
+  const src = position.body === "sun" ? CELESTIAL.sun : CELESTIAL.moon;
+  // Sun is slightly larger than moon — sun has the rays, moon's
+  // clouds add visual mass on their own.
+  const sizePx = position.body === "sun" ? 220 : 200;
+  const breathSec = 6;
+
+  // Memoize the position style so framer doesn't re-trigger entry on
+  // every parent render.
+  const positionStyle = useMemo(
+    () => ({
+      left: `${position.xPct}%`,
+      top: `${position.yPct}%`,
+      width: sizePx,
+      height: sizePx,
+      // Translate-50 for true centering on the computed coordinate.
+      transform: "translate(-50%, -50%)",
+    }),
+    [position.xPct, position.yPct, sizePx],
+  );
+
+  return (
+    <motion.div
+      aria-hidden
+      className="pointer-events-none absolute"
+      style={positionStyle}
+      // Body itself fades in slow — the sky doesn't snap into being.
+      // Opacity target respects the horizon-fade hint from the
+      // position helper so a body that just rose / is about to set
+      // reads softer.
+      initial={{ opacity: 0, y: 8 }}
+      animate={{
+        opacity: position.opacity * (position.body === "sun" ? 0.85 : 0.92),
+        // Subtle breathing translateY — overlays the entry.
+        y: [0, -3, 0],
+      }}
+      transition={{
+        opacity: { duration: 1.6, ease: EASE, delay: 0.1 },
+        y: {
+          duration: breathSec,
+          delay: 1.6,
+          repeat: Infinity,
+          ease: [0.45, 0.05, 0.55, 0.95],
+        },
+      }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt=""
+        width={sizePx}
+        height={sizePx}
+        className="h-full w-full object-contain"
+        style={{
+          // Soft glow behind the body — element of the sky responding
+          // to the body's presence. Sun glows honey-warm; moon glows
+          // pale cool. Drop-shadow rather than outer ring so the body
+          // stays the focal mark.
+          filter:
+            position.body === "sun"
+              ? "drop-shadow(0 0 28px color-mix(in oklch, var(--puru-honey-bright) 60%, transparent)) drop-shadow(0 0 12px color-mix(in oklch, var(--puru-honey-base) 40%, transparent))"
+              : "drop-shadow(0 0 24px color-mix(in oklch, var(--puru-water-tint) 70%, transparent)) drop-shadow(0 0 10px oklch(0.92 0.02 230 / 0.4))",
+        }}
+      />
+    </motion.div>
   );
 }
