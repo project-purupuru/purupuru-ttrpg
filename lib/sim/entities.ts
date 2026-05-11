@@ -1,18 +1,19 @@
 /**
- * Puruhani entity registry — seed an idle population in 5 element zones.
+ * Puruhani entity helpers — element-zone resting positions, breath
+ * advancement, synthetic Solana-style wallets.
  *
  * Position model: each sprite sits in a "zone" around its primaryElement
  * vertex with jitter, plus a small pull toward its secondary element.
  * This produces 5 distinct visible clusters (the wuxing diagram reading)
  * rather than a center-of-mass collapse from pure affinityBlend.
+ *
+ * Population orchestration (initial seed, trickle, YOU spawn) lives in
+ * `./population.ts` — this file only exports the per-sprite primitives.
  */
 
-import type { Element, ScoreReadAdapter, Wallet } from "@/lib/score";
+import type { Element, Wallet } from "@/lib/score";
 import { ELEMENTS } from "@/lib/score";
 import type { PentagramGeometry, Puruhani, Vec2 } from "./types";
-import { identityFor } from "./identity";
-
-export const OBSERVATORY_SPRITE_COUNT = 80;
 
 const BREATH_SECONDS: Record<Element, number> = {
   wood: 6,
@@ -26,34 +27,22 @@ export function breathPeriodMs(element: Element): number {
   return BREATH_SECONDS[element] * 1000;
 }
 
+// Bitcoin/Solana base58 alphabet — excludes 0/O/I/l for readability.
+const BASE58_ALPHABET =
+  "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+
 export function syntheticAddress(seed: number): Wallet {
-  // Spread the seed across 40 hex chars via 5 independent multiplicative
-  // hashes (Knuth-style large-prime mixers). Deterministic so the
-  // activity stream's actor IDs round-trip to the same entity sprites,
-  // but visually each address looks like a real Ethereum-style wallet
-  // (no leading-zero pile-up at the start).
-  const mix = (n: number, prime: number) =>
-    ((Math.abs(n) * prime) >>> 0).toString(16).padStart(8, "0");
-  return (
-    "0x" +
-    mix(seed, 2654435761) +
-    mix(seed, 1597334677) +
-    mix(seed, 3266489917) +
-    mix(seed, 374761393) +
-    mix(seed, 668265263)
-  );
-}
-
-function rng(seed: number): () => number {
-  let s = seed | 0;
-  return () => {
-    s = (s * 1664525 + 1013904223) | 0;
-    return ((s >>> 0) % 1_000_000) / 1_000_000;
-  };
-}
-
-function ulid(prefix: string, i: number): string {
-  return `${prefix}-${i.toString(36).padStart(6, "0")}`;
+  // Solana-shape base58 wallet (~44 chars) generated deterministically from
+  // the seed. Not a valid Ed25519 pubkey — this is a visualization-only
+  // synthetic address. The activity stream + identity registry both use
+  // this function so wallet → identity round-trips stay stable.
+  let s = ((Math.abs(seed) * 2654435761) >>> 0) | 1;
+  let out = "";
+  for (let i = 0; i < 44; i++) {
+    s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
+    out += BASE58_ALPHABET[s % 58];
+  }
+  return out;
 }
 
 function topSecondary(
@@ -99,50 +88,6 @@ export function restingPositionFor(
     x: primaryV.x + jitter.x + pull * (secV.x - primaryV.x),
     y: primaryV.y + jitter.y + pull * (secV.y - primaryV.y),
   };
-}
-
-export async function seedPopulation(
-  n: number,
-  scoreAdapter: ScoreReadAdapter,
-  geometry: PentagramGeometry,
-): Promise<Puruhani[]> {
-  const distribution = await scoreAdapter.getElementDistribution();
-  const total = ELEMENTS.reduce((sum, el) => sum + distribution[el], 0);
-
-  const elementBuckets: Element[] = [];
-  for (const el of ELEMENTS) {
-    const count = Math.max(1, Math.round((distribution[el] / total) * n));
-    for (let i = 0; i < count; i++) elementBuckets.push(el);
-  }
-  while (elementBuckets.length < n) elementBuckets.push("fire");
-  elementBuckets.length = n;
-
-  const entities: Puruhani[] = [];
-  for (let i = 0; i < n; i++) {
-    const seed = i + 1;
-    const primaryElement = elementBuckets[i];
-    const identity = identityFor(seed, primaryElement);
-    const profile = await scoreAdapter.getWalletProfile(identity.trader);
-    const affinity = profile?.elementAffinity ?? {
-      wood: 20, fire: 20, earth: 20, water: 20, metal: 20,
-    };
-    const positionRng = rng(i + 1009);
-    const resting = restingPositionFor(primaryElement, affinity, geometry, positionRng);
-    const phaseRng = rng(i + 13);
-    entities.push({
-      id: ulid("p", i),
-      trader: identity.trader,
-      primaryElement,
-      affinity,
-      position: { ...resting },
-      velocity: { x: 0, y: 0 },
-      state: "idle",
-      breath_phase: phaseRng(),
-      resting_position: { ...resting },
-      identity,
-    });
-  }
-  return entities;
 }
 
 export function advanceBreath(entity: Puruhani, dtMs: number): void {

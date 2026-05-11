@@ -1,10 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { activityStream, type ActivityEvent } from "@/lib/activity";
-import { ELEMENTS, type Element } from "@/lib/score";
-import { OBSERVATORY_SPRITE_COUNT } from "@/lib/sim/entities";
-import { buildIdentityRegistry } from "@/lib/sim/identity";
+import { populationStore } from "@/lib/sim/population";
 import type { PuruhaniIdentity } from "@/lib/sim/types";
 import { PuruhaniAvatar } from "./PuruhaniAvatar";
 
@@ -22,27 +20,19 @@ function timeAgo(iso: string, now: number): string {
   return `${Math.floor(diff / MINUTE)}m ago`;
 }
 
-// Stable per-seed primary used only for identity face/personality —
-// keeps each archetype face fixed per actor while the row's element
-// (and the avatar body tint) follows the join event.
-function stablePrimaryForSeed(seedIndex: number): Element {
-  return ELEMENTS[(seedIndex - 1 + ELEMENTS.length) % ELEMENTS.length];
-}
-
 const titleCase = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 
 export function ActivityRail() {
   const [events, setEvents] = useState<ActivityEvent[]>(() => activityStream.recent());
   const [now, setNow] = useState<number>(() => Date.now());
-
-  const registry = useMemo(
-    () => buildIdentityRegistry(OBSERVATORY_SPRITE_COUNT, stablePrimaryForSeed),
-    [],
-  );
+  const [youTrader, setYouTrader] = useState<string | null>(() => populationStore.youTrader());
 
   useEffect(() => {
     const unsub = activityStream.subscribe((e) => {
       setEvents((prev) => [e, ...prev].slice(0, 50));
+      // youTrader can become non-null after the YOU spawn — refresh on
+      // every event rather than poll.
+      setYouTrader(populationStore.youTrader());
     });
     const tick = setInterval(() => setNow(Date.now()), 1000);
     return () => {
@@ -51,8 +41,13 @@ export function ActivityRail() {
     };
   }, []);
 
-  const resolve = (wallet: string): PuruhaniIdentity | null =>
-    registry.get(wallet) ?? null;
+  // Identity resolution now goes through the population store — every
+  // sprite on the map has a corresponding entry, so the rail can
+  // round-trip wallet → identity without a separate seeded registry.
+  const resolve = (wallet: string): PuruhaniIdentity | null => {
+    const entry = populationStore.current().find((p) => p.trader === wallet);
+    return entry?.identity ?? null;
+  };
 
   // Empty-state value is a single em-dash so the right-hand indicator
   // keeps a stable width.
@@ -88,15 +83,11 @@ export function ActivityRail() {
       ) : (
         <ul className="flex-1 divide-y divide-puru-surface-border overflow-y-auto overflow-x-hidden bg-puru-cloud-base">
           {events.map((e) => {
-            // Element color is kept (drives `currentColor` for the
-            // .puru-row-fresh new-row arrival pulse — left-edge accent
-            // + 8% bg flash for 1.6s when a row mounts) but the
-            // persistent right-side bleed gradient was reading as
-            // continuous noise across the rail; dropped 2026-05-10.
             const rowStyle = {
               color: `var(--puru-${e.element}-vivid)`,
             };
             const actor = resolve(e.actor);
+            const isYou = youTrader !== null && e.actor === youTrader;
             return (
               <li
                 key={e.id}
@@ -127,15 +118,21 @@ export function ActivityRail() {
                     <span className="font-puru-display text-xs text-puru-ink-rich">
                       {actor?.displayName ?? e.actor.slice(0, 6)}
                     </span>
-                    <span className="ml-1 font-puru-body text-2xs text-puru-ink-dim">
-                      @{actor?.username ?? e.actor.slice(2, 8).toLowerCase()}
-                    </span>
+                    {isYou ? (
+                      <span className="ml-1.5 inline-flex items-center rounded-full bg-puru-ink-rich px-1.5 py-0.5 font-puru-mono text-[9px] font-bold leading-none tracking-[0.12em] text-puru-cloud-bright">
+                        YOU
+                      </span>
+                    ) : (
+                      <span className="ml-1 font-puru-body text-2xs text-puru-ink-dim">
+                        @{actor?.username ?? e.actor.slice(0, 6).toLowerCase()}
+                      </span>
+                    )}
                   </p>
                   <p className="mt-0.5 truncate font-puru-body text-xs leading-tight text-puru-ink-soft">
-                    joined {titleCase(e.element)}
+                    claimed {titleCase(e.element)} Stone
                   </p>
                 </div>
-                <span className="shrink-0 self-start font-puru-body text-2xs uppercase tracking-[0.18em] tabular-nums text-puru-ink-dim">
+                <span className="inline-block min-w-[4.5em] shrink-0 self-start text-right font-puru-body text-2xs uppercase tracking-[0.18em] tabular-nums text-puru-ink-dim">
                   {timeAgo(e.at, now)}
                 </span>
               </li>

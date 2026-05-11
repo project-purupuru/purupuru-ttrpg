@@ -1,13 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { scoreAdapter } from "@/lib/score";
 import { weatherFeed } from "@/lib/weather";
 import type { WeatherState } from "@/lib/weather";
 import type { Element } from "@/lib/score";
 import type { PuruhaniIdentity } from "@/lib/sim/types";
 import { activityStream, seedActivityEvent } from "@/lib/activity";
 import { ELEMENTS as ALL_ELEMENTS } from "@/lib/score";
+import { populationStore } from "@/lib/sim/population";
 import { getSonifier } from "@/lib/audio/sonify";
 import Image from "next/image";
 import { KpiStrip } from "./KpiStrip";
@@ -136,22 +136,19 @@ export function ObservatoryClient() {
     return () => document.removeEventListener("click", onDocClick);
   }, [focused]);
 
-  // KPI sources — the strip reads the score adapter's element
-  // distribution as 5 wuxing clan counts, refreshed every 3s. Weather
-  // drives the canvas + theme.
+  // KPI sources — strip counts come straight from the populationStore so
+  // the numbers always equal the actual on-map sprite count per element.
+  // Subscribing fires on every spawn (initial seed = no fires; YOU spawn
+  // + each trickle = one fire) — cheap recompute, no polling needed.
+  // Weather drives the canvas + theme.
   useEffect(() => {
-    let cancelled = false;
-    const refetch = async () => {
-      const dist = await scoreAdapter.getElementDistribution();
-      if (cancelled) return;
-      setDistribution(dist);
-    };
-    refetch();
-    const id = setInterval(refetch, 3000);
+    setDistribution(populationStore.distribution());
+    const unsubPop = populationStore.subscribe(() => {
+      setDistribution(populationStore.distribution());
+    });
     const unsubWeather = weatherFeed.subscribe(setWeather);
     return () => {
-      cancelled = true;
-      clearInterval(id);
+      unsubPop();
       unsubWeather();
     };
   }, []);

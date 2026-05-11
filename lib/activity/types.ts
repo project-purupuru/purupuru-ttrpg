@@ -2,12 +2,14 @@
  * Activity domain — the observatory's read-side of the awareness layer.
  *
  * v0 demo simplification (2026-05-10): the rail surfaces a single beat,
- * "[user] joined [element]" — a synthetic stand-in for the canonical
- * `QuizCompletedEvent` archetype-reveal flow on `feat/awareness-layer-spine`.
- * Mints / weather / element-shifts are paused while the lifecycle layer
- * is in design; the feed reads as a continuous "new clan members are
- * arriving" stream that aligns with the canvas (sprites idle in their
- * element wedge) and the KPI strip (5 clan counts).
+ * "[user] claimed [element] Stone" — a synthetic stand-in for the
+ * canonical `QuizCompletedEvent` → `claim_genesis_stone` flow. The data
+ * model still calls these `join` events because claiming a stone is
+ * mechanically equivalent to joining that element's team. Mints /
+ * weather / element-shifts are paused while the lifecycle layer is in
+ * design; the feed reads as a continuous "new clan members are arriving"
+ * stream that aligns with the canvas (sprites idle in their element
+ * wedge) and the KPI strip (5 clan counts).
  *
  * When the lifecycle layer ships and the indexer wires in, additional
  * variants can be added back to the union below; ActivityEvent is kept

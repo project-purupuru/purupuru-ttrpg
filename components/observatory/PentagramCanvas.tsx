@@ -17,12 +17,8 @@ import {
   pentagonEdges,
   innerStarEdges,
 } from "@/lib/sim/pentagram";
-import {
-  advanceBreath,
-  OBSERVATORY_SPRITE_COUNT,
-  restingPositionFor,
-  seedPopulation,
-} from "@/lib/sim/entities";
+import { advanceBreath, restingPositionFor } from "@/lib/sim/entities";
+import { populationStore, type SpawnedPuruhani } from "@/lib/sim/population";
 import type { Puruhani, PuruhaniIdentity } from "@/lib/sim/types";
 import { avatarToCanvas } from "@/lib/sim/avatar";
 import { orbitalWobble } from "@/lib/sim/tides";
@@ -392,29 +388,57 @@ export function PentagramCanvas({
       }
       app.stage.addChild(vertexLayer);
 
-      // ─── Weather coupling — IRL infuses wuxing ─────────────────────────────
-      // cosmic_intensity → tide-flow amplitude multiplier (high-energy
-      // days = stronger circulation around 生 cycle). The amplifiedElement
-      // signal still tracks but no longer drives a vertex visual now that
-      // ─── Entities ──────────────────────────────────────────────────────────
-      const entities: Puruhani[] = await seedPopulation(
-        OBSERVATORY_SPRITE_COUNT,
-        scoreAdapter,
-        geometry,
-      );
-      if (cancelled) {
-        app.destroy(true, { children: true });
-        return;
-      }
-
-      // Shadow layer sits below sprites so all shadows draw before any
-      // sprite — prevents one sprite from rendering over a neighbour's
-      // shadow at higher z. Implies a ground plane without one existing.
+      // ─── Entities — driven by populationStore ─────────────────────────────
+      // Initial seed (~14 sprites) is read from current(); each gets a
+      // small per-sprite spawn-delay so the cluster materializes over
+      // ~700ms rather than in one frame. Future spawns (YOU at ~1.5s,
+      // then trickle every 6-18s) arrive through subscribe() and play
+      // their pop-in from the moment they're added. `tMs` is hoisted
+      // here so live-spawn callbacks can capture it for spawnDelay.
+      let tMs = 0;
+      const SPAWN_FADE_MS = 420;
       const shadowLayer = new Container();
       const spriteLayer = new Container();
       const sprites: SpriteEntry[] = [];
+      const seenTraders = new Set<string>();
+      let youSpriteEntry: SpriteEntry | null = null;
 
-      for (const entity of entities) {
+      async function addSpriteForSpawn(
+        spawn: SpawnedPuruhani,
+        spawnAtTms: number,
+      ): Promise<void> {
+        if (seenTraders.has(spawn.trader)) return;
+        seenTraders.add(spawn.trader);
+
+        // Fetch profile for affinity → resting position. Falls back to
+        // an even split if the score adapter doesn't return a profile.
+        const profile = await scoreAdapter.getWalletProfile(spawn.trader);
+        if (cancelled) return;
+        const affinity = profile?.elementAffinity ?? {
+          wood: 20, fire: 20, earth: 20, water: 20, metal: 20,
+        };
+        const positionRng = rng(spawn.seed + 1009);
+        const resting = restingPositionFor(
+          spawn.primaryElement,
+          affinity,
+          geometry,
+          positionRng,
+        );
+        const phaseRng = rng(spawn.seed + 13);
+
+        const entity: Puruhani = {
+          id: `p-${spawn.seed}`,
+          trader: spawn.trader,
+          primaryElement: spawn.primaryElement,
+          affinity,
+          position: { ...resting },
+          velocity: { x: 0, y: 0 },
+          state: "idle",
+          breath_phase: phaseRng(),
+          resting_position: { ...resting },
+          identity: spawn.identity,
+        };
+
         const accent = topAffinity(entity.affinity, entity.primaryElement);
         const tex = makeAvatarTexture(entity.identity, entity.primaryElement, accent);
         const node = new Sprite(tex);
@@ -429,8 +453,6 @@ export function PentagramCanvas({
         spriteLayer.addChild(node);
 
         const shadow = new Graphics();
-        // Outer ambient ring first (paints under), tighter contact disk
-        // on top — see SHADOW_* constants for the rationale.
         shadow.ellipse(0, 0, assetSizes.shadowRx * SHADOW_OUTER_SCALE, assetSizes.shadowRy * SHADOW_OUTER_SCALE);
         shadow.fill({ color: 0x000000, alpha: SHADOW_OUTER_FILL_ALPHA });
         shadow.ellipse(0, 0, assetSizes.shadowRx, assetSizes.shadowRy);
@@ -439,23 +461,32 @@ export function PentagramCanvas({
         shadow.y = entity.position.y + assetSizes.shadowOffsetY;
         shadowLayer.addChild(shadow);
 
-        // Stagger pop-in over ~700ms so the cluster materializes rather
-        // than appearing in a single frame. Per-sprite delay seeded
-        // deterministically from the entity index for stable demos.
-        const spawnDelay = (sprites.length * 9) % 700;
         const entry: SpriteEntry = {
           entity, node, shadow, baseScale,
-          spawnDelay,
+          spawnDelay: spawnAtTms,
           focusAlpha: 1,
         };
-        // Start invisible so the spawn-in fade is visible from frame 0.
         node.alpha = 0;
         node.scale.set(0);
         shadow.alpha = 0;
         sprites.push(entry);
-      }
-      app.stage.addChild(shadowLayer);
 
+        if (spawn.isYou) youSpriteEntry = entry;
+      }
+
+      // Subscribe FIRST so any spawn that arrives during the initial-seed
+      // hydration is not missed (dedupe via seenTraders).
+      const unsubPopulation = populationStore.subscribe((spawn) => {
+        // Live spawns start their pop-in from the current canvas time.
+        void addSpriteForSpawn(spawn, tMs);
+      });
+      const initialSpawns = populationStore.current();
+      for (let i = 0; i < initialSpawns.length; i++) {
+        await addSpriteForSpawn(initialSpawns[i], (i * 9) % 700);
+        if (cancelled) return;
+      }
+
+      app.stage.addChild(shadowLayer);
       app.stage.addChild(spriteLayer);
 
       // ─── Focus glow — soft element-tinted ring under the selected sprite ──
@@ -470,77 +501,59 @@ export function PentagramCanvas({
       const FOCUS_DIM_TINT = 0x4a4a4a;
 
       // ─── YOU tag — neutral pill above the user's sprite ──────────────
-      // Helps the viewer find themselves in the crowd. We pin "you" to
-      // sprites[0] (deterministic per-seed). The label uses the same
-      // neutral vocab as the weather KpiCells (cloud-bright bg, dark
-      // ink text, hairline border, soft drop shadow) so it pops out
-      // against the canvas regardless of which clan the user landed in
-      // and stays legible in both light and dark modes. Pointer
-      // triangle below the pill anchors it to the avatar's crown.
-      const USER_SPRITE_INDEX = 0;
-      const userSprite = sprites[USER_SPRITE_INDEX] ?? null;
-      let youContainer: Container | null = null;
-      let youPillH = 0;
-      if (userSprite) {
-        const PILL_BG = 0xffffff;
-        const PILL_BG_ALPHA = 0.96;
-        const PILL_TEXT = 0x1f1c18;
-        const PILL_BORDER = 0x000000;
-        const PILL_BORDER_ALPHA = 0.16;
-        const PILL_SHADOW = 0x000000;
-        const PILL_SHADOW_ALPHA = 0.18;
-        youContainer = new Container();
-        const youText = new Text({
-          text: "YOU",
-          style: {
-            fontFamily: 'system-ui, -apple-system, "Helvetica Neue", sans-serif',
-            fontSize: 9,
-            fontWeight: "700",
-            fill: PILL_TEXT,
-            letterSpacing: 1.5,
-          },
-        });
-        youText.anchor.set(0.5);
-        const padX = 8;
-        const padY = 4;
-        youPillH = youText.height + padY * 2;
-        const pillW = youText.width + padX * 2;
-        // Drop-shadow layer — same shape as the pill, offset 1.5px
-        // down + slight blur via alpha-only fill so it reads as a soft
-        // contact shadow.
-        const pillShadow = new Graphics();
-        pillShadow.roundRect(-pillW / 2, -youPillH / 2 + 1.5, pillW, youPillH, youPillH / 2);
-        pillShadow.fill({ color: PILL_SHADOW, alpha: PILL_SHADOW_ALPHA });
-        // Pill bg + thin hairline stroke for tile-like crispness.
-        const pillBg = new Graphics();
-        pillBg.roundRect(-pillW / 2, -youPillH / 2, pillW, youPillH, youPillH / 2);
-        pillBg.fill({ color: PILL_BG, alpha: PILL_BG_ALPHA });
-        pillBg.roundRect(-pillW / 2, -youPillH / 2, pillW, youPillH, youPillH / 2);
-        pillBg.stroke({ width: 1, color: PILL_BORDER, alpha: PILL_BORDER_ALPHA });
-        // Pointer triangle in the same neutral white so the pill +
-        // pointer read as a single chip.
-        const pointer = new Graphics();
-        pointer.poly([-4, 0, 4, 0, 0, 5]).fill({ color: PILL_BG, alpha: PILL_BG_ALPHA });
-        pointer.y = youPillH / 2 + 0.5;
-        youContainer.addChild(pillShadow);
-        youContainer.addChild(pillBg);
-        youContainer.addChild(youText);
-        youContainer.addChild(pointer);
-        youContainer.alpha = 0; // fades in with sprite spawn
-        app.stage.addChild(youContainer);
-      }
+      // Built once at canvas init; the ticker positions it over whichever
+      // sprite is the current `youSpriteEntry` (set when populationStore
+      // spawns its `isYou` entry — typically ~1.5s after page load). Pill
+      // stays alpha=0 until that sprite both exists and has visibly faded
+      // in, so it arrives WITH the YOU sprite's pop-in rather than
+      // hovering over an empty wedge.
+      const PILL_BG = 0xffffff;
+      const PILL_BG_ALPHA = 0.96;
+      const PILL_TEXT = 0x1f1c18;
+      const PILL_BORDER = 0x000000;
+      const PILL_BORDER_ALPHA = 0.16;
+      const PILL_SHADOW = 0x000000;
+      const PILL_SHADOW_ALPHA = 0.18;
+      const youContainer = new Container();
+      const youText = new Text({
+        text: "YOU",
+        style: {
+          fontFamily: 'system-ui, -apple-system, "Helvetica Neue", sans-serif',
+          fontSize: 9,
+          fontWeight: "700",
+          fill: PILL_TEXT,
+          letterSpacing: 1.5,
+        },
+      });
+      youText.anchor.set(0.5);
+      const youPadX = 8;
+      const youPadY = 4;
+      const youPillH = youText.height + youPadY * 2;
+      const youPillW = youText.width + youPadX * 2;
+      const youPillShadow = new Graphics();
+      youPillShadow.roundRect(-youPillW / 2, -youPillH / 2 + 1.5, youPillW, youPillH, youPillH / 2);
+      youPillShadow.fill({ color: PILL_SHADOW, alpha: PILL_SHADOW_ALPHA });
+      const youPillBg = new Graphics();
+      youPillBg.roundRect(-youPillW / 2, -youPillH / 2, youPillW, youPillH, youPillH / 2);
+      youPillBg.fill({ color: PILL_BG, alpha: PILL_BG_ALPHA });
+      youPillBg.roundRect(-youPillW / 2, -youPillH / 2, youPillW, youPillH, youPillH / 2);
+      youPillBg.stroke({ width: 1, color: PILL_BORDER, alpha: PILL_BORDER_ALPHA });
+      const youPointer = new Graphics();
+      youPointer.poly([-4, 0, 4, 0, 0, 5]).fill({ color: PILL_BG, alpha: PILL_BG_ALPHA });
+      youPointer.y = youPillH / 2 + 0.5;
+      youContainer.addChild(youPillShadow);
+      youContainer.addChild(youPillBg);
+      youContainer.addChild(youText);
+      youContainer.addChild(youPointer);
+      youContainer.alpha = 0;
+      app.stage.addChild(youContainer);
 
       // ─── Main ticker ───────────────────────────────────────────────────────
       // No migrations · no tide flow. Sprites stay in the wedge they were
       // seeded into; idle motion is the orbital wobble + element-paced
-      // breath scale. Stagger pop-in over the first ~1.1s after canvas
-      // start so the cluster materializes rather than appearing in one
-      // frame. The cross-region drift / migration system was pulled per
-      // operator direction (2026-05-10) — game state is "users sit in
-      // their clan's region" until the lifecycle layer ships.
-      let tMs = 0;
-      const SPAWN_FADE_MS = 420;
-
+      // breath scale. Initial cluster materializes over ~700ms via staggered
+      // per-sprite spawn-delays; later spawns from populationStore play
+      // their pop-in from the moment they're added.
       const ticker = (delta: { deltaMS: number }) => {
         const dt = delta.deltaMS;
         tMs += dt;
@@ -592,18 +605,20 @@ export function PentagramCanvas({
           s.shadow.alpha = SHADOW_BASE_ALPHA * (0.55 + 0.45 * s.focusAlpha) * spawnT;
         }
 
-        // ─── YOU tag — track the user-sprite (sprites[0]) ──────────────────
+        // ─── YOU tag — track the populationStore's `isYou` sprite ──────────
         // Position above the sprite by half-avatar + half-pill + a small
         // gap so the pointer lands on the avatar's crown without overlap.
         // Alpha matches the sprite's spawn-fade so the label only appears
         // once the user-sprite has materialized; we don't dim it on focus
         // so the user can always find themselves even when another sprite
         // is selected.
-        if (youContainer && userSprite) {
+        if (youSpriteEntry) {
           const offsetY = assetSizes.avatarDisplay / 2 + youPillH / 2 + 6;
-          youContainer.x = userSprite.node.x;
-          youContainer.y = userSprite.node.y - offsetY;
-          youContainer.alpha = userSprite.node.alpha;
+          youContainer.x = youSpriteEntry.node.x;
+          youContainer.y = youSpriteEntry.node.y - offsetY;
+          youContainer.alpha = youSpriteEntry.node.alpha;
+        } else {
+          youContainer.alpha = 0;
         }
 
         // ─── Vertex aura amplification — boost the matching element ────────
@@ -716,6 +731,7 @@ export function PentagramCanvas({
       rafCleanup = () => {
         app.ticker.remove(ticker);
         ro.disconnect();
+        unsubPopulation();
       };
     })();
 
@@ -811,5 +827,3 @@ export function PentagramCanvas({
     </div>
   );
 }
-
-export { OBSERVATORY_SPRITE_COUNT } from "@/lib/sim/entities";
