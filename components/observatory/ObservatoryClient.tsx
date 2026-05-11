@@ -8,7 +8,7 @@ import type { Element } from "@/lib/score";
 import type { PuruhaniIdentity } from "@/lib/sim/types";
 import { activityStream } from "@/lib/activity";
 import type { MintActivity } from "@/lib/activity";
-import { populationStore } from "@/lib/sim/population";
+import { populationStore } from "@/lib/sim/population.system";
 import { getSonifier } from "@/lib/audio/sonify";
 import { persistResolvedTheme } from "@/lib/theme/persist";
 import Image from "next/image";

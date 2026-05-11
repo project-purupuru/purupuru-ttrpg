@@ -19,7 +19,7 @@ import {
   innerStarEdges,
 } from "@/lib/sim/pentagram";
 import { advanceBreath, restingPositionFor } from "@/lib/sim/entities";
-import { populationStore, type SpawnedPuruhani } from "@/lib/sim/population";
+import { populationStore, type SpawnedPuruhani } from "@/lib/sim/population.system";
 import type { Puruhani, PuruhaniIdentity } from "@/lib/sim/types";
 import { avatarToCanvas } from "@/lib/sim/avatar";
 import { orbitalWobble } from "@/lib/sim/tides";

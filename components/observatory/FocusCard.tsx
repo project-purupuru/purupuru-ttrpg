@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { type Element } from "@/lib/score";
-import { populationStore } from "@/lib/sim/population";
+import { populationStore } from "@/lib/sim/population.system";
 import type { PuruhaniIdentity } from "@/lib/sim/types";
 import { timeAgo } from "@/lib/time/format";
 import { PuruhaniAvatar } from "./PuruhaniAvatar";
