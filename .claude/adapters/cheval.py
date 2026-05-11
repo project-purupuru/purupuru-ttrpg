@@ -47,6 +47,16 @@ from loa_cheval.providers import get_adapter
 from loa_cheval.types import ProviderConfig, ModelConfig
 from loa_cheval.metering.budget import BudgetEnforcer
 
+# cycle-102 Sprint 1D / T1.7 — MODELINV audit envelope emitter.
+# Lazy at use-site: the import lives at module scope so test runs that exercise
+# cmd_invoke() get the same code path as production, but environments without
+# audit-envelope dependencies see deferred ImportError handled inside the
+# emitter (logs [AUDIT-EMIT-FAILED] and returns).
+from loa_cheval.audit.modelinv import (
+    RedactionFailure as _ModelinvRedactionFailure,
+    emit_model_invoke_complete as _emit_modelinv,
+)
+
 # Configure logging to stderr only
 logging.basicConfig(
     stream=sys.stderr,
@@ -202,6 +212,52 @@ def _build_provider_config(provider_name: str, config: Dict[str, Any]) -> Provid
     )
 
 
+def _lookup_max_input_tokens(
+    provider: str,
+    model_id: str,
+    hounfour: Dict[str, Any],
+    cli_override: Optional[int] = None,
+) -> Optional[int]:
+    """Empirically-observed safe input-size threshold for (provider, model_id).
+
+    Backstop for the cheval HTTP-asymmetry bug class (KF-002 layer 3 / Loa
+    #774): some models exhibit `Server disconnected` mid-stream on long
+    prompts well below their nominal `context_window`. The threshold here is
+    a SEPARATE field from `context_window` — `context_window` is the model's
+    advertised capacity; `max_input_tokens` is the field-observed prompt size
+    above which the cheval HTTP client path empties or disconnects. See
+    `grimoires/loa/known-failures.md` KF-002 for observed thresholds.
+
+    cli_override semantics:
+      None: use config default (per-model `max_input_tokens` field; absent
+            means no gate fires)
+      0:    explicit gate-disable for this call
+      N>0:  explicit per-call threshold (overrides config)
+
+    Returns None when no gate should fire; positive integer = threshold in
+    estimated input tokens (charge: any kwarg with messages=...).
+    """
+    if cli_override is not None:
+        if cli_override <= 0:
+            return None
+        return cli_override
+
+    providers = hounfour.get("providers", {})
+    prov_config = providers.get(provider, {})
+    if not isinstance(prov_config, dict):
+        return None
+    models = prov_config.get("models", {})
+    model_config = models.get(model_id, {})
+    if not isinstance(model_config, dict):
+        return None
+    threshold = model_config.get("max_input_tokens")
+    if threshold is None:
+        return None
+    if not isinstance(threshold, int) or threshold <= 0:
+        return None
+    return threshold
+
+
 def _check_feature_flags(hounfour: Dict[str, Any], provider: str, model_id: str) -> Optional[str]:
     """Check feature flags. Returns error message if blocked, None if allowed.
 
@@ -265,7 +321,22 @@ def cmd_invoke(args: argparse.Namespace) -> int:
             "temperature": binding.temperature,
         }
         print(json.dumps(result, indent=2), file=sys.stdout)
+        # Dry-run does not invoke a model — no MODELINV emit.
         return EXIT_CODES["SUCCESS"]
+
+    # cycle-102 Sprint 1D / T1.7: MODELINV emit-state. Populated by each
+    # success/exception branch below; finally-clause emits a single envelope
+    # at function exit (success or failure). Pre-resolution failures (handled
+    # above) deliberately do NOT emit because no model invocation occurred.
+    _modelinv_target = f"{resolved.provider}:{resolved.model_id}"
+    _modelinv_capability_class = getattr(binding, "capability_class", None)
+    _modelinv_state: Dict[str, Any] = {
+        "models_succeeded": [],
+        "models_failed": [],
+        "operator_visible_warn": False,
+        "invocation_latency_ms": None,
+        "cost_micro_usd": None,
+    }
 
     # Load input content (--prompt takes priority over --input/stdin)
     input_text = ""
@@ -339,139 +410,274 @@ def cmd_invoke(args: argparse.Namespace) -> int:
         metadata={"agent": agent_name},
     )
 
-    # Get adapter and call
+    # Get adapter and call. cycle-102 Sprint 1D / T1.7 wraps this block in a
+    # try/finally so the MODELINV emit fires on EVERY post-resolution exit
+    # (success or failure) — vision-019 M1 silent-degradation audit query
+    # depends on continuous chain coverage. Async path sets the
+    # `_modelinv_emit_required` flag to False because no model invocation has
+    # occurred yet (the actual completion fires emit on result collection,
+    # outside this function).
+    _modelinv_emit_required = True
     try:
-        provider_config = _build_provider_config(resolved.provider, hounfour)
-        adapter = get_adapter(provider_config)
-
-        # Non-blocking async mode (Task 2.5)
-        if getattr(args, "async_mode", False):
-            if not hasattr(adapter, "create_interaction"):
-                print(_error_json("INVALID_INPUT", f"Provider '{resolved.provider}' does not support --async"), file=sys.stderr)
-                return EXIT_CODES["INVALID_INPUT"]
-
-            model_config = adapter._get_model_config(resolved.model_id)
-            interaction = adapter.create_interaction(request, model_config)
-            output = {
-                "interaction_id": interaction.get("name", ""),
-                "model": resolved.model_id,
-                "provider": resolved.provider,
-                "status": "pending",
-            }
-            print(json.dumps(output), file=sys.stdout)
-            return EXIT_CODES["INTERACTION_PENDING"]
-
-        # Budget hook: real enforcer when metering enabled, no-op otherwise (Task 3.2)
-        budget_hook = None
-        flags = hounfour.get("feature_flags", {})
-        metering_enabled = flags.get("metering", True)
-        if metering_enabled:
-            metering_config = hounfour.get("metering", {})
-            if metering_config.get("enabled", True):
-                ledger_path = metering_config.get("ledger_path", ".run/cost-ledger.jsonl")
-                budget_hook = BudgetEnforcer(
-                    config=hounfour,
-                    ledger_path=ledger_path,
-                    trace_id=f"tr-{agent_name}-{os.getpid()}",
-                )
-                logger.info("Budget enforcement active: ledger=%s", ledger_path)
-
-        # Import retry logic if available
         try:
-            from loa_cheval.providers.retry import invoke_with_retry
+            # cycle-102 Sprint 1F (KF-002 layer 3 / Loa #774): per-model
+            # input-size gate. Backstop for the cheval HTTP-asymmetry failure
+            # mode where anthropic + openai paths disconnect mid-stream on
+            # long prompts (gemini path doesn't share the failure). Threshold
+            # comes from per-model `max_input_tokens` in model-config.yaml;
+            # absent = no gate. Refuses (raise CONTEXT_TOO_LARGE) rather than
+            # truncating — preserves caller semantics and lets the
+            # adversarial-review fallback chain (PR #836) route to a
+            # different provider.
+            if not os.environ.get("LOA_CHEVAL_DISABLE_INPUT_GATE"):
+                _input_threshold = _lookup_max_input_tokens(
+                    resolved.provider,
+                    resolved.model_id,
+                    hounfour,
+                    cli_override=getattr(args, "max_input_tokens", None),
+                )
+                if _input_threshold is not None:
+                    from loa_cheval.providers.base import estimate_tokens
+                    _estimated = estimate_tokens(messages)
+                    if _estimated > _input_threshold:
+                        _modelinv_state["operator_visible_warn"] = True
+                        print(
+                            f"[input-gate] {resolved.provider}:{resolved.model_id} "
+                            f"refused: estimated {_estimated} input tokens > "
+                            f"{_input_threshold} threshold "
+                            f"(KF-002 layer 3 backstop, see "
+                            f"grimoires/loa/known-failures.md). "
+                            f"Override: --max-input-tokens 0 or "
+                            f"LOA_CHEVAL_DISABLE_INPUT_GATE=1.",
+                            file=sys.stderr,
+                        )
+                        raise ContextTooLargeError(
+                            estimated_tokens=_estimated,
+                            available=_input_threshold,
+                            context_window=_input_threshold,
+                        )
 
-            result = invoke_with_retry(adapter, request, hounfour, budget_hook=budget_hook)
-        except ImportError:
-            # Retry module not yet available — call directly with manual budget hooks
-            # BB-405: ensure post_call runs on success, log on failure
-            # NOTE (issue #675, sub-issue 1): the redundant local
-            # `from loa_cheval.types import BudgetExceededError` previously here
-            # was deleted. Python's scoping rule made `BudgetExceededError` a
-            # function-local name throughout cmd_invoke(), and on the normal
-            # path (retry module IS available, so this `except ImportError`
-            # branch is skipped) the local was never bound — causing the outer
-            # `except BudgetExceededError as e:` below to raise UnboundLocalError
-            # and shadow the real RetriesExhaustedError. The module-scope import
-            # at the top of this file (line 27-28) is the single source of truth.
-            if budget_hook:
-                status = budget_hook.pre_call(request)
-                if status == "BLOCK":
-                    raise BudgetExceededError(spent=0, limit=0)
-            result = None
+            provider_config = _build_provider_config(resolved.provider, hounfour)
+            adapter = get_adapter(provider_config)
+
+            # Non-blocking async mode (Task 2.5)
+            if getattr(args, "async_mode", False):
+                if not hasattr(adapter, "create_interaction"):
+                    _modelinv_emit_required = False  # pre-call validation
+                    print(_error_json("INVALID_INPUT", f"Provider '{resolved.provider}' does not support --async"), file=sys.stderr)
+                    return EXIT_CODES["INVALID_INPUT"]
+
+                model_config = adapter._get_model_config(resolved.model_id)
+                interaction = adapter.create_interaction(request, model_config)
+                output = {
+                    "interaction_id": interaction.get("name", ""),
+                    "model": resolved.model_id,
+                    "provider": resolved.provider,
+                    "status": "pending",
+                }
+                print(json.dumps(output), file=sys.stdout)
+                # Async creates a pending interaction, not a completed call.
+                # MODELINV emit happens when the interaction completes (separate
+                # code path). Skip emit here.
+                _modelinv_emit_required = False
+                return EXIT_CODES["INTERACTION_PENDING"]
+
+            # Budget hook: real enforcer when metering enabled, no-op otherwise (Task 3.2)
+            budget_hook = None
+            flags = hounfour.get("feature_flags", {})
+            metering_enabled = flags.get("metering", True)
+            if metering_enabled:
+                metering_config = hounfour.get("metering", {})
+                if metering_config.get("enabled", True):
+                    ledger_path = metering_config.get("ledger_path", ".run/cost-ledger.jsonl")
+                    budget_hook = BudgetEnforcer(
+                        config=hounfour,
+                        ledger_path=ledger_path,
+                        trace_id=f"tr-{agent_name}-{os.getpid()}",
+                    )
+                    logger.info("Budget enforcement active: ledger=%s", ledger_path)
+
+            # Import retry logic if available
             try:
-                result = adapter.complete(request)
-            finally:
-                if budget_hook and result is not None:
-                    budget_hook.post_call(result)
-                elif budget_hook and result is None:
-                    logger.warning("budget_post_call_skipped reason=adapter_failure")
+                from loa_cheval.providers.retry import invoke_with_retry
 
-        # Output response to stdout (I/O contract: stdout = response only)
-        if args.output_format == "json":
-            output = {
-                "content": result.content,
-                "model": result.model,
-                "provider": result.provider,
-                "usage": {
-                    "input_tokens": result.usage.input_tokens,
-                    "output_tokens": result.usage.output_tokens,
-                },
-                "latency_ms": result.latency_ms,
-            }
-            # Thinking trace policy (Task 2.6, SDD 4.6)
-            if result.thinking and getattr(args, "include_thinking", False):
-                output["thinking"] = result.thinking
-            if result.tool_calls:
-                output["tool_calls"] = result.tool_calls
-            print(json.dumps(output), file=sys.stdout)
-        else:
-            # Text mode: thinking NEVER printed
-            print(result.content, file=sys.stdout)
+                result = invoke_with_retry(adapter, request, hounfour, budget_hook=budget_hook)
+            except ImportError:
+                # Retry module not yet available — call directly with manual budget hooks
+                # BB-405: ensure post_call runs on success, log on failure
+                # NOTE (issue #675, sub-issue 1): the redundant local
+                # `from loa_cheval.types import BudgetExceededError` previously here
+                # was deleted. Python's scoping rule made `BudgetExceededError` a
+                # function-local name throughout cmd_invoke(), and on the normal
+                # path (retry module IS available, so this `except ImportError`
+                # branch is skipped) the local was never bound — causing the outer
+                # `except BudgetExceededError as e:` below to raise UnboundLocalError
+                # and shadow the real RetriesExhaustedError. The module-scope import
+                # at the top of this file (line 27-28) is the single source of truth.
+                if budget_hook:
+                    status = budget_hook.pre_call(request)
+                    if status == "BLOCK":
+                        raise BudgetExceededError(spent=0, limit=0)
+                result = None
+                try:
+                    result = adapter.complete(request)
+                finally:
+                    if budget_hook and result is not None:
+                        budget_hook.post_call(result)
+                    elif budget_hook and result is None:
+                        logger.warning("budget_post_call_skipped reason=adapter_failure")
 
-        return EXIT_CODES["SUCCESS"]
+            # T1.7: success — record state for MODELINV emit.
+            _modelinv_state["models_succeeded"] = [_modelinv_target]
+            _modelinv_state["invocation_latency_ms"] = getattr(result, "latency_ms", None)
+            _cost = getattr(result, "cost_micro_usd", None)
+            if _cost is not None:
+                _modelinv_state["cost_micro_usd"] = _cost
 
-    except BudgetExceededError as e:
-        print(_error_json(e.code, str(e)), file=sys.stderr)
-        return EXIT_CODES["BUDGET_EXCEEDED"]
-    except ContextTooLargeError as e:
-        print(_error_json(e.code, str(e)), file=sys.stderr)
-        return EXIT_CODES["CONTEXT_TOO_LARGE"]
-    except RateLimitError as e:
-        print(_error_json(e.code, str(e), retryable=True), file=sys.stderr)
-        return EXIT_CODES["RATE_LIMITED"]
-    except ProviderUnavailableError as e:
-        print(_error_json(e.code, str(e), retryable=True), file=sys.stderr)
-        return EXIT_CODES["PROVIDER_UNAVAILABLE"]
-    except RetriesExhaustedError as e:
-        # Issue #774: surface typed failure_class when the underlying retries
-        # exhausted on a ConnectionLostError. Sanitization: only the typed
-        # class name, transport class name, and request size are surfaced —
-        # raw body, headers, and auth values stay scoped inside the adapter.
-        extra: Dict[str, Any] = {}
-        if e.context.get("last_error_class") == "ConnectionLostError":
-            last_ctx = e.context.get("last_error_context") or {}
-            extra["failure_class"] = "PROVIDER_DISCONNECT"
-            if last_ctx.get("transport_class"):
-                extra["transport_class"] = last_ctx["transport_class"]
-            if last_ctx.get("request_size_bytes") is not None:
-                extra["request_size_bytes"] = last_ctx["request_size_bytes"]
-            if last_ctx.get("provider"):
-                extra["provider"] = last_ctx["provider"]
-        print(_error_json(e.code, str(e), **extra), file=sys.stderr)
-        return EXIT_CODES["RETRIES_EXHAUSTED"]
-    except ChevalError as e:
-        print(_error_json(e.code, str(e), retryable=e.retryable), file=sys.stderr)
-        return EXIT_CODES.get(e.code, 1)
-    except Exception as e:
-        # Redact sensitive information from unexpected errors
-        msg = str(e)
-        # Strip potential auth values from error messages
-        for env_key in ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "MOONSHOT_API_KEY", "GOOGLE_API_KEY"]:
-            val = os.environ.get(env_key)
-            if val and val in msg:
-                msg = msg.replace(val, "***REDACTED***")
-        print(_error_json("API_ERROR", msg, retryable=True), file=sys.stderr)
-        return EXIT_CODES["API_ERROR"]
+            # Output response to stdout (I/O contract: stdout = response only)
+            if args.output_format == "json":
+                output = {
+                    "content": result.content,
+                    "model": result.model,
+                    "provider": result.provider,
+                    "usage": {
+                        "input_tokens": result.usage.input_tokens,
+                        "output_tokens": result.usage.output_tokens,
+                    },
+                    "latency_ms": result.latency_ms,
+                }
+                # Thinking trace policy (Task 2.6, SDD 4.6)
+                if result.thinking and getattr(args, "include_thinking", False):
+                    output["thinking"] = result.thinking
+                if result.tool_calls:
+                    output["tool_calls"] = result.tool_calls
+                print(json.dumps(output), file=sys.stdout)
+            else:
+                # Text mode: thinking NEVER printed
+                print(result.content, file=sys.stdout)
+
+            return EXIT_CODES["SUCCESS"]
+
+        except BudgetExceededError as e:
+            _modelinv_state["models_failed"] = [{
+                "model": _modelinv_target,
+                "error_class": "BUDGET_EXHAUSTED",
+                "message_redacted": str(e),
+            }]
+            print(_error_json(e.code, str(e)), file=sys.stderr)
+            return EXIT_CODES["BUDGET_EXCEEDED"]
+        except ContextTooLargeError as e:
+            # T1.5 carry will refine this to a typed CONTEXT_OVERFLOW class once
+            # the model-error.schema.json enum is extended. Until then, UNKNOWN
+            # is the canonical bucket per schema description.
+            _modelinv_state["models_failed"] = [{
+                "model": _modelinv_target,
+                "error_class": "UNKNOWN",
+                "message_redacted": str(e),
+            }]
+            print(_error_json(e.code, str(e)), file=sys.stderr)
+            return EXIT_CODES["CONTEXT_TOO_LARGE"]
+        except RateLimitError as e:
+            # Rate limits are treated as transient outage signals — the schema
+            # doesn't have a TIMEOUT/RATE_LIMIT class today (T1.5 carry); we use
+            # PROVIDER_OUTAGE as the closest semantic match.
+            _modelinv_state["models_failed"] = [{
+                "model": _modelinv_target,
+                "error_class": "PROVIDER_OUTAGE",
+                "message_redacted": str(e),
+            }]
+            print(_error_json(e.code, str(e), retryable=True), file=sys.stderr)
+            return EXIT_CODES["RATE_LIMITED"]
+        except ProviderUnavailableError as e:
+            _modelinv_state["models_failed"] = [{
+                "model": _modelinv_target,
+                "error_class": "PROVIDER_OUTAGE",
+                "message_redacted": str(e),
+            }]
+            print(_error_json(e.code, str(e), retryable=True), file=sys.stderr)
+            return EXIT_CODES["PROVIDER_UNAVAILABLE"]
+        except RetriesExhaustedError as e:
+            # Issue #774: surface typed failure_class when the underlying retries
+            # exhausted on a ConnectionLostError. Sanitization: only the typed
+            # class name, transport class name, and request size are surfaced —
+            # raw body, headers, and auth values stay scoped inside the adapter.
+            extra: Dict[str, Any] = {}
+            _re_class = "FALLBACK_EXHAUSTED"  # default
+            if e.context.get("last_error_class") == "ConnectionLostError":
+                last_ctx = e.context.get("last_error_context") or {}
+                extra["failure_class"] = "PROVIDER_DISCONNECT"
+                _re_class = "PROVIDER_DISCONNECT"
+                if last_ctx.get("transport_class"):
+                    extra["transport_class"] = last_ctx["transport_class"]
+                if last_ctx.get("request_size_bytes") is not None:
+                    extra["request_size_bytes"] = last_ctx["request_size_bytes"]
+                if last_ctx.get("provider"):
+                    extra["provider"] = last_ctx["provider"]
+            _modelinv_state["models_failed"] = [{
+                "model": _modelinv_target,
+                "error_class": _re_class,
+                "message_redacted": str(e),
+            }]
+            print(_error_json(e.code, str(e), **extra), file=sys.stderr)
+            return EXIT_CODES["RETRIES_EXHAUSTED"]
+        except ChevalError as e:
+            _modelinv_state["models_failed"] = [{
+                "model": _modelinv_target,
+                "error_class": "UNKNOWN",
+                "message_redacted": str(e),
+            }]
+            print(_error_json(e.code, str(e), retryable=e.retryable), file=sys.stderr)
+            return EXIT_CODES.get(e.code, 1)
+        except Exception as e:
+            # Redact sensitive information from unexpected errors
+            msg = str(e)
+            # Strip potential auth values from error messages
+            for env_key in ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "MOONSHOT_API_KEY", "GOOGLE_API_KEY"]:
+                val = os.environ.get(env_key)
+                if val and val in msg:
+                    msg = msg.replace(val, "***REDACTED***")
+            _modelinv_state["models_failed"] = [{
+                "model": _modelinv_target,
+                "error_class": "UNKNOWN",
+                "message_redacted": msg,
+            }]
+            print(_error_json("API_ERROR", msg, retryable=True), file=sys.stderr)
+            return EXIT_CODES["API_ERROR"]
+    finally:
+        # T1.7: emit MODELINV envelope. Runs regardless of success/failure
+        # outcome above, EXCEPT for paths that explicitly disabled it (async,
+        # async-not-supported pre-validation). The emitter applies field-level
+        # log-redactor passes + defense-in-depth gate before audit_emit.
+        # Failures inside the emitter are fail-soft (logged with marker, do
+        # NOT alter the user-facing exit code) — chain integrity is the gate's
+        # responsibility, not user-facing reliability.
+        if _modelinv_emit_required:
+            try:
+                _emit_modelinv(
+                    models_requested=[_modelinv_target],
+                    models_succeeded=_modelinv_state["models_succeeded"],
+                    models_failed=_modelinv_state["models_failed"],
+                    operator_visible_warn=_modelinv_state["operator_visible_warn"],
+                    capability_class=_modelinv_capability_class,
+                    invocation_latency_ms=_modelinv_state["invocation_latency_ms"],
+                    cost_micro_usd=_modelinv_state["cost_micro_usd"],
+                )
+            except _ModelinvRedactionFailure as _rf:
+                # Defense-in-depth gate rejected the payload: a secret shape
+                # survived the redactor pass. Audit chain integrity preserved
+                # (no leaked entry written). Operator signal via stderr marker.
+                print(f"[REDACTION-GATE-FAILURE] {_rf}", file=sys.stderr)
+            except Exception as _emit_err:  # noqa: BLE001
+                # Audit infrastructure failure (lock contention, missing key
+                # config, schema validation slip). Fail-soft: surface the
+                # error to operator stderr but don't break the user-facing
+                # call. The user-facing exit code is determined by the
+                # invocation outcome, independent of audit chain status.
+                # Override with LOA_MODELINV_FAIL_LOUD=1 in operator policy.
+                print(
+                    f"[AUDIT-EMIT-FAILED] {type(_emit_err).__name__}: {_emit_err}",
+                    file=sys.stderr,
+                )
 
 
 def cmd_print_config(args: argparse.Namespace) -> int:
@@ -593,6 +799,18 @@ def main() -> int:
     parser.add_argument("--system", help="Path to system prompt file (overrides persona.md)")
     parser.add_argument("--model", help="Model override (alias or provider:model-id)")
     parser.add_argument("--max-tokens", type=int, default=4096, dest="max_tokens", help="Maximum output tokens")
+    parser.add_argument(
+        "--max-input-tokens",
+        type=int,
+        dest="max_input_tokens",
+        default=None,
+        help=(
+            "Override per-model input-size gate (KF-002 layer 3 backstop). "
+            "Pass 0 to disable for this call; pass N>0 to set threshold. "
+            "When unset, uses per-model `max_input_tokens` from "
+            "model-config.yaml (absent = no gate)."
+        ),
+    )
     parser.add_argument("--output-format", choices=["text", "json"], default="text", dest="output_format", help="Output format")
     parser.add_argument("--json-errors", action="store_true", dest="json_errors", help="JSON error output on stderr (default for programmatic callers)")
     parser.add_argument("--timeout", type=int, help="Request timeout in seconds")
