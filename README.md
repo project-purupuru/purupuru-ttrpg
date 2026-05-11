@@ -6,8 +6,9 @@
 
 What you'll experience in v0: a Twitter-native personality quiz that sorts you into one of five elements, mints you a Genesis Stone on Solana, and surfaces what your community is doing through a live observatory dashboard. The quiz is the lure · the observatory is the destination · the stone is the receipt of having entered.
 
-> **Live**: [purupuru-quiz.vercel.app](https://purupuru-quiz.vercel.app) (Twitter Blink) · [purupuru-blink.vercel.app](https://purupuru-blink.vercel.app) (Observatory dashboard)
+> **Live**: [purupuru.world](https://purupuru.world) (Observatory · ambient surfaces · OG embeds) · [purupuru.world/quiz](https://purupuru.world/quiz) (Twitter Blink unfurl)
 > **Program**: `7u27WmTz2hZHvvhL89XcSCY3eFhxEfHjUN5MjzMY6v38` on Solana devnet
+> **Recording surface**: [purupuru.world/demo](https://purupuru.world/demo) (X-faithful 3-column render of the unfurl for capture)
 
 ---
 
@@ -23,7 +24,7 @@ A **Genesis Stone** is your on-chain badge of having taken the quiz — a proper
 
 ### 3. What's the Observatory?
 
-A live dashboard ([purupuru-blink.vercel.app](https://purupuru-blink.vercel.app)) that visualizes what's happening across the awareness layer in real time:
+A live dashboard ([purupuru.world](https://purupuru.world)) that visualizes what's happening across the awareness layer in real time:
 
 - **Pentagram canvas** with sprites moving through the five elemental zones
 - **Activity rail** showing recent events (claimed a stone · archetype emerged · weather shift)
@@ -203,7 +204,11 @@ The deck punchline is also the architecture: **substrate truth ≠ presentation*
 | **Quiz renderer** | `packages/medium-blink/src/quiz-renderer.ts` | LIVE · pure functions producing `ActionGetResponse` per Solana Actions spec |
 | **Voice corpus** | `packages/medium-blink/src/voice-corpus.ts` | LIVE · 8 questions × 3 answers · 5 archetype reveals |
 | **Local preview** | `app/preview/` | LIVE · `/preview` renders Blink locally with full Phantom interaction |
-| **Web observatory** | `app/page.tsx` + `components/observatory/*` | LIVE on `main` branch · zerker's lane |
+| **Web observatory** | `app/page.tsx` + `components/observatory/*` | LIVE at `purupuru.world` · zerker's lane |
+| **Demo recording surface** | `app/demo/page.tsx` | LIVE · X-faithful 3-column render at `/demo` for capture (ALEXANDER + ROSENZU R5) |
+| **Quiz / Today landing pages** | `app/quiz/page.tsx` · `app/today/page.tsx` | LIVE · render the Blink in-page for direct-URL visitors (Twitter feed-only users get a usable surface) |
+| **Dynamic OG card** | `app/opengraph-image.tsx` | LIVE · 1200×630 PNG via `next/og` ImageResponse · no external asset hosting |
+| **SEO + AI-readability surface** | `app/sitemap.ts` · `public/llms.txt` · `lib/seo/metadata.ts` | LIVE · BEACON + ALEXANDER session-4 unification (`/sitemap.xml` · `/llms.txt`) |
 | **Telegram Blink** | reuses existing `/api/actions/*` endpoints | UNTESTED · structurally compatible |
 
 ### Data flow per user action
@@ -292,7 +297,8 @@ See `lib/blink/env-check.ts` for the preflight contract. Quick reference:
 | `SPONSORED_PAYER_SECRET_BS58` | Solana keypair · pays tx fees | dedicated devnet keypair · ≥0.05 SOL |
 | `KV_REST_API_URL` + `KV_REST_API_TOKEN` | Vercel KV · nonce store | auto-set by `@vercel/kv` provisioning |
 | `SOLANA_RPC_URL` | optional · defaults to devnet | Helius/Triton for production-grade |
-| `NEXT_PUBLIC_APP_URL` | canonical app URL · embedded in Action responses | `https://purupuru-quiz.vercel.app` |
+| `NEXT_PUBLIC_APP_URL` | canonical app URL · embedded in Action responses + OG images | `https://purupuru.world` |
+| `OBSERVATORY_URL` | post-mint `links.next` bridge target · the `?welcome=<element>` URL | `https://purupuru.world` |
 
 ### Verify the live mint route
 
@@ -300,8 +306,8 @@ See `lib/blink/env-check.ts` for the preflight contract. Quick reference:
 # Local
 pnpm tsx scripts/sp3-mint-route-smoke.ts
 
-# Against live Vercel
-BASE_URL=https://purupuru-quiz.vercel.app pnpm tsx scripts/sp3-mint-route-smoke.ts
+# Against live production
+BASE_URL=https://purupuru.world pnpm tsx scripts/sp3-mint-route-smoke.ts
 ```
 
 ### Testing
@@ -376,6 +382,8 @@ The single doc the operator runs through before recording at [`grimoires/loa/con
 - [`grimoires/loa/learning/anchor-program-walkthrough.md`](grimoires/loa/learning/anchor-program-walkthrough.md) — pedagogical tour of `lib.rs` + Solana/Anchor primer
 - [`grimoires/loa/context/prd-gap-map.md`](grimoires/loa/context/prd-gap-map.md) — what's done vs what's deferred · honest punch list
 - [`grimoires/vocabulary/lexicon.yaml`](grimoires/vocabulary/lexicon.yaml) — canonical product terms · forbidden synonyms · cold-audience registers · register guardrails
+- [`grimoires/loa/specs/enhance-demo-polish-2026-05-11.md`](grimoires/loa/specs/enhance-demo-polish-2026-05-11.md) — 3-min recording skeleton · beat-by-beat timing
+- [`grimoires/loa/specs/judges-framing-storyline-2026-05-11.md`](grimoires/loa/specs/judges-framing-storyline-2026-05-11.md) — pitch shape + voiceover script + Q&A landmines + deck-honest gates
 
 ---
 
