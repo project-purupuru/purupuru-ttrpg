@@ -45,8 +45,8 @@ export interface PopulationStore {
 const MAX_POPULATION = 80;
 const INITIAL_SEED_COUNT = 20;
 const YOU_SPAWN_DELAY_MS = 1500;
-const TRICKLE_MIN_MS = 4_000;
-const TRICKLE_MAX_MS = 12_000;
+const TRICKLE_MIN_MS = 3_000;
+const TRICKLE_MAX_MS = 9_000;
 // Rank-ordered population share — leader clearly dominates, then taper.
 const RANK_SHARES = [0.36, 0.24, 0.18, 0.13, 0.09];
 // Favored-element rotation period; full wuxing cycle takes ~10 min.

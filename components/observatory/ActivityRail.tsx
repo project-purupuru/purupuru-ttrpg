@@ -129,7 +129,7 @@ export function ActivityRail() {
                     )}
                   </p>
                   <p className="mt-0.5 truncate font-puru-body text-xs leading-tight text-puru-ink-soft">
-                    claimed {titleCase(e.element)} Stone
+                    minted {titleCase(e.element)} Stone
                   </p>
                 </div>
                 <span className="inline-block min-w-[4.5em] shrink-0 self-start text-right font-puru-body text-2xs uppercase tracking-[0.18em] tabular-nums text-puru-ink-dim">

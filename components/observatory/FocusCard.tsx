@@ -1,50 +1,63 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { ELEMENTS, scoreAdapter, type Element } from "@/lib/score";
-import type { WalletProfile, WalletSignals } from "@/lib/score";
-import { activityStream } from "@/lib/activity";
-import type { JoinActivity } from "@/lib/activity/types";
+import { type Element } from "@/lib/score";
+import { populationStore } from "@/lib/sim/population";
 import type { PuruhaniIdentity } from "@/lib/sim/types";
 import { PuruhaniAvatar } from "./PuruhaniAvatar";
 
 /**
  * Focus card — slide-in panel summarising a clicked puruhani.
  *
- * Anchored bottom-right of the canvas so the pentagram center stays
- * visible. Severe metaphysical-monochrome register (per dig 2026-05-08
- * §5 Co-Star + Stellarium): big mono numerics, tiny uppercase tracking
- * labels, ceramic-tile bg with backdrop blur. The card stays mounted
- * after first open so its slide-out can preserve the identity content
- * while transitioning; a sticky-identity ref keeps the DOM populated.
+ * Aligned with v0 product surface (2026-05-10): the only thing a player
+ * can do today is claim their genesis stone, which slots them into one
+ * of five element teams. So the card shows identity (name / twitter /
+ * solana), the team they joined, their inventory (the stone they
+ * minted), and recent activity — nothing speculative beyond that.
  *
- * Dismiss vectors: explicit close button · ESC · clicking another sprite
- * (replaces identity, doesn't close). No outside-click-to-close —
- * keeps interaction model predictable on a busy canvas.
+ * Source of truth: populationStore. The canvas tints sprites by the
+ * store's per-actor `primaryElement`; we read the same field here so
+ * the focus card's element / inventory / kanji match the sprite the
+ * user clicked. (Previously read from scoreAdapter which uses an
+ * independent address hash, producing wrong-element mismatches.)
  */
 
 const ELEMENT_KANJI: Record<Element, string> = {
   wood: "木", fire: "火", earth: "土", water: "水", metal: "金",
 };
 
-// v0 demo simplification (2026-05-10): activity stream emits only
-// `join` events. Once the lifecycle layer ships the verb pool will
-// reopen — keep the function shape so the row template doesn't need
-// to change when that happens.
-function recentVerb(e: JoinActivity): string {
-  return `joined ${e.element}`;
-}
+const STONE_NAME: Record<Element, string> = {
+  wood: "Wood Stone",
+  fire: "Fire Stone",
+  earth: "Earth Stone",
+  water: "Water Stone",
+  metal: "Metal Stone",
+};
 
 function timeAgo(iso: string, nowMs: number): string {
   const diff = nowMs - new Date(iso).getTime();
   if (diff < 5_000) return "just now";
   if (diff < 60_000) return `${Math.floor(diff / 1_000)}s ago`;
   if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
-  return `${Math.floor(diff / 3_600_000)}h ago`;
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
+  return `${Math.floor(diff / 86_400_000)}d ago`;
 }
 
 function shortAddress(addr: string): string {
-  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+  // Solana base58 convention — 4…4 (Phantom-style).
+  return `${addr.slice(0, 4)}…${addr.slice(-4)}`;
+}
+
+interface PopEntry {
+  primaryElement: Element;
+  joinedAt: string;
+}
+
+function lookup(trader: string): PopEntry | null {
+  const found = populationStore.current().find((p) => p.trader === trader);
+  if (!found) return null;
+  return { primaryElement: found.primaryElement, joinedAt: found.joinedAt };
 }
 
 export function FocusCard({
@@ -54,61 +67,29 @@ export function FocusCard({
 }: {
   identity: PuruhaniIdentity | null;
   onClose: () => void;
-  /** Optional ref forwarded to the outer aside — used by parent to
-   * detect outside-clicks via containment check. */
   wrapperRef?: RefObject<HTMLElement | null>;
 }) {
   const localRef = useRef<HTMLElement>(null);
   const wrapperRef = externalRef ?? localRef;
-  const [profile, setProfile] = useState<WalletProfile | null>(null);
-  const [signals, setSignals] = useState<WalletSignals | null>(null);
-  const [recent, setRecent] = useState<JoinActivity[]>([]);
+  const [entry, setEntry] = useState<PopEntry | null>(null);
   const [now, setNow] = useState<number>(0);
   const [stickyIdentity, setStickyIdentity] = useState<PuruhaniIdentity | null>(null);
 
-  // Track now() client-side only to avoid SSR/CSR mismatch on time-ago.
   useEffect(() => {
     setNow(Date.now());
     const id = setInterval(() => setNow(Date.now()), 1_000);
     return () => clearInterval(id);
   }, []);
 
-  // Keep last-known identity during exit so the slide-out preserves
-  // its content rather than going blank as the panel translates away.
   useEffect(() => {
     if (identity) setStickyIdentity(identity);
   }, [identity]);
 
   useEffect(() => {
     if (!identity) return;
-    let cancelled = false;
-    Promise.all([
-      scoreAdapter.getWalletProfile(identity.trader),
-      scoreAdapter.getWalletSignals(identity.trader),
-    ]).then(([p, s]) => {
-      if (cancelled) return;
-      setProfile(p);
-      setSignals(s);
-    });
-    const filterRecent = () => {
-      const all = activityStream.recent(50);
-      // All activity events in the v0 simplification are wallet-bound
-      // join events; filter to ones whose actor matches this puruhani.
-      setRecent(
-        all
-          .filter((e) => e.actor === identity.trader)
-          .slice(0, 5),
-      );
-    };
-    filterRecent();
-    const unsub = activityStream.subscribe(filterRecent);
-    return () => {
-      cancelled = true;
-      unsub();
-    };
+    setEntry(lookup(identity.trader));
   }, [identity]);
 
-  // ESC closes
   useEffect(() => {
     if (!identity) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -120,7 +101,8 @@ export function FocusCard({
   const id = identity ?? stickyIdentity;
   if (!id) return null;
 
-  const primary = profile?.primaryElement ?? "wood";
+  const primary: Element = entry?.primaryElement ?? "wood";
+  const mintedAt = entry?.joinedAt;
 
   return (
     <aside
@@ -149,7 +131,10 @@ export function FocusCard({
               {id.displayName}
             </h3>
             <p className="truncate font-puru-mono text-xs text-puru-ink-soft">@{id.username}</p>
-            <p className="mt-0.5 truncate font-puru-mono text-2xs text-puru-ink-dim">
+            <p
+              className="mt-0.5 truncate font-puru-mono text-2xs text-puru-ink-dim"
+              title={id.trader}
+            >
               {shortAddress(id.trader)}
             </p>
           </div>
@@ -163,173 +148,113 @@ export function FocusCard({
           </button>
         </header>
 
-        <div className="grid grid-cols-2 gap-2 px-4 py-3">
-          <div className="flex flex-col gap-1">
-            <span className="font-puru-mono text-2xs uppercase tracking-[0.22em] text-puru-ink-soft">primary</span>
-            <span className="flex items-baseline gap-2">
-              <span
-                aria-hidden
-                className="font-puru-card text-2xl leading-none"
-                style={{ color: `var(--puru-${primary}-vivid)` }}
-              >
-                {ELEMENT_KANJI[primary]}
-              </span>
-              <span className="font-puru-mono text-sm capitalize text-puru-ink-rich">
-                {primary}
-              </span>
+        <div className="flex items-center justify-between gap-3 px-4 py-3">
+          <span className="font-puru-mono text-2xs uppercase tracking-[0.22em] text-puru-ink-soft">
+            element
+          </span>
+          <span className="flex items-center gap-2">
+            <span
+              aria-hidden
+              className="font-puru-card text-2xl leading-none"
+              style={{ color: `var(--puru-${primary}-vivid)` }}
+            >
+              {ELEMENT_KANJI[primary]}
             </span>
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="font-puru-mono text-2xs uppercase tracking-[0.22em] text-puru-ink-soft">archetype</span>
             <span className="font-puru-mono text-sm capitalize text-puru-ink-rich">
-              {id.archetype}
+              {primary}
             </span>
-          </div>
+          </span>
         </div>
 
-        {profile ? (
-          <div className="border-t border-puru-cloud-dim/60 px-4 py-3">
-            <h4 className="mb-2 font-puru-mono text-2xs uppercase tracking-[0.22em] text-puru-ink-soft">
-              element affinity
-            </h4>
-            <AffinityRadar affinity={profile.elementAffinity} primary={primary} />
-          </div>
-        ) : null}
+        <Inventory primary={primary} mintedAt={mintedAt} now={now} />
 
         <div className="border-t border-puru-cloud-dim/60 px-4 py-3">
           <h4 className="mb-2 font-puru-mono text-2xs uppercase tracking-[0.22em] text-puru-ink-soft">
             recent activity
           </h4>
-          {recent.length === 0 ? (
-            <p className="font-puru-mono text-xs text-puru-ink-dim">no recent activity</p>
-          ) : (
-            <ul className="flex flex-col gap-1.5">
-              {recent.map((e) => (
-                <li key={e.id} className="flex items-center gap-2 font-puru-mono text-xs">
-                  <span
-                    className="truncate text-puru-ink-base"
-                    style={{ color: `var(--puru-${e.element}-vivid)` }}
-                  >
-                    {recentVerb(e)}
-                  </span>
-                  <span className="ml-auto whitespace-nowrap font-puru-mono text-2xs uppercase tracking-[0.18em] text-puru-ink-dim">
-                    {now ? timeAgo(e.at, now) : ""}
-                  </span>
-                </li>
-              ))}
+          {mintedAt ? (
+            <ul className="flex flex-col gap-2">
+              <li className="flex items-center gap-2 font-puru-mono text-xs">
+                <span className="truncate text-puru-ink-rich">
+                  minted {STONE_NAME[primary]}
+                </span>
+                <span className="ml-auto whitespace-nowrap font-puru-mono text-2xs uppercase tracking-[0.18em] text-puru-ink-dim">
+                  {now ? timeAgo(mintedAt, now) : ""}
+                </span>
+              </li>
             </ul>
+          ) : (
+            <p className="font-puru-mono text-xs text-puru-ink-dim">no recent activity</p>
           )}
         </div>
-
-        {signals ? (
-          <div className="grid grid-cols-3 gap-2 border-t border-puru-cloud-dim/60 bg-puru-cloud-base/40 px-4 py-3">
-            {(["velocity", "diversity", "resonance"] as const).map((k) => (
-              <div key={k} className="flex flex-col gap-0.5">
-                <span className="font-puru-mono text-2xs uppercase tracking-[0.22em] text-puru-ink-soft">{k}</span>
-                <span className="font-puru-mono text-sm tabular-nums text-puru-ink-rich">
-                  {Math.round(signals[k] * 100)}
-                </span>
-              </div>
-            ))}
-          </div>
-        ) : null}
       </div>
     </aside>
   );
 }
 
-const RADAR_ORDER: Element[] = ["wood", "fire", "earth", "metal", "water"];
-
-function AffinityRadar({
-  affinity,
+function Inventory({
   primary,
+  mintedAt,
+  now,
 }: {
-  affinity: Record<Element, number>;
   primary: Element;
+  mintedAt?: string;
+  now: number;
 }) {
-  const SIZE = 132;
-  const CENTER = SIZE / 2;
-  const RADIUS = 46;
-  const max = Math.max(...ELEMENTS.map((el) => affinity[el]), 1);
-
-  function vertexAt(i: number, r: number) {
-    // -90deg = top vertex (wood)
-    const angle = -Math.PI / 2 + (i * 2 * Math.PI) / 5;
-    return { x: CENTER + r * Math.cos(angle), y: CENTER + r * Math.sin(angle) };
-  }
-
-  const outerPoints = RADAR_ORDER.map((_, i) => {
-    const v = vertexAt(i, RADIUS);
-    return `${v.x.toFixed(1)},${v.y.toFixed(1)}`;
-  }).join(" ");
-
-  const halfPoints = RADAR_ORDER.map((_, i) => {
-    const v = vertexAt(i, RADIUS / 2);
-    return `${v.x.toFixed(1)},${v.y.toFixed(1)}`;
-  }).join(" ");
-
-  const affinityPoints = RADAR_ORDER.map((el, i) => {
-    const r = (affinity[el] / max) * RADIUS;
-    const v = vertexAt(i, r);
-    return `${v.x.toFixed(1)},${v.y.toFixed(1)}`;
-  }).join(" ");
-
   return (
-    <div className="flex items-center gap-3">
-      <svg width={SIZE} height={SIZE} className="shrink-0" aria-hidden>
-        <polygon
-          points={outerPoints}
-          fill="none"
-          stroke="var(--puru-ink-ghost)"
-          strokeWidth={1}
-        />
-        <polygon
-          points={halfPoints}
-          fill="none"
-          stroke="var(--puru-ink-ghost)"
-          strokeWidth={0.5}
-          strokeDasharray="2 2"
-        />
-        <polygon
-          points={affinityPoints}
-          fill={`var(--puru-${primary}-vivid)`}
-          fillOpacity={0.28}
-          stroke={`var(--puru-${primary}-vivid)`}
-          strokeWidth={1.5}
-          strokeLinejoin="round"
-        />
-        {RADAR_ORDER.map((el, i) => {
-          const v = vertexAt(i, RADIUS + 11);
-          return (
-            <text
-              key={el}
-              x={v.x}
-              y={v.y + 3.5}
-              textAnchor="middle"
-              fontFamily="ZCOOL KuaiLe, FOT-Yuruka Std, serif"
-              fontSize={11}
-              fill={`var(--puru-${el}-vivid)`}
-            >
-              {ELEMENT_KANJI[el]}
-            </text>
-          );
-        })}
-      </svg>
-      <ul className="flex min-w-0 flex-1 flex-col gap-1">
-        {RADAR_ORDER.map((el) => (
-          <li key={el} className="flex items-baseline gap-2 font-puru-mono text-2xs">
-            <span
-              aria-hidden
-              className="font-puru-card text-sm leading-none"
-              style={{ color: `var(--puru-${el}-vivid)` }}
-            >
-              {ELEMENT_KANJI[el]}
-            </span>
-            <span className="uppercase tracking-[0.18em] text-puru-ink-soft">{el}</span>
-            <span className="ml-auto tabular-nums text-puru-ink-rich">{affinity[el]}</span>
-          </li>
-        ))}
-      </ul>
+    <div className="border-t border-puru-cloud-dim/60 px-4 py-3">
+      <h4 className="mb-2 font-puru-mono text-2xs uppercase tracking-[0.22em] text-puru-ink-soft">
+        inventory
+      </h4>
+      <div className="grid grid-cols-4 gap-2">
+        <StoneTile element={primary} mintedAt={mintedAt} now={now} />
+        <EmptySlot />
+        <EmptySlot />
+        <EmptySlot />
+      </div>
+    </div>
+  );
+}
+
+function StoneTile({
+  element,
+  mintedAt,
+  now,
+}: {
+  element: Element;
+  mintedAt?: string;
+  now: number;
+}) {
+  return (
+    <div
+      className="relative aspect-square overflow-hidden rounded-puru-sm border border-puru-surface-border"
+      style={{
+        backgroundColor: `color-mix(in oklch, var(--puru-${element}-vivid) 6%, var(--puru-cloud-bright))`,
+      }}
+      title={
+        mintedAt && now
+          ? `${STONE_NAME[element]} · minted ${timeAgo(mintedAt, now)}`
+          : STONE_NAME[element]
+      }
+    >
+      <Image
+        src={`/art/stones/${element}.png`}
+        alt={STONE_NAME[element]}
+        fill
+        sizes="80px"
+        className="object-cover"
+      />
+    </div>
+  );
+}
+
+function EmptySlot() {
+  return (
+    <div
+      className="flex aspect-square items-center justify-center rounded-puru-sm border border-dashed border-puru-surface-border bg-puru-cloud-base/40 font-puru-mono text-base text-puru-ink-dim"
+      aria-hidden
+    >
+      ·
     </div>
   );
 }
