@@ -10,6 +10,7 @@
 import type { Card } from "@/lib/honeycomb/cards";
 import type { MatchPhase } from "@/lib/honeycomb/match.port";
 import { ELEMENT_META, type Element } from "@/lib/honeycomb/wuxing";
+import { type Combo, getPositionMultiplier } from "@/lib/honeycomb/combos";
 import { cardArtChain } from "@/lib/cdn";
 import { CdnImage } from "./CdnImage";
 
@@ -34,6 +35,13 @@ interface BattleHandProps {
    * save mechanic rather than a "dead but undead" card.
    */
   readonly shielded?: ReadonlySet<number>;
+  /**
+   * Active combos on the player's current lineup. Used to render a per-card
+   * "+X%" multiplier badge — the highest-impact legibility primitive for
+   * "arrange is the puzzle." See grimoires/loa/proposals/mechanics-
+   * legibility-audit.md.
+   */
+  readonly combos?: readonly Combo[];
   readonly onPlay?: (card: Card) => void;
   readonly onTap?: (index: number) => void;
   readonly onSwap?: (a: number, b: number) => void;
@@ -80,6 +88,7 @@ export function BattleHand({
   activeClashPhase = null,
   clashWinners,
   shielded,
+  combos,
   onPlay,
   onTap,
   onSwap,
@@ -190,6 +199,7 @@ export function BattleHand({
                         aria-label="Saved by Caretaker A Shield"
                       />
                     )}
+                    <ComboBadge combos={combos} position={i} phase={phase} />
                   </button>
                 </div>
               );
@@ -207,3 +217,42 @@ export function BattleHand({
     </div>
   );
 }
+
+/**
+ * Per-card multiplier chip — surfaces the player's per-position bonus during
+ * the arrange phase. Hidden in clash phases so the impact + stamp visuals
+ * own the card surface. The chip COMBINES every active combo's contribution
+ * at the position into a single readable +X%.
+ */
+function ComboBadge({
+  combos,
+  position,
+  phase,
+}: {
+  readonly combos: readonly Combo[] | undefined;
+  readonly position: number;
+  readonly phase: MatchPhase;
+}) {
+  if (!combos || combos.length === 0) return null;
+  if (phase !== "arrange" && phase !== "between-rounds") return null;
+  const mult = getPositionMultiplier(position, combos);
+  if (mult <= 1.0) return null;
+  const pct = Math.round((mult - 1) * 100);
+  return (
+    <span
+      className="combo-badge"
+      aria-label={`Combo bonus: +${pct}%`}
+      title={describeCombosForPosition(combos, position)}
+    >
+      +{pct}%
+    </span>
+  );
+}
+
+function describeCombosForPosition(combos: readonly Combo[], position: number): string {
+  return combos
+    .filter((c) => c.affected.includes(position))
+    .map((c) => c.name)
+    .join(" · ");
+}
+

@@ -148,6 +148,7 @@ export function BattleScene() {
                 activeClashPhase={snap.activeClashPhase}
                 clashWinners={clashWinners}
                 shielded={new Set(snap.shieldedP1)}
+                combos={snap.p1Combos}
                 onTap={matchCommand.tapPosition}
                 onSwap={matchCommand.swapPositions}
               />

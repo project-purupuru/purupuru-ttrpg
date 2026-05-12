@@ -212,6 +212,40 @@
     .player-card:hover:not(:disabled) .card-set-overlay { opacity: 1; }
   }
 
+  /* Per-card combo multiplier badge — Balatro-style "+18%" chip. Shown
+     during arrange/between-rounds only, anchored top-left. Hover-title
+     lists the contributing combos by name (e.g. "Shēng Chain · 3 · Weather
+     Blessing"). */
+  .combo-badge {
+    position: absolute;
+    top: var(--space-2xs);
+    left: var(--space-2xs);
+    z-index: 3;
+    padding: 2px 6px;
+    border-radius: var(--radius-full);
+    background: var(--puru-honey-base);
+    color: var(--puru-ink-rich);
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    box-shadow: 0 2px 6px oklch(0.55 0.12 85 / 0.4),
+                inset 0 1px 0 oklch(1 0 0 / 0.3);
+    animation: combo-badge-pop 320ms var(--ease-puru-bounce) both;
+    pointer-events: none;
+    /* The badge survives the card's fan-rotation, so counter-rotate */
+    transform: rotate(calc(var(--fan-rotate, 0deg) * -1));
+  }
+  @keyframes combo-badge-pop {
+    0%   { opacity: 0; transform: rotate(calc(var(--fan-rotate, 0deg) * -1)) scale(0.6); }
+    60%  { opacity: 1; transform: rotate(calc(var(--fan-rotate, 0deg) * -1)) scale(1.12); }
+    100% { opacity: 1; transform: rotate(calc(var(--fan-rotate, 0deg) * -1)) scale(1); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .combo-badge { animation: none; }
+  }
+
   /* Selected (mid-swap) — gentle honey ring + lift */
   .card-slot.selected {
     outline: 2px solid var(--puru-honey-base);

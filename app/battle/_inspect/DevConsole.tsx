@@ -23,14 +23,15 @@ import { useEffect, useState } from "react";
 import { ComboDebug } from "./ComboDebug";
 import { EventLogView } from "./EventLogView";
 import { KaironicPanel } from "./KaironicPanel";
+import { MechanicsInspector } from "./MechanicsInspector";
 import { PhaseScrubber } from "./PhaseScrubber";
 import { SeedReplayPanel } from "./SeedReplayPanel";
 import { SnapshotJsonView } from "./SnapshotJsonView";
 import { SubstrateInspector } from "./SubstrateInspector";
 
-type Tab = "scrub" | "kaironic" | "substrate" | "seed" | "combo";
+type Tab = "scrub" | "mech" | "kaironic" | "substrate" | "seed" | "combo";
 
-const TABS: readonly Tab[] = ["scrub", "kaironic", "substrate", "seed", "combo"];
+const TABS: readonly Tab[] = ["scrub", "mech", "kaironic", "substrate", "seed", "combo"];
 
 const STORAGE_KEY = "puru-dev-panel-enabled";
 
@@ -157,6 +158,7 @@ export function DevConsole() {
                 <SnapshotJsonView />
               </>
             )}
+            {tab === "mech" && <MechanicsInspector />}
             {tab === "kaironic" && <KaironicPanel weights={emptyKaironic} />}
             {tab === "substrate" && <SubstrateInspector />}
             {tab === "seed" && <SeedReplayPanel />}
