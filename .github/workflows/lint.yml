@@ -33,3 +33,6 @@ jobs:
 
       - name: tsc --noEmit
         run: pnpm typecheck
+
+      - name: check-asset-paths
+        run: bash scripts/check-asset-paths.sh
