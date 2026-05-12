@@ -1,16 +1,17 @@
 "use client";
 
 /**
- * EntryScreen — atmospheric splash gate. FR-1.
+ * EntryScreen — title gate. Weather orb · wordmark · play button.
  *
- * "Enter the Tide" CTA · Tsuheji map background · single button into match.
- * Routes to ElementQuiz if first-time, else direct to select phase.
+ * Ported from world-purupuru/sites/world/src/lib/battle/EntryScreen.svelte
+ * (Session 78 extraction). NOT a content-heavy splash · just an atmospheric
+ * arrival before the battle.
  */
 
 import { motion } from "motion/react";
+import Image from "next/image";
 import { ELEMENT_META, type Element } from "@/lib/honeycomb/wuxing";
 import { matchCommand } from "@/lib/runtime/match.client";
-import { ELEMENT_TINT_FROM } from "./_element-classes";
 
 interface EntryScreenProps {
   readonly opponentElement: Element;
@@ -19,68 +20,127 @@ interface EntryScreenProps {
   readonly seed: string;
 }
 
-export function EntryScreen({ opponentElement, weather, playerElement, seed }: EntryScreenProps) {
-  const firstTime = playerElement === null;
-  const cta = firstTime ? "Enter the Tide · choose your home" : "Enter the Tide";
+const WEATHER_ORB_GLOW: Record<Element, string> = {
+  wood: "from-puru-wood-vivid/40 via-puru-wood-tint/20",
+  fire: "from-puru-fire-vivid/40 via-puru-fire-tint/20",
+  earth: "from-puru-earth-vivid/40 via-puru-earth-tint/20",
+  metal: "from-puru-metal-vivid/40 via-puru-metal-tint/20",
+  water: "from-puru-water-vivid/40 via-puru-water-tint/20",
+};
 
-  const onEnter = () => {
-    // If first-time, choose-element is required before lock-in.
-    // BattleScene routes to QuizScreen when phase==quiz.
-    if (firstTime) {
-      // Match service transitions to "entry" on begin-match; we need to
-      // explicitly enter the quiz phase. For now, dispatch begin → quiz path
-      // by chaining commands. Match service handles the entry→quiz transition.
+const ELEMENT_GRADIENT: Record<Element, string> = {
+  wood: "radial-gradient(ellipse at 50% 40%, var(--puru-wood-tint) 0%, transparent 65%)",
+  fire: "radial-gradient(ellipse at 50% 40%, oklch(0.88 0.08 28) 0%, oklch(0.93 0.04 28 / 0.3) 40%, transparent 70%)",
+  earth: "radial-gradient(ellipse at 50% 40%, var(--puru-earth-tint) 0%, transparent 65%)",
+  metal: "radial-gradient(ellipse at 50% 40%, var(--puru-metal-tint) 0%, transparent 65%)",
+  water: "radial-gradient(ellipse at 50% 40%, var(--puru-water-tint) 0%, transparent 65%)",
+};
+
+const ELEMENT_BORDER: Record<Element, string> = {
+  wood: "border-puru-wood-pastel",
+  fire: "border-puru-fire-pastel",
+  earth: "border-puru-earth-pastel",
+  metal: "border-puru-metal-pastel",
+  water: "border-puru-water-pastel",
+};
+
+export function EntryScreen({ weather, playerElement, seed }: EntryScreenProps) {
+  const elementForGradient = playerElement ?? weather;
+
+  const onPlay = () => {
+    // begin-match transitions idle → entry. From entry, if playerElement
+    // exists we dispatch choose-element to advance to select.
+    if (playerElement) {
       matchCommand.beginMatch();
-      return;
+      // Match will auto-transition entry → quiz (no player element) or skip via
+      // the BattleScene routing which checks playerElement.
+    } else {
+      matchCommand.beginMatch();
     }
-    matchCommand.beginMatch();
   };
 
   return (
-    <section className="relative grid place-items-center min-h-[70dvh] overflow-hidden rounded-3xl">
-      {/* Map background — Tsuheji continent shape */}
-      <div
+    <section
+      className="relative inset-0 flex flex-col items-center min-h-[80dvh]"
+      data-element={playerElement ?? undefined}
+    >
+      {/* Element-driven radial background */}
+      <motion.div
         aria-hidden
-        className={`absolute inset-0 bg-gradient-to-br ${ELEMENT_TINT_FROM[weather]} via-puru-cloud-bright to-puru-cloud-base`}
-        style={{ opacity: 0.7 }}
-      />
-      <div
-        aria-hidden
-        className="absolute inset-0 bg-[url('/art/tsuheji-map.png')] bg-cover bg-center opacity-30 mix-blend-multiply"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1.2, delay: 0.3, ease: [0.32, 0.72, 0.32, 1] }}
+        className="absolute inset-0 -z-10 pointer-events-none"
+        style={{ background: ELEMENT_GRADIENT[elementForGradient] }}
       />
 
+      {/* Weather orb · top-right */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.92, x: 40 }}
+        animate={{ opacity: 1, scale: 1, x: 0 }}
+        transition={{ duration: 0.6, ease: [0.32, 0.72, 0.32, 1] }}
+        className={`absolute -top-12 -right-8 md:-top-16 md:-right-12 w-[240px] h-[240px] md:w-[300px] md:h-[300px] rounded-full bg-gradient-radial ${WEATHER_ORB_GLOW[weather]} grid place-items-center pointer-events-none`}
+        data-element={weather}
+        aria-hidden
+      >
+        <span
+          className="font-puru-display text-7xl md:text-9xl text-puru-ink-rich/60"
+          style={{ fontFamily: "var(--font-puru-display)" }}
+        >
+          {ELEMENT_META[weather].kanji}
+        </span>
+      </motion.div>
+
+      {/* Wordmark + subtitle · centered, takes most vertical space */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: [0.32, 0.72, 0.32, 1] }}
-        className="relative z-10 flex flex-col items-center gap-5 text-center max-w-md px-6"
+        transition={{ duration: 0.8, delay: 0.2, ease: [0.32, 0.72, 0.32, 1] }}
+        className="flex flex-col items-center gap-2 mt-[20dvh]"
       >
-        <h1 className="font-puru-display text-4xl text-puru-ink-rich leading-puru-tight">
-          Purupuru · the game
-        </h1>
-        <div className="flex items-center gap-3 text-puru-ink-soft text-sm font-puru-body">
-          <span>The tide favors</span>
-          <span className="font-puru-display text-puru-ink-rich">
-            {ELEMENT_META[weather].kanji} {ELEMENT_META[weather].name.toLowerCase()}
-          </span>
-          <span>today.</span>
-        </div>
-        <p className="font-puru-body text-puru-ink-soft text-sm leading-puru-relaxed">
-          {ELEMENT_META[opponentElement].caretaker} brings the imbalance. Five cards. Five clashes.
-          Order matters.
-        </p>
+        <Image
+          src="/brand/purupuru-wordmark.svg"
+          alt="Purupuru"
+          width={240}
+          height={120}
+          priority
+          className="w-[200px] md:w-[280px] h-auto"
+        />
+        <span className="text-puru-ink-soft font-puru-body text-sm italic tracking-wide">
+          the game
+        </span>
+      </motion.div>
+
+      <div className="flex-1" />
+
+      {/* Play tile button */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.5, ease: [0.32, 0.72, 0.32, 1] }}
+        className="mb-[12dvh] flex flex-col items-center gap-3"
+      >
         <motion.button
           type="button"
-          onClick={onEnter}
+          onClick={onPlay}
           whileHover={{ scale: 1.04 }}
-          whileTap={{ scale: 0.98 }}
+          whileTap={{ scale: 0.96 }}
           transition={{ type: "spring", stiffness: 320, damping: 22 }}
-          className="mt-2 px-7 py-3.5 rounded-full bg-puru-honey-base text-puru-ink-rich font-puru-display text-lg shadow-puru-tile hover:shadow-puru-tile-hover transition-shadow"
+          className={[
+            "px-12 py-4 rounded-full font-puru-body text-lg font-semibold",
+            "text-puru-ink-rich",
+            playerElement
+              ? `bg-puru-cloud-base border-2 ${ELEMENT_BORDER[playerElement]} shadow-puru-tile`
+              : "bg-puru-honey-base shadow-puru-tile",
+            "hover:shadow-puru-tile-hover transition-shadow",
+            "min-w-[200px]",
+          ].join(" ")}
+          data-element={playerElement ?? undefined}
         >
-          {cta}
+          play
         </motion.button>
-        <p className="text-2xs font-puru-mono text-puru-ink-ghost mt-3">
-          seed · <span className="text-puru-ink-dim">{seed.slice(0, 24)}</span>
+        <p className="text-2xs font-puru-mono text-puru-ink-ghost opacity-60">
+          seed · {seed.slice(0, 24)}
         </p>
       </motion.div>
     </section>

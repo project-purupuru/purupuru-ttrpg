@@ -1,180 +1,171 @@
 "use client";
 
 /**
- * ElementQuiz — 5-question element-affinity flow. FR-2.
+ * ElementQuiz — one screen, five scenes. Choose your element.
  *
- * Per Q-SDD-5: questions ported VERBATIM from world-purupuru. Each answer
- * scores one element; final tally determines player's home element.
- *
- * Persisted via lib/honeycomb/storage.ts (S3 T3.3 integration).
+ * Ported from world-purupuru/sites/world/src/lib/battle/ElementQuiz.svelte.
+ * NOT a question-by-question quiz · a single scene-picker. Selected element
+ * persists to storage and dispatches choose-element to Match.
  */
 
-import { motion, AnimatePresence } from "motion/react";
-import { useState } from "react";
-import { ELEMENT_META, ELEMENT_ORDER, type Element } from "@/lib/honeycomb/wuxing";
+import { useEffect, useState } from "react";
+import { motion } from "motion/react";
+import { ELEMENT_META, type Element } from "@/lib/honeycomb/wuxing";
 import { matchCommand } from "@/lib/runtime/match.client";
 import { updateMatchStorage } from "@/lib/honeycomb/storage";
 
-interface QuizQuestion {
-  readonly prompt: string;
-  /** Each answer maps to one element. */
-  readonly answers: readonly { readonly text: string; readonly element: Element }[];
+interface Scene {
+  readonly element: Element;
+  readonly scene: string;
+  readonly sceneArt: string;
+  readonly puruhaniArt: string;
+  readonly caretakerArt: string;
 }
 
-/**
- * 5 atmospheric questions · ported from world-purupuru's ElementQuiz.svelte.
- * Each answer scores +1 to its element; highest tally wins.
- */
-const QUESTIONS: readonly QuizQuestion[] = [
+const SCENES: readonly Scene[] = [
   {
-    prompt: "The kettle is on. What do you reach for?",
-    answers: [
-      { text: "Loose-leaf · I'm patient", element: "wood" },
-      { text: "Hot strong · let's go", element: "fire" },
-      { text: "Mug I always use", element: "earth" },
-      { text: "Whatever's clean", element: "metal" },
-      { text: "Cold brew · I'm flowing", element: "water" },
-    ],
+    element: "wood",
+    scene: "A garden at dawn",
+    sceneArt: "/thumbs/scenes/caretaker-kaori-gardening-with-puruhani.webp",
+    puruhaniArt: "/thumbs/puruhani/hopeful-puruhani.png",
+    caretakerArt: "/thumbs/caretakers/caretaker-kaori-pose.webp",
   },
   {
-    prompt: "A friend asks for advice. You…",
-    answers: [
-      { text: "Plant the seed · let them figure it out", element: "wood" },
-      { text: "Say the bold thing", element: "fire" },
-      { text: "Just sit with them", element: "earth" },
-      { text: "Lay out the options", element: "metal" },
-      { text: "Reflect it back · listen first", element: "water" },
-    ],
+    element: "fire",
+    scene: "A rooftop at noon",
+    sceneArt: "/thumbs/scenes/caretaker-akane-with-puruhani-at-bus-stop.webp",
+    puruhaniArt: "/thumbs/puruhani/nefarious-puruhani.png",
+    caretakerArt: "/thumbs/caretakers/caretaker-akane-puruhani-chibi.webp",
   },
   {
-    prompt: "Late night. The room is quiet. You're…",
-    answers: [
-      { text: "Reading · curious", element: "wood" },
-      { text: "Still up · still going", element: "fire" },
-      { text: "Wrapping up · feeling settled", element: "earth" },
-      { text: "Tidying · making it clean", element: "metal" },
-      { text: "Looking out the window", element: "water" },
-    ],
+    element: "earth",
+    scene: "A kitchen in amber light",
+    sceneArt: "/thumbs/scenes/caretaker-nemu-puruhani-spring.webp",
+    puruhaniArt: "/thumbs/puruhani/exhausted-puruhani.png",
+    caretakerArt: "/thumbs/caretakers/caretaker-nemu-earth.webp",
   },
   {
-    prompt: "Pick a room.",
-    answers: [
-      { text: "Garden room · plants everywhere", element: "wood" },
-      { text: "Kitchen · always hot", element: "fire" },
-      { text: "Library · quiet shelves", element: "earth" },
-      { text: "Workshop · tools in rows", element: "metal" },
-      { text: "Bath · steam and warmth", element: "water" },
-    ],
+    element: "metal",
+    scene: "An observatory at dusk",
+    sceneArt: "/thumbs/scenes/caretaker-ren-puruhani-night-scene.webp",
+    puruhaniArt: "/thumbs/puruhani/loving-puruhani.png",
+    caretakerArt: "/thumbs/caretakers/caretaker-ren-with-puruhani.webp",
   },
   {
-    prompt: "Your first move in a new place.",
-    answers: [
-      { text: "Plant something", element: "wood" },
-      { text: "Light a candle", element: "fire" },
-      { text: "Unpack the kitchen first", element: "earth" },
-      { text: "Hang the tools on the wall", element: "metal" },
-      { text: "Run the bath", element: "water" },
-    ],
+    element: "water",
+    scene: "A tide pool at night",
+    sceneArt: "/thumbs/scenes/caretaker-ruan-with-puruhani-in-rain.webp",
+    puruhaniArt: "/thumbs/puruhani/overwhelmed-puruhani.png",
+    caretakerArt: "/thumbs/caretakers/caretaker-ruan-cute-pose.webp",
   },
 ];
 
+const ELEMENT_TINT_CLASS: Record<Element, string> = {
+  wood: "bg-puru-wood-tint",
+  fire: "bg-puru-fire-tint",
+  earth: "bg-puru-earth-tint",
+  metal: "bg-puru-metal-tint",
+  water: "bg-puru-water-tint",
+};
+
 export function ElementQuiz() {
-  const [step, setStep] = useState(0);
-  const [tally, setTally] = useState<Record<Element, number>>({
-    wood: 0,
-    fire: 0,
-    earth: 0,
-    metal: 0,
-    water: 0,
-  });
-  const [revealed, setRevealed] = useState<Element | null>(null);
+  const [selected, setSelected] = useState<Element | null>(null);
 
-  const question = QUESTIONS[step];
-
-  const choose = (el: Element) => {
-    const next = { ...tally, [el]: tally[el] + 1 };
-    setTally(next);
-    if (step + 1 < QUESTIONS.length) {
-      setStep(step + 1);
-    } else {
-      // Final tally → highest-scored element. Ties broken by ELEMENT_ORDER index.
-      const winner = ELEMENT_ORDER.reduce(
-        (best, el) => (next[el] > next[best] ? el : best),
-        ELEMENT_ORDER[0],
-      );
-      setRevealed(winner);
-      updateMatchStorage("playerElement", winner);
-      // After 1.5s reveal pause, advance the Match.
-      setTimeout(() => matchCommand.chooseElement(winner), 1500);
-    }
-  };
-
-  if (revealed) {
-    return (
-      <motion.section
-        initial={{ opacity: 0, scale: 0.96 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        className="grid place-items-center min-h-[60dvh] text-center"
-      >
-        <div className="flex flex-col items-center gap-4 max-w-md">
-          <p className="font-puru-body text-puru-ink-soft text-sm">Your home is</p>
-          <h2 className="font-puru-display text-5xl text-puru-ink-rich">
-            {ELEMENT_META[revealed].kanji}
-          </h2>
-          <p className="font-puru-display text-2xl text-puru-ink-rich">
-            {ELEMENT_META[revealed].name} · {ELEMENT_META[revealed].virtue}
-          </p>
-          <p className="font-puru-body text-puru-ink-dim text-xs italic">
-            {ELEMENT_META[revealed].caretaker} waits for you.
-          </p>
-        </div>
-      </motion.section>
-    );
-  }
-
-  if (!question) return null;
+  useEffect(() => {
+    if (!selected) return;
+    updateMatchStorage("playerElement", selected);
+    const t = setTimeout(() => matchCommand.chooseElement(selected), 600);
+    return () => clearTimeout(t);
+  }, [selected]);
 
   return (
-    <section className="grid place-items-center min-h-[60dvh]">
-      <div className="flex flex-col items-center gap-5 max-w-lg w-full px-6">
-        <div className="flex gap-1.5">
-          {QUESTIONS.map((_, i) => (
-            <span
-              key={i}
-              className={`w-2 h-2 rounded-full transition-colors ${
-                i <= step ? "bg-puru-honey-base" : "bg-puru-cloud-deep/40"
-              }`}
-            />
-          ))}
-        </div>
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={step}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.36, ease: [0.32, 0.72, 0.32, 1] }}
-            className="flex flex-col gap-3 w-full"
-          >
-            <h2 className="font-puru-display text-2xl text-puru-ink-rich text-center mb-3">
-              {question.prompt}
-            </h2>
-            <div className="flex flex-col gap-2">
-              {question.answers.map((a) => (
-                <button
-                  key={a.element}
-                  type="button"
-                  onClick={() => choose(a.element)}
-                  className="px-5 py-3 rounded-2xl bg-puru-cloud-bright shadow-puru-tile text-left text-sm font-puru-body text-puru-ink-base hover:shadow-puru-tile-hover hover:translate-x-1 transition-all"
+    <section
+      className="relative inset-0 flex flex-col items-center justify-center min-h-[70dvh]"
+      data-element={selected ?? undefined}
+    >
+      <motion.h2
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.32, 0.72, 0.32, 1] }}
+        className="font-puru-display text-2xl md:text-3xl text-puru-ink-rich lowercase tracking-wide mb-8"
+      >
+        choose your element.
+      </motion.h2>
+
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 w-full max-w-5xl px-6">
+        {SCENES.map((s, i) => {
+          const meta = ELEMENT_META[s.element];
+          const isChosen = selected === s.element;
+          const isFaded = selected !== null && selected !== s.element;
+          return (
+            <motion.div
+              key={s.element}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{
+                opacity: isFaded ? 0.25 : 1,
+                y: 0,
+                scale: isChosen ? 1.03 : 1,
+              }}
+              transition={{
+                duration: 0.42,
+                delay: i * 0.07,
+                ease: [0.32, 0.72, 0.32, 1],
+              }}
+              className="relative flex flex-col items-center"
+            >
+              <button
+                type="button"
+                onClick={() => setSelected(s.element)}
+                disabled={selected !== null}
+                className={[
+                  "relative w-full aspect-[3/4] rounded-3xl overflow-hidden shadow-puru-tile",
+                  "transition-shadow hover:shadow-puru-tile-hover",
+                  isChosen ? "ring-2 ring-puru-honey-base" : "",
+                ].join(" ")}
+                data-element={s.element}
+                aria-label={`${meta.name} · ${s.scene}`}
+              >
+                <img
+                  src={s.sceneArt}
+                  alt={s.scene}
+                  loading="lazy"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+                <div
+                  aria-hidden
+                  className={`absolute inset-0 ${ELEMENT_TINT_CLASS[s.element]} mix-blend-multiply`}
+                  style={{ opacity: 0.4 }}
+                />
+                <span
+                  aria-hidden
+                  className="absolute top-3 left-3 font-puru-display text-3xl text-puru-ink-rich/80"
                 >
-                  {a.text}
-                </button>
-              ))}
-            </div>
-          </motion.div>
-        </AnimatePresence>
+                  {meta.kanji}
+                </span>
+                <span className="absolute bottom-3 left-3 right-3 text-2xs font-puru-body text-puru-ink-rich/90 text-center italic">
+                  {s.scene.toLowerCase()}
+                </span>
+              </button>
+
+              <div className="mt-3 flex flex-col items-center gap-0.5">
+                <img
+                  src={s.puruhaniArt}
+                  alt={`${meta.caretaker}'s puruhani`}
+                  loading="lazy"
+                  className="w-12 h-12 object-contain"
+                />
+                <span className="text-2xs font-puru-display text-puru-ink-rich">
+                  {meta.caretaker}
+                </span>
+              </div>
+            </motion.div>
+          );
+        })}
       </div>
+
+      <p className="mt-8 text-2xs font-puru-body text-puru-ink-soft italic px-6 text-center max-w-md">
+        pick the place that feels like home. you can change later.
+      </p>
     </section>
   );
 }
