@@ -10,6 +10,7 @@
 import type { Card } from "@/lib/honeycomb/cards";
 import type { MatchPhase } from "@/lib/honeycomb/match.port";
 import { ELEMENT_META, type Element } from "@/lib/honeycomb/wuxing";
+import { CARD_SATURATED, CARD_PASTEL, JANI_CARDS } from "@/lib/cdn";
 
 interface BattleHandProps {
   readonly cards: readonly Card[];
@@ -39,6 +40,14 @@ function setLabel(t: Card["cardType"]): string {
   return "transcendence";
 }
 
+/** Pick the right CDN composite per card. Jani → jani card · caretaker_a →
+ * saturated · caretaker_b → pastel · transcendence falls back to saturated. */
+function cardArtFor(card: Card): string {
+  if (card.cardType === "jani") return JANI_CARDS[card.element];
+  if (card.cardType === "caretaker_b") return CARD_PASTEL[card.element];
+  return CARD_SATURATED[card.element];
+}
+
 export function BattleHand({ cards, phase, turnElement, onPlay, onSkip }: BattleHandProps) {
   const canPlay = phase === "arrange" || phase === "between-rounds" || phase === "select";
   const total = cards.length;
@@ -52,8 +61,9 @@ export function BattleHand({ cards, phase, turnElement, onPlay, onSkip }: Battle
               <button
                 key={card.id}
                 type="button"
-                className="card-slot"
+                className="card-slot card-slot--art"
                 data-element={card.element}
+                data-card-type={card.cardType}
                 disabled={!canPlay}
                 onClick={() => onPlay?.(card)}
                 style={
@@ -64,9 +74,13 @@ export function BattleHand({ cards, phase, turnElement, onPlay, onSkip }: Battle
                 }
                 aria-label={`Play ${card.element} ${ELEMENT_META[card.element].name}`}
               >
-                <span className="card-kanji">{ELEMENT_META[card.element].kanji}</span>
-                <span className="card-name">{ELEMENT_META[card.element].caretaker}</span>
-                <span className="card-set">{setLabel(card.cardType)}</span>
+                <img
+                  className="card-art"
+                  src={cardArtFor(card)}
+                  alt={`${ELEMENT_META[card.element].caretaker} · ${setLabel(card.cardType)}`}
+                  loading="lazy"
+                />
+                <span className="card-set-overlay">{setLabel(card.cardType)}</span>
                 {card.element === turnElement && (
                   <span className="turn-match" aria-label="Matches this turn's element">
                     +

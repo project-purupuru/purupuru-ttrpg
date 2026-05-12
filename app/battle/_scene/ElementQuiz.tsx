@@ -6,9 +6,10 @@
  */
 
 import { useEffect, useState } from "react";
-import { ELEMENT_META, type Element } from "@/lib/honeycomb/wuxing";
+import { ELEMENT_META, ELEMENT_ORDER, type Element } from "@/lib/honeycomb/wuxing";
 import { matchCommand } from "@/lib/runtime/match.client";
 import { updateMatchStorage } from "@/lib/honeycomb/storage";
+import { WORLD_SCENES, WORLD_SCENE_LABELS, CARETAKER_FULL } from "@/lib/cdn";
 
 interface SceneSpec {
   readonly element: Element;
@@ -18,47 +19,24 @@ interface SceneSpec {
   readonly caretakerArt: string;
 }
 
-// Scenes are LOCATIONS, not character closeups. Element-tinted gradients
-// + atmospheric overlays carry the place. Caretaker mural lives outside
-// the scene card. Local-only assets; no CDN dependency.
-const SCENES: readonly SceneSpec[] = [
-  {
-    element: "wood",
-    scene: "A garden at dawn",
-    sceneArt: "/art/scenes/kaori-sakura.png",
-    caretakerArt: "/thumbs/caretakers/caretaker-kaori-pose.webp",
-    puruhani: "/thumbs/puruhani/hopeful-puruhani.png",
-  },
-  {
-    element: "fire",
-    scene: "The station at noon",
-    sceneArt: "/art/scenes/akane-station.png",
-    caretakerArt: "/thumbs/caretakers/caretaker-akane-puruhani-chibi.webp",
-    puruhani: "/thumbs/puruhani/nefarious-puruhani.png",
-  },
-  {
-    element: "earth",
-    scene: "A kitchen in amber light",
-    // No local location asset for earth yet — gradient-only via .scene-tint.
-    sceneArt: "",
-    caretakerArt: "/thumbs/caretakers/caretaker-nemu-earth.webp",
-    puruhani: "/thumbs/puruhani/exhausted-puruhani.png",
-  },
-  {
-    element: "metal",
-    scene: "An observatory at dusk",
-    sceneArt: "",
-    caretakerArt: "/thumbs/caretakers/caretaker-ren-with-puruhani.webp",
-    puruhani: "/thumbs/puruhani/loving-puruhani.png",
-  },
-  {
-    element: "water",
-    scene: "A tide pool at night",
-    sceneArt: "",
-    caretakerArt: "/thumbs/caretakers/caretaker-ruan-cute-pose.webp",
-    puruhani: "/thumbs/puruhani/overwhelmed-puruhani.png",
-  },
-];
+const PURUHANI_MOOD: Record<Element, string> = {
+  wood: "hopeful",
+  fire: "nefarious",
+  earth: "exhausted",
+  metal: "loving",
+  water: "overwhelmed",
+};
+
+// Scenes use world-purupuru's canonical WORLD_SCENES (bus-stop atmosphere
+// per element + time of day) and CARETAKER_FULL (transparent body art)
+// from the shared S3 CDN — same source of truth the original game uses.
+const SCENES: readonly SceneSpec[] = ELEMENT_ORDER.map((el) => ({
+  element: el,
+  scene: WORLD_SCENE_LABELS[el],
+  sceneArt: WORLD_SCENES[el],
+  caretakerArt: CARETAKER_FULL[el],
+  puruhani: `/thumbs/puruhani/${PURUHANI_MOOD[el]}-puruhani.png`,
+}));
 
 export function ElementQuiz() {
   const [selected, setSelected] = useState<Element | null>(null);
@@ -96,20 +74,18 @@ export function ElementQuiz() {
             >
               <button
                 type="button"
-                className={`scene-card${s.sceneArt ? "" : " scene-card-gradient"}`}
+                className="scene-card"
                 data-element={s.element}
                 onClick={() => setSelected(s.element)}
                 disabled={selected !== null}
                 aria-label={`${meta.name} · ${s.scene}`}
               >
-                {s.sceneArt && (
-                  <img
-                    className="scene-art"
-                    src={s.sceneArt}
-                    alt={s.scene}
-                    loading="lazy"
-                  />
-                )}
+                <img
+                  className="scene-art"
+                  src={s.sceneArt}
+                  alt={s.scene}
+                  loading="lazy"
+                />
                 <div className="scene-tint" data-element={s.element} />
                 <span className="scene-kanji">{meta.kanji}</span>
                 <span className="scene-place">{s.scene}</span>

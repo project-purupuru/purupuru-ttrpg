@@ -12,14 +12,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { ELEMENT_META, type Element } from "@/lib/honeycomb/wuxing";
 import type { MatchPhase } from "@/lib/honeycomb/match.port";
-
-const CARETAKER_THUMB: Record<Element, string> = {
-  wood: "/thumbs/caretakers/caretaker-kaori-pose.webp",
-  fire: "/thumbs/caretakers/caretaker-akane-puruhani-chibi.webp",
-  earth: "/thumbs/caretakers/caretaker-nemu-earth.webp",
-  metal: "/thumbs/caretakers/caretaker-ren-with-puruhani.webp",
-  water: "/thumbs/caretakers/caretaker-ruan-cute-pose.webp",
-};
+import { CARETAKER_FULL } from "@/lib/cdn";
 
 interface ArenaSpeakersProps {
   readonly playerElement: Element;
@@ -80,7 +73,7 @@ export function ArenaSpeakers({
         </AnimatePresence>
         <img
           className="speaker-face speaker-face--player"
-          src={CARETAKER_THUMB[playerElement]}
+          src={CARETAKER_FULL[playerElement]}
           alt={ELEMENT_META[playerElement].caretaker}
           data-element={playerElement}
         />
@@ -90,7 +83,7 @@ export function ArenaSpeakers({
       >
         <img
           className="speaker-face speaker-face--opponent"
-          src={CARETAKER_THUMB[opponentElement]}
+          src={CARETAKER_FULL[opponentElement]}
           alt={ELEMENT_META[opponentElement].caretaker}
           data-element={opponentElement}
         />

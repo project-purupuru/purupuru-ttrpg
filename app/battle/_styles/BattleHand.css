@@ -117,6 +117,50 @@
     opacity: 0.5;
   }
 
+  /* Art-mode card — full-bleed CDN composite via .card-art img */
+  .card-slot.card-slot--art {
+    overflow: hidden;
+    background: var(--puru-cloud-bright);
+    width: 110px;
+    height: 154px;
+    padding: 0;
+    gap: 0;
+  }
+  .card-slot--art .card-art {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center top;
+    border-radius: inherit;
+    z-index: 0;
+    pointer-events: none;
+    user-select: none;
+  }
+  .card-slot--art .card-set-overlay {
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    background: oklch(0 0 0 / 0.55);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    font-family: var(--font-body);
+    font-size: var(--text-2xs);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: oklch(1 0 0 / 0.92);
+    pointer-events: none;
+  }
+  @media (pointer: fine) {
+    .card-slot--art:hover:not(:disabled) .card-set-overlay { opacity: 1; }
+  }
+
   /* Turn match indicator — honey sparkle */
   .turn-match {
     position: absolute;
