@@ -241,3 +241,25 @@
   .dev-mech-clash[data-loser='p1']   { background: oklch(0.85 0.12 28); color: oklch(0.25 0.15 28); }
   .dev-mech-clash[data-loser='p2']   { background: oklch(0.85 0.12 112); color: oklch(0.25 0.15 112); }
   .dev-mech-clash[data-loser='draw'] { background: oklch(0.85 0.03 85);  color: oklch(0.30 0 0); }
+
+  /* ── Tweakpane host ───────────────────────────────────────────────
+     Tweakpane provides its own dark UI; we only style the wrapper
+     section + the explainer paragraph. */
+  .dev-tweakpane-host {
+    /* Tweakpane uses its own injected styles; no need to override. */
+    margin-top: var(--space-xs);
+  }
+  .dev-h-sub {
+    font-family: var(--font-body);
+    font-size: var(--text-2xs);
+    color: var(--puru-ink-dim);
+    margin: 0 0 var(--space-sm);
+    line-height: 1.4;
+  }
+  .dev-h-sub code {
+    font-family: var(--font-mono);
+    background: oklch(0.93 0.005 85);
+    padding: 1px 4px;
+    border-radius: 3px;
+    color: var(--puru-ink-base);
+  }

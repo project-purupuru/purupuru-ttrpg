@@ -55,7 +55,10 @@
 			calc(var(--parallax-arena-y, 0px) + var(--idle-drift-y, 0px))
 		);
 		transition: transform 320ms cubic-bezier(0.22, 1.0, 0.36, 1);
-		animation: arena-idle-drift 18s ease-in-out infinite;
+		/* Drift period is live-tunable via JuiceTweakpane.
+		   Default 18s; --puru-idle-drift-period overrides. */
+		animation: arena-idle-drift var(--puru-idle-drift-period, 18s)
+		           ease-in-out infinite;
 	}
 	/* Pause idle drift during clash phases so the impact owns the screen. */
 	.arena[data-phase='clashing'],
@@ -74,12 +77,20 @@
 		inherits: false;
 		initial-value: 0px;
 	}
+	/* Amplitude is live-tunable. The keyframe references
+	   --puru-idle-drift-amplitude (default 2px); via calc() on the
+	   inner --idle-drift-x/y. */
 	@keyframes arena-idle-drift {
-		0%   { --idle-drift-x: 0px;    --idle-drift-y: 0px;    }
-		25%  { --idle-drift-x: 2px;    --idle-drift-y: -1.5px; }
-		50%  { --idle-drift-x: 0px;    --idle-drift-y: 1.5px;  }
-		75%  { --idle-drift-x: -2px;   --idle-drift-y: -1.5px; }
-		100% { --idle-drift-x: 0px;    --idle-drift-y: 0px;    }
+		0%   { --idle-drift-x: 0px;
+		       --idle-drift-y: 0px; }
+		25%  { --idle-drift-x: var(--puru-idle-drift-amplitude, 2px);
+		       --idle-drift-y: calc(var(--puru-idle-drift-amplitude, 2px) * -0.75); }
+		50%  { --idle-drift-x: 0px;
+		       --idle-drift-y: calc(var(--puru-idle-drift-amplitude, 2px) * 0.75); }
+		75%  { --idle-drift-x: calc(var(--puru-idle-drift-amplitude, 2px) * -1);
+		       --idle-drift-y: calc(var(--puru-idle-drift-amplitude, 2px) * -0.75); }
+		100% { --idle-drift-x: 0px;
+		       --idle-drift-y: 0px; }
 	}
 	@media (prefers-reduced-motion: reduce) {
 		.arena { animation: none; transform: none; transition: none; }

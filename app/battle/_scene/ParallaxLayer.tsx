@@ -26,7 +26,17 @@
 
 import { useEffect, useRef } from "react";
 
-const MAX_PARALLAX_PX = 4; // deepest layer max travel — capped for nausea safety
+/** Deepest layer max travel — capped for nausea safety. Reads
+ * `--puru-parallax-max` at mousemove time so JuiceTweakpane can
+ * live-tune the value. Falls back to 4 if not set. */
+function getMaxParallaxPx(): number {
+  if (typeof window === "undefined") return 4;
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(
+    "--puru-parallax-max",
+  );
+  const n = parseFloat(raw);
+  return Number.isFinite(n) && n >= 0 ? n : 4;
+}
 
 export function ParallaxLayer() {
   const rafRef = useRef<number | null>(null);
@@ -51,21 +61,21 @@ export function ParallaxLayer() {
         // clamp to unit-ish circle
         const cx = Math.max(-1, Math.min(1, nx));
         const cy = Math.max(-1, Math.min(1, ny));
-        root.style.setProperty("--parallax-x", `${cx * MAX_PARALLAX_PX}px`);
-        root.style.setProperty("--parallax-y", `${cy * MAX_PARALLAX_PX}px`);
+        root.style.setProperty("--parallax-x", `${cx * getMaxParallaxPx()}px`);
+        root.style.setProperty("--parallax-y", `${cy * getMaxParallaxPx()}px`);
         // Per-layer depth factors (also exposed so CSS can choose).
         // Cards barely move; backdrop moves most.
         root.style.setProperty(
           "--parallax-card-y",
-          `${cy * MAX_PARALLAX_PX * 0.2}px`,
+          `${cy * getMaxParallaxPx() * 0.2}px`,
         );
         root.style.setProperty(
           "--parallax-arena-x",
-          `${cx * MAX_PARALLAX_PX * 0.5}px`,
+          `${cx * getMaxParallaxPx() * 0.5}px`,
         );
         root.style.setProperty(
           "--parallax-arena-y",
-          `${cy * MAX_PARALLAX_PX * 0.5}px`,
+          `${cy * getMaxParallaxPx() * 0.5}px`,
         );
       });
     };
