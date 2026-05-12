@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "hounfour:drift": "tsx scripts/hounfour-drift.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.1",
@@ -55,6 +56,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "jsdom": "^29.1.1",
+    "json-schema-diff": "^1.0.0",
     "tailwindcss": "^4.3.0",
     "tsx": "^4.21.0",
     "typescript": "^5",
