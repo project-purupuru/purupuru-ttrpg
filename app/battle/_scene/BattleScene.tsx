@@ -10,11 +10,13 @@
  * Dev tooling (KaironicPanel · DevConsole) lives in app/battle/_inspect/.
  */
 
+import { useState } from "react";
 import { matchCommand, useMatch } from "@/lib/runtime/match.client";
 import type { Element } from "@/lib/honeycomb/wuxing";
 import { ArenaSpeakers } from "./ArenaSpeakers";
 import { BattleField } from "./BattleField";
 import { BattleHand } from "./BattleHand";
+import { ComboDiscoveryToast } from "./ComboDiscoveryToast";
 import { ElementQuiz } from "./ElementQuiz";
 import { EntryScreen } from "./EntryScreen";
 import { Guide } from "./Guide";
@@ -26,6 +28,7 @@ import "../_styles/battle.css";
 
 export function BattleScene() {
   const snap = useMatch();
+  const [toastActive, setToastActive] = useState(false);
 
   if (!snap) {
     return (
@@ -105,10 +108,12 @@ export function BattleScene() {
           />
 
           {/* Canonical world-purupuru flex column: opponent at top, clash-zone
-              in the middle (the actual meeting point), player at bottom. */}
+              in the middle (the actual meeting point), player at bottom.
+              data-paused dims + freezes during ComboDiscoveryToast. */}
           <div
             className="arena"
             data-phase={snap.phase}
+            data-paused={toastActive ? "" : undefined}
             style={
               {
                 "--clash-slide": "500ms",
@@ -184,6 +189,9 @@ export function BattleScene() {
 
       {/* TurnClock floats above the arena */}
       {inArena && <TurnClock turnElement={turnElement} weather={snap.weather} />}
+
+      {/* First-time combo discovery ceremony (FR-5) */}
+      <ComboDiscoveryToast onActiveChange={setToastActive} />
 
       {/* Guide overlay (tutorial / hints) */}
       <Guide />

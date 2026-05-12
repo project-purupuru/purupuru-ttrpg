@@ -99,6 +99,15 @@ export type MatchEvent =
       readonly eliminated: readonly string[];
     }
   | { readonly _tag: "match-completed"; readonly winner: "p1" | "p2" | "draw" }
+  /** Newly-active combo detected on the current p1 lineup. `isFirstTime` is
+   * true when this kind has never been seen by the player on this device.
+   * UI subscribes to fire the first-time discovery ceremony (FR-5). */
+  | {
+      readonly _tag: "combo-discovered";
+      readonly kind: import("./combos").ComboKind;
+      readonly name: string;
+      readonly isFirstTime: boolean;
+    }
   /** Lightweight tick — fired after any snapshot mutation that doesn't have
    * its own named event. Lets `useMatch()` re-read state on visual ticks. */
   | { readonly _tag: "state-changed" };

@@ -17,8 +17,9 @@
  */
 
 import { type Card, CARD_DEFINITIONS, createCard } from "./cards";
-import { detectCombos } from "./combos";
+import { type Combo, detectCombos } from "./combos";
 import { CONDITIONS, type BattleCondition } from "./conditions";
+import { isFirstTime, loadDiscovery, recordDiscovery } from "./discovery";
 import type {
   MatchCommand,
   MatchEvent,
@@ -146,6 +147,7 @@ export function reduce(
       nextLineup[snap.selectedIndex] = nextLineup[i]!;
       nextLineup[i] = tmp;
       const nextCombos = detectCombos(nextLineup, { weather: snap.weather });
+      const discoveryEvents = comboDiscoveryEvents(snap.p1Combos, nextCombos);
       return {
         next: {
           ...snap,
@@ -153,7 +155,7 @@ export function reduce(
           p1Combos: nextCombos,
           selectedIndex: null,
         },
-        events: [{ _tag: "state-changed" }],
+        events: [{ _tag: "state-changed" }, ...discoveryEvents],
       };
     }
 
@@ -168,6 +170,7 @@ export function reduce(
       nextLineup[a] = nextLineup[b]!;
       nextLineup[b] = tmp;
       const nextCombos = detectCombos(nextLineup, { weather: snap.weather });
+      const discoveryEvents = comboDiscoveryEvents(snap.p1Combos, nextCombos);
       return {
         next: {
           ...snap,
@@ -175,7 +178,7 @@ export function reduce(
           p1Combos: nextCombos,
           selectedIndex: null,
         },
-        events: [{ _tag: "state-changed" }],
+        events: [{ _tag: "state-changed" }, ...discoveryEvents],
       };
     }
 
@@ -245,6 +248,33 @@ export function initialSnapshot(seed: string): MatchSnapshot {
     lastOvercome: null,
     animState: "idle",
   };
+}
+
+/**
+ * Diff prev/next combos and return discovery events for any combo kind
+ * that's newly active (wasn't active in the prev set). Side-effect: records
+ * first-time discoveries to localStorage so subsequent rounds don't re-fire.
+ */
+function comboDiscoveryEvents(
+  prev: readonly Combo[],
+  next: readonly Combo[],
+): readonly MatchEvent[] {
+  const prevKinds = new Set(prev.map((c) => c.kind));
+  const newlyActive = next.filter((c) => !prevKinds.has(c.kind));
+  if (newlyActive.length === 0) return [];
+  const state = loadDiscovery();
+  const out: MatchEvent[] = [];
+  for (const combo of newlyActive) {
+    const first = isFirstTime(combo.kind, state);
+    if (first) recordDiscovery(combo.kind);
+    out.push({
+      _tag: "combo-discovered",
+      kind: combo.kind,
+      name: combo.name,
+      isFirstTime: first,
+    });
+  }
+  return out;
 }
 
 export function stubOpponentLineup(snap: MatchSnapshot): Card[] {
