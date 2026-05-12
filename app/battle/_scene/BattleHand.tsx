@@ -7,6 +7,7 @@
  * CSS: app/battle/_styles/BattleHand.css
  */
 
+import { useRef } from "react";
 import type { Card } from "@/lib/honeycomb/cards";
 import type { MatchPhase } from "@/lib/honeycomb/match.port";
 import { ELEMENT_META, type Element } from "@/lib/honeycomb/wuxing";
@@ -48,6 +49,10 @@ interface BattleHandProps {
   readonly onTap?: (index: number) => void;
   readonly onSwap?: (a: number, b: number) => void;
   readonly onSkip?: () => void;
+  /** Open the CardPetal detail modal. Triggered by long-press on touch
+   * OR right-click on desktop. Substrate-shaped: handler is opaque to
+   * the hand; BattleScene owns the modal. */
+  readonly onLongPress?: (index: number) => void;
 }
 
 /** Canonical fan from cycle-088 +page.svelte:
@@ -95,11 +100,46 @@ export function BattleHand({
   onTap,
   onSwap,
   onSkip,
+  onLongPress,
 }: BattleHandProps) {
+  // Long-press timer ref; cleared on pointerup/leave/move
+  const longPressTimerRef = useRef<number | null>(null);
+  const longPressFiredRef = useRef(false);
+
+  const startLongPress = (i: number) => {
+    if (!onLongPress) return;
+    longPressFiredRef.current = false;
+    if (longPressTimerRef.current !== null) {
+      window.clearTimeout(longPressTimerRef.current);
+    }
+    longPressTimerRef.current = window.setTimeout(() => {
+      longPressFiredRef.current = true;
+      onLongPress(i);
+      longPressTimerRef.current = null;
+    }, 450);
+  };
+  const cancelLongPress = () => {
+    if (longPressTimerRef.current !== null) {
+      window.clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+  const handleContextMenu = (e: React.MouseEvent, i: number) => {
+    if (!onLongPress) return;
+    e.preventDefault();
+    onLongPress(i);
+  };
   const canPlay = phase === "arrange" || phase === "between-rounds";
   const total = cards.length;
 
   const onCardClick = (i: number, card: Card) => {
+    // Suppress the click if a long-press just fired (touch devices
+    // dispatch click after pointerup; we don't want to fire tap-to-swap
+    // when the user just opened the petal).
+    if (longPressFiredRef.current) {
+      longPressFiredRef.current = false;
+      return;
+    }
     if (canPlay && onTap) {
       audioEngine().play("ui.tap");
       onTap(i);
@@ -192,6 +232,10 @@ export function BattleHand({
                     onDragStart={(e) => onDragStart(e, i)}
                     onDragOver={onDragOver}
                     onDrop={(e) => onDrop(e, i)}
+                    onPointerDown={() => startLongPress(i)}
+                    onPointerUp={cancelLongPress}
+                    onPointerLeave={cancelLongPress}
+                    onContextMenu={(e) => handleContextMenu(e, i)}
                     aria-label={`Play ${card.element} ${ELEMENT_META[card.element].name}`}
                     aria-pressed={isSelected}
                   >

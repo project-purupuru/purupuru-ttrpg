@@ -1,140 +1,149 @@
 "use client";
 
 /**
- * CardPetal — individual card view. FR-5.
+ * CardPetal — modal detail view for a single card.
  *
- * Element-driven art layers · holographic-tilt on hover (mouse-position
- * transform) · rarity-treatment frame · uses asset library (when S6 wires
- * full sync · for now compass's existing public/art/cards/ local copies).
+ * Opens when the player long-presses (touch) or right-clicks (desktop)
+ * a card in their hand. Renders:
+ *   - Full-size CDN art (cardArtChain fallbacks)
+ *   - Element kanji + caretaker name
+ *   - Type label (striker / support / utility / transcendence)
+ *   - Type-power number
+ *   - Flavor text from card definition
+ *   - Element virtue (Confucian — 仁/禮/信/義/智)
+ *
+ * Closes on backdrop click or Esc. Locks body scroll while open.
+ *
+ * The "petal" name comes from the world-purupuru convention — a card
+ * blooms outward into a contemplative full view.
  */
 
-import { motion, useMotionValue, useSpring, useTransform } from "motion/react";
-import { useCallback } from "react";
+import { useEffect } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import type { Card } from "@/lib/honeycomb/cards";
+import { findDef } from "@/lib/honeycomb/cards";
+import { TYPE_POWER } from "@/lib/honeycomb/cards";
 import { ELEMENT_META } from "@/lib/honeycomb/wuxing";
-import { ResilientImage } from "./_asset";
-import { ELEMENT_TINT_BG } from "./_element-classes";
+import { audioEngine } from "@/lib/audio/engine";
+import { cardArtChain } from "@/lib/cdn";
+import { CdnImage } from "./CdnImage";
 
 interface CardPetalProps {
-  readonly card: Card;
-  readonly facing?: "up" | "down";
-  readonly stamped?: boolean;
-  readonly onClick?: () => void;
-  readonly className?: string;
+  readonly card: Card | null;
+  readonly onClose: () => void;
 }
 
-export function CardPetal({
-  card,
-  facing = "up",
-  stamped = false,
-  onClick,
-  className,
-}: CardPetalProps) {
-  // Holographic tilt via mouse position
-  const mouseX = useMotionValue(0.5);
-  const mouseY = useMotionValue(0.5);
-  const rotX = useSpring(useTransform(mouseY, [0, 1], [12, -12]), { stiffness: 320, damping: 22 });
-  const rotY = useSpring(useTransform(mouseX, [0, 1], [-12, 12]), { stiffness: 320, damping: 22 });
+const TYPE_LABEL: Record<string, string> = {
+  jani: "Striker",
+  caretaker_a: "Support",
+  caretaker_b: "Utility",
+  transcendence: "Transcendence",
+};
 
-  const onMouseMove = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      const r = e.currentTarget.getBoundingClientRect();
-      mouseX.set((e.clientX - r.left) / r.width);
-      mouseY.set((e.clientY - r.top) / r.height);
-    },
-    [mouseX, mouseY],
-  );
-  const onMouseLeave = useCallback(() => {
-    mouseX.set(0.5);
-    mouseY.set(0.5);
-  }, [mouseX, mouseY]);
-
-  // Asset path for this card. Uses puruhani sprite for caretaker_a/b · jani
-  // sprite for jani · placeholder gradient for transcendence (S6 art wire).
-  const assetPath = facing === "up" ? assetPathFor(card) : null;
+export function CardPetal({ card, onClose }: CardPetalProps) {
+  // Lock scroll + listen for Esc while open
+  useEffect(() => {
+    if (!card) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [card, onClose]);
 
   return (
-    <motion.div
-      onClick={onClick}
-      onMouseMove={onMouseMove}
-      onMouseLeave={onMouseLeave}
-      style={{ rotateX: rotX, rotateY: rotY, transformStyle: "preserve-3d" }}
-      whileHover={{ y: -4 }}
-      transition={{ type: "spring", stiffness: 320, damping: 22 }}
-      className={[
-        "relative aspect-[3/4] rounded-2xl shadow-puru-tile cursor-pointer overflow-hidden",
-        ELEMENT_TINT_BG[card.element],
-        className ?? "",
-      ].join(" ")}
-      data-element={card.element}
-      data-cardtype={card.cardType}
-      data-stamped={stamped}
-    >
-      {facing === "up" && assetPath && (
-        <ResilientImage
-          src={assetPath}
-          alt={`${ELEMENT_META[card.element].name} · ${card.cardType}`}
-          className="absolute inset-0 w-full h-full object-cover opacity-70"
-        />
-      )}
-
-      {/* Element kanji watermark */}
-      <span
-        aria-hidden
-        className="absolute top-2 left-2 font-puru-display text-2xl text-puru-ink-rich z-10"
-      >
-        {ELEMENT_META[card.element].kanji}
-      </span>
-
-      {/* Card type chip */}
-      <span className="absolute top-2 right-2 z-10 px-1.5 py-0.5 rounded-full bg-puru-cloud-bright/80 text-2xs font-puru-mono uppercase tracking-wide text-puru-ink-dim">
-        {card.cardType === "caretaker_a"
-          ? "ca · a"
-          : card.cardType === "caretaker_b"
-            ? "ca · b"
-            : card.cardType}
-      </span>
-
-      {/* Name label */}
-      <span className="absolute bottom-2 left-2 right-2 z-10 text-2xs font-puru-display text-puru-ink-rich text-center truncate">
-        {card.cardType === "jani"
-          ? `Jani · ${card.element}`
-          : card.cardType === "transcendence"
-            ? card.defId.replace("transcendence-", "")
-            : ELEMENT_META[card.element].caretaker}
-      </span>
-
-      {/* 敗 stamp on disintegrate */}
-      {stamped && (
+    <AnimatePresence>
+      {card && (
         <motion.div
-          initial={{ opacity: 0, scale: 1.4 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="absolute inset-0 grid place-items-center bg-puru-ink-rich/40 z-20"
+          className="petal-scrim"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          onClick={() => {
+            audioEngine().play("ui.toggle");
+            onClose();
+          }}
+          aria-modal="true"
+          role="dialog"
+          aria-label={`${ELEMENT_META[card.element].caretaker} card detail`}
         >
-          <span className="font-puru-display text-6xl text-puru-fire-vivid">敗</span>
+          <motion.article
+            className="petal"
+            data-element={card.element}
+            data-card-type={card.cardType}
+            initial={{ opacity: 0, y: 30, scale: 0.92 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.96 }}
+            transition={{ type: "spring", stiffness: 300, damping: 26 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <header className="petal-header">
+              <span className="petal-kanji" data-element={card.element}>
+                {ELEMENT_META[card.element].kanji}
+              </span>
+              <div className="petal-titles">
+                <span className="petal-caretaker">
+                  {ELEMENT_META[card.element].caretaker}
+                </span>
+                <span className="petal-type">{TYPE_LABEL[card.cardType] ?? card.cardType}</span>
+              </div>
+              <span
+                className="petal-virtue"
+                title={ELEMENT_META[card.element].virtue}
+              >
+                {ELEMENT_META[card.element].virtueKanji}
+              </span>
+            </header>
+
+            <div className="petal-art-wrap">
+              <CdnImage
+                className="petal-art"
+                sources={cardArtChain(card.cardType, card.element)}
+                alt={`${ELEMENT_META[card.element].caretaker} · ${card.cardType}`}
+              />
+            </div>
+
+            <footer className="petal-footer">
+              <div className="petal-power">
+                <span className="petal-power-label">power</span>
+                <span className="petal-power-value">
+                  {TYPE_POWER[card.cardType].toFixed(2)}×
+                </span>
+              </div>
+              {findDef(card.defId)?.name && (
+                <p className="petal-name">{findDef(card.defId)?.name}</p>
+              )}
+              <p className="petal-flavor">{flavorFor(card)}</p>
+              <button
+                type="button"
+                className="petal-close"
+                onClick={() => {
+                  audioEngine().play("ui.toggle");
+                  onClose();
+                }}
+                aria-label="Close"
+              >
+                close
+              </button>
+            </footer>
+          </motion.article>
         </motion.div>
       )}
-
-      {/* Card back face when face-down */}
-      {facing === "down" && (
-        <div className="absolute inset-0 bg-puru-cloud-deep grid place-items-center z-30">
-          <span className="font-puru-display text-3xl text-puru-ink-ghost">·</span>
-        </div>
-      )}
-    </motion.div>
+    </AnimatePresence>
   );
 }
 
-function assetPathFor(card: Card): string | null {
-  // Map card to its sprite per compass's existing public/art/* convention.
-  switch (card.cardType) {
-    case "jani":
-      return `/art/jani/jani-${card.element}.png`;
-    case "caretaker_a":
-    case "caretaker_b":
-      return `/art/puruhani/puruhani-${card.element}.png`;
-    case "transcendence":
-      // Transcendence art comes from S6 asset extraction; no local copy yet.
-      return null;
+function flavorFor(card: Card): string {
+  const def = findDef(card.defId);
+  if (!def) return "an unfamiliar card";
+  // Caretaker cards inherit element-themed flavor; transcendence have abilities
+  if (def.cardType === "transcendence") {
+    return `${def.name} — ability: ${(def as { ability?: string }).ability ?? "—"}`;
   }
+  return `${ELEMENT_META[card.element].caretaker} of ${ELEMENT_META[card.element].name.toLowerCase()}`;
 }

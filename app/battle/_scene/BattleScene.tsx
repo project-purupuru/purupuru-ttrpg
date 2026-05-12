@@ -14,9 +14,11 @@ import { useEffect, useState } from "react";
 import { matchCommand, useMatch } from "@/lib/runtime/match.client";
 import { useAudio } from "@/lib/audio/use-audio";
 import type { Element } from "@/lib/honeycomb/wuxing";
+import type { Card } from "@/lib/honeycomb/cards";
 import { ArenaSpeakers } from "./ArenaSpeakers";
 import { BattleField } from "./BattleField";
 import { BattleHand } from "./BattleHand";
+import { CardPetal } from "./CardPetal";
 import { ClashOrb } from "./ClashOrb";
 import { ClashVfx } from "./ClashVfx";
 import { ComboDiscoveryToast } from "./ComboDiscoveryToast";
@@ -33,6 +35,7 @@ import "../_styles/battle.css";
 export function BattleScene() {
   const snap = useMatch();
   const [toastActive, setToastActive] = useState(false);
+  const [petalCard, setPetalCard] = useState<Card | null>(null);
   // Mount the audio engine + music director (subscribes to phase-entered)
   const audio = useAudio();
   // Per-clash impact SFX — fires on each impact phase as visibleClashIdx advances
@@ -177,6 +180,13 @@ export function BattleScene() {
                 combos={snap.p1Combos}
                 onTap={matchCommand.tapPosition}
                 onSwap={matchCommand.swapPositions}
+                onLongPress={(i) => {
+                  const card = snap.p1Lineup[i];
+                  if (card) {
+                    audio.play("ui.tap");
+                    setPetalCard(card);
+                  }
+                }}
               />
 
               <div className="action-bar">
@@ -225,6 +235,9 @@ export function BattleScene() {
 
       {/* First-time combo discovery ceremony (FR-5) */}
       <ComboDiscoveryToast onActiveChange={setToastActive} />
+
+      {/* Card detail modal — opens on long-press / right-click */}
+      <CardPetal card={petalCard} onClose={() => setPetalCard(null)} />
 
       {/* Translation-only parallax camera (mousemove → CSS vars) */}
       <ParallaxLayer />
