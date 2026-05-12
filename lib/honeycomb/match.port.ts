@@ -1,0 +1,125 @@
+/**
+ * Match — orchestrator above Battle phase machine.
+ *
+ * Drives the full match lifecycle: Entry → Quiz (first-time) → Select →
+ * Arrange → Committed → Clashing → Disintegrating → Between-rounds → Result.
+ *
+ * Calls into Battle (for selection/arrangement state) + Clash (for round
+ * resolution) + future Opponent service (for AI lineup generation).
+ *
+ * Closes PRD r1 FR-14. SDD §3.3.
+ */
+
+import { Context, type Effect, type Stream } from "effect";
+import type { Card } from "./cards";
+import type { Combo } from "./combos";
+import type { BattleCondition } from "./conditions";
+import type { RoundResult } from "./clash.port";
+import type { Element } from "./wuxing";
+
+export type MatchPhase =
+  | "idle"
+  | "entry" // EntryScreen (FR-1)
+  | "quiz" // ElementQuiz (FR-2 · first-time only)
+  | "select" // CollectionGrid
+  | "arrange" // BattleHand / BattleField (FR-3/4)
+  | "committed" // both lineups locked
+  | "clashing" // animated clash sequence
+  | "disintegrating" // 敗 stamp + card dissolve
+  | "between-rounds" // rearrange survivors
+  | "result"; // ResultScreen (FR-11)
+
+export interface MatchSnapshot {
+  readonly phase: MatchPhase;
+  readonly seed: string;
+  readonly weather: Element;
+  readonly opponentElement: Element;
+  readonly condition: BattleCondition;
+  /** From ElementQuiz; null until completed. */
+  readonly playerElement: Element | null;
+  readonly hasSeenTutorial: boolean;
+
+  readonly collection: readonly Card[];
+  readonly selectedIndices: readonly number[];
+  readonly p1Lineup: readonly Card[];
+  readonly p2Lineup: readonly Card[];
+  readonly currentRound: number;
+  readonly rounds: readonly RoundResult[];
+  readonly winner: "p1" | "p2" | "draw" | null;
+
+  /** Active combos on current p1 lineup. */
+  readonly p1Combos: readonly Combo[];
+  readonly p2Combos: readonly Combo[];
+
+  /** Chain bonus carried across rounds (Garden grace). */
+  readonly chainBonusAtRoundStart: number;
+}
+
+export type MatchEvent =
+  | { readonly _tag: "phase-entered"; readonly phase: MatchPhase; readonly at: number }
+  | { readonly _tag: "player-element-chosen"; readonly element: Element }
+  | { readonly _tag: "tutorial-completed" }
+  | { readonly _tag: "lineups-locked" }
+  | { readonly _tag: "clash-resolved"; readonly result: RoundResult }
+  | {
+      readonly _tag: "round-ended";
+      readonly round: number;
+      readonly eliminated: readonly string[];
+    }
+  | { readonly _tag: "match-completed"; readonly winner: "p1" | "p2" | "draw" };
+
+export type MatchCommand =
+  | { readonly _tag: "begin-match"; readonly seed?: string }
+  | { readonly _tag: "choose-element"; readonly element: Element }
+  | { readonly _tag: "complete-tutorial" }
+  | { readonly _tag: "lock-in" }
+  | { readonly _tag: "advance-clash" }
+  | { readonly _tag: "advance-round" }
+  | { readonly _tag: "reset-match"; readonly seed?: string };
+
+export type MatchError =
+  | {
+      readonly _tag: "wrong-phase";
+      readonly current: MatchPhase;
+      readonly expected: readonly MatchPhase[];
+    }
+  | { readonly _tag: "match-not-ready"; readonly reason: string };
+
+export class Match extends Context.Tag("purupuru-ttrpg/Match")<
+  Match,
+  {
+    readonly current: Effect.Effect<MatchSnapshot>;
+    readonly events: Stream.Stream<MatchEvent>;
+    readonly invoke: (cmd: MatchCommand) => Effect.Effect<void, MatchError>;
+  }
+>() {}
+
+/**
+ * SDD §3.3.1 Phase × Command transition matrix.
+ * Returns the list of valid commands for a phase. Used by Match.invoke to
+ * reject wrong-phase commands with a typed error.
+ */
+export function validCommandsFor(phase: MatchPhase): readonly MatchCommand["_tag"][] {
+  switch (phase) {
+    case "idle":
+      return ["begin-match", "reset-match"];
+    case "entry":
+      return ["choose-element", "reset-match"];
+    case "quiz":
+      return ["choose-element", "reset-match"];
+    case "select":
+      return ["complete-tutorial", "lock-in", "reset-match"];
+    case "arrange":
+      return ["lock-in", "reset-match"];
+    case "committed":
+      return ["advance-clash", "reset-match"];
+    case "clashing":
+      return ["advance-clash", "reset-match"];
+    case "disintegrating":
+      return ["advance-round", "reset-match"];
+    case "between-rounds":
+      return ["lock-in", "reset-match"];
+    case "result":
+      return ["begin-match", "reset-match"];
+  }
+}
