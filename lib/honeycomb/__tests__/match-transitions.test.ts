@@ -103,7 +103,11 @@ describe("Match.invoke phase enforcement", () => {
     expect(Exit.isFailure(exit)).toBe(true);
   });
 
-  it("entry → choose-element transitions to select", async () => {
+  it("entry → choose-element transitions to arrange (substrate auto-deals)", async () => {
+    // Behavior change 2026-05-12: choose-element now goes straight to
+    // arrange because we auto-deal the lineup at element-pick time,
+    // mirroring world-purupuru's createBattleState.start(). select is
+    // reachable only when a UI explicitly stays there (e.g. for a tutorial).
     const snap = await run(
       Effect.gen(function* () {
         const m = yield* Match;
@@ -112,7 +116,7 @@ describe("Match.invoke phase enforcement", () => {
         return yield* m.current;
       }),
     );
-    expect(snap.phase).toBe("select");
+    expect(snap.phase).toBe("arrange");
     expect(snap.playerElement).toBe("fire");
   });
 
@@ -127,17 +131,21 @@ describe("Match.invoke phase enforcement", () => {
     expect(snap.seed).toBe("test-reset");
   });
 
-  it("complete-tutorial during select sets hasSeenTutorial", async () => {
-    const snap = await run(
-      Effect.gen(function* () {
-        const m = yield* Match;
-        yield* m.invoke({ _tag: "begin-match" });
-        yield* m.invoke({ _tag: "choose-element", element: "wood" });
-        yield* m.invoke({ _tag: "complete-tutorial" });
-        return yield* m.current;
-      }),
+  it("complete-tutorial is rejected from arrange (only valid in select)", async () => {
+    // The default flow goes idle → entry → arrange. complete-tutorial is
+    // a select-only command — UIs that want it must keep the player in
+    // the select phase. This test guards the phase-gate.
+    const exit = await Effect.runPromiseExit(
+      Effect.provide(
+        Effect.gen(function* () {
+          const m = yield* Match;
+          yield* m.invoke({ _tag: "begin-match" });
+          yield* m.invoke({ _tag: "choose-element", element: "wood" });
+          yield* m.invoke({ _tag: "complete-tutorial" });
+        }),
+        Layer.provide(MatchLive, ClashLive),
+      ),
     );
-    expect(snap.hasSeenTutorial).toBe(true);
-    expect(snap.phase).toBe("select");
+    expect(Exit.isFailure(exit)).toBe(true);
   });
 });

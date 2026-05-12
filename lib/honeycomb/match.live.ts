@@ -10,9 +10,8 @@
 
 import { Duration, Effect, Fiber, Layer, PubSub, Ref, Stream } from "effect";
 import { Clash } from "./clash.port";
-import { type Card, CARD_DEFINITIONS, createCard } from "./cards";
+import type { Card } from "./cards";
 import { detectCombos, getComboSummary } from "./combos";
-import { CONDITIONS, type BattleCondition } from "./conditions";
 import {
   Match,
   type MatchCommand,
@@ -22,8 +21,8 @@ import {
   type MatchSnapshot,
   validCommandsFor,
 } from "./match.port";
-import { rngFromSeed } from "./seed";
-import { ELEMENT_ORDER, SHENG, KE, type Element, getDailyElement } from "./wuxing";
+import { initialSnapshot, reduce, stubOpponentLineup } from "./match.reducer";
+import { SHENG, KE } from "./wuxing";
 import { whisper as pickWhisper } from "./whispers";
 
 /** Staggered-reveal timing — mirrors world-purupuru advanceClash() at round 1.
@@ -38,60 +37,8 @@ const CLASH_TIMING = {
   weatherPauseMs: 200,
 } as const;
 
-function initialSnapshot(seed: string): MatchSnapshot {
-  const rng = rngFromSeed(seed);
-  const weather = getDailyElement();
-  const opponentElement: Element = rng.pick(ELEMENT_ORDER);
-  const condition: BattleCondition = CONDITIONS[opponentElement];
-  const collection: Card[] = Array.from({ length: 12 }, (_, i) =>
-    createCard(rng.pick(CARD_DEFINITIONS), new Date(2026, 4, 12 + i)),
-  );
-  return {
-    phase: "idle",
-    seed,
-    weather,
-    opponentElement,
-    condition,
-    playerElement: null,
-    hasSeenTutorial: false,
-    collection,
-    selectedIndices: [],
-    p1Lineup: [],
-    p2Lineup: [],
-    currentRound: 0,
-    rounds: [],
-    winner: null,
-    p1Combos: [],
-    p2Combos: [],
-    chainBonusAtRoundStart: 0,
-    clashSequence: [],
-    visibleClashIdx: -1,
-    activeClashPhase: null,
-    stamps: [],
-    dyingP1: [],
-    dyingP2: [],
-    shieldedP1: [],
-    shieldedP2: [],
-    selectedIndex: null,
-    lastWhisper: null,
-    playerClashWins: 0,
-    opponentClashWins: 0,
-    lastPlayed: null,
-    lastGenerated: null,
-    lastOvercome: null,
-    animState: "idle",
-  };
-}
-
-/** Sample 5 cards from collection deterministically for stub p2 opponent.
- * Replaced by real Opponent service in S1b.
- */
-function stubOpponentLineup(snap: MatchSnapshot): Card[] {
-  const rng = rngFromSeed(`${snap.seed}|opponent`);
-  return Array.from({ length: 5 }, () =>
-    createCard(rng.pick(CARD_DEFINITIONS), new Date(2026, 4, 13)),
-  );
-}
+// initialSnapshot + stubOpponentLineup moved to ./match.reducer (pure module).
+// Re-imported above so the existing in-file references continue to work.
 
 /**
  * Compute who dies this round, applying Caretaker A Shield. Mirrors
@@ -377,76 +324,32 @@ export const MatchLive: Layer.Layer<Match, never, Clash> = Layer.scoped(
         const snap = yield* Ref.get(stateRef);
         yield* ensurePhase(snap, cmd);
 
+        // Deterministic commands delegate to the pure reducer. This is the
+        // ONLY allowed callsite for the synchronous transitions — it makes
+        // event publication explicit (no more "forgot to call update()"
+        // bug class). See lib/honeycomb/match.reducer.ts.
+        if (
+          cmd._tag === "begin-match" ||
+          cmd._tag === "choose-element" ||
+          cmd._tag === "complete-tutorial" ||
+          cmd._tag === "tap-position" ||
+          cmd._tag === "swap-positions" ||
+          cmd._tag === "reset-match"
+        ) {
+          // reset-match additionally interrupts any in-flight reveal fiber.
+          if (cmd._tag === "reset-match") {
+            yield* interruptReveal;
+          }
+          const result = reduce(snap, cmd);
+          if ("_tag" in result) {
+            return yield* Effect.fail(result satisfies MatchError);
+          }
+          yield* Ref.set(stateRef, result.next);
+          for (const e of result.events) yield* publish(e);
+          return;
+        }
+
         switch (cmd._tag) {
-          case "begin-match": {
-            const next = initialSnapshot(cmd.seed ?? snap.seed);
-            const ready: MatchSnapshot = { ...next, phase: "entry" };
-            yield* Ref.set(stateRef, ready);
-            yield* publish({ _tag: "phase-entered", phase: "entry", at: Date.now() });
-            return;
-          }
-          case "choose-element": {
-            // Auto-deal player lineup AND opponent lineup so both sides are
-            // populated from the arrange phase onward. Opponent stays face-
-            // down until lock-in. Mirrors world-purupuru createBattleState.start():
-            // playerLineup + opponentLineup are both populated synchronously.
-            yield* Ref.update(stateRef, (s) => {
-              const dealtIndices = Array.from(
-                { length: Math.min(5, s.collection.length) },
-                (_, i) => i,
-              );
-              const dealtLineup = dealtIndices.map((i) => s.collection[i]!);
-              const dealtCombos = detectCombos(dealtLineup, { weather: s.weather });
-              const p2Lineup = stubOpponentLineup(s);
-              const p2Combos = detectCombos(p2Lineup, { weather: s.weather });
-              return {
-                ...s,
-                playerElement: cmd.element,
-                selectedIndices: dealtIndices,
-                p1Lineup: dealtLineup,
-                p1Combos: dealtCombos,
-                p2Lineup,
-                p2Combos,
-              };
-            });
-            yield* publish({ _tag: "player-element-chosen", element: cmd.element });
-            yield* transition("arrange");
-            return;
-          }
-          case "complete-tutorial": {
-            yield* Ref.update(stateRef, (s) => ({ ...s, hasSeenTutorial: true }));
-            yield* publish({ _tag: "tutorial-completed" });
-            return;
-          }
-          case "tap-position": {
-            const i = cmd.index;
-            yield* update((s) => {
-              if (i < 0 || i >= s.p1Lineup.length) return s;
-              if (s.selectedIndex === null) return { ...s, selectedIndex: i };
-              if (s.selectedIndex === i) return { ...s, selectedIndex: null };
-              const next = [...s.p1Lineup];
-              const tmp = next[s.selectedIndex]!;
-              next[s.selectedIndex] = next[i]!;
-              next[i] = tmp;
-              const nextCombos = detectCombos(next, { weather: s.weather });
-              return { ...s, p1Lineup: next, p1Combos: nextCombos, selectedIndex: null };
-            });
-            return;
-          }
-          case "swap-positions": {
-            const { a, b } = cmd;
-            yield* update((s) => {
-              if (a === b) return s;
-              if (a < 0 || b < 0 || a >= s.p1Lineup.length || b >= s.p1Lineup.length) return s;
-              const next = [...s.p1Lineup];
-              const tmp = next[a]!;
-              next[a] = next[b]!;
-              next[b] = tmp;
-              const nextCombos = detectCombos(next, { weather: s.weather });
-              return { ...s, p1Lineup: next, p1Combos: nextCombos, selectedIndex: null };
-            });
-            return;
-          }
           case "lock-in": {
             // Build lineups
             const p1Lineup =
@@ -487,13 +390,6 @@ export const MatchLive: Layer.Layer<Match, never, Clash> = Layer.scoped(
             // The staggered-reveal fiber drives both transitions automatically
             // after `lock-in`. These commands remain valid no-ops so UIs that
             // call them defensively don't blow up. (See runRound below.)
-            return;
-          }
-          case "reset-match": {
-            yield* interruptReveal;
-            const next = initialSnapshot(cmd.seed ?? `match-${Date.now()}`);
-            yield* Ref.set(stateRef, next);
-            yield* publish({ _tag: "phase-entered", phase: "idle", at: Date.now() });
             return;
           }
         }

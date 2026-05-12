@@ -1,0 +1,255 @@
+/**
+ * Match reducer — pure (snapshot, command) → { next, events }.
+ *
+ * Handles the deterministic commands of the match state machine:
+ *   begin-match · choose-element · complete-tutorial · tap-position ·
+ *   swap-positions · reset-match
+ *
+ * The async fiber-driven commands (lock-in / advance-clash / advance-round)
+ * stay in match.live.ts because they involve scheduled state transitions
+ * (the staggered clash reveal).
+ *
+ * Why a pure reducer:
+ *   1. Testable without Effect, React, or DOM (vitest, <500ms).
+ *   2. All "did this mutation emit a tick?" bugs become impossible —
+ *      events are returned explicitly alongside the next snapshot.
+ *   3. Future cycle can extract the whole effect tree the same way.
+ */
+
+import { type Card, CARD_DEFINITIONS, createCard } from "./cards";
+import { detectCombos } from "./combos";
+import { CONDITIONS, type BattleCondition } from "./conditions";
+import type {
+  MatchCommand,
+  MatchEvent,
+  MatchPhase,
+  MatchSnapshot,
+} from "./match.port";
+import { validCommandsFor } from "./match.port";
+import { rngFromSeed } from "./seed";
+import { ELEMENT_ORDER, type Element, getDailyElement } from "./wuxing";
+
+export interface ReduceResult {
+  readonly next: MatchSnapshot;
+  readonly events: readonly MatchEvent[];
+}
+
+export interface ReduceError {
+  readonly _tag: "wrong-phase";
+  readonly current: MatchPhase;
+  readonly expected: readonly MatchPhase[];
+}
+
+/**
+ * Pure transition function. Returns either a new snapshot + emitted events,
+ * or an error indicating the command isn't valid in the current phase.
+ *
+ * Commands not handled here (lock-in, advance-clash, advance-round) return
+ * the snapshot unchanged with no events — match.live.ts intercepts them
+ * before reaching the reducer.
+ */
+export function reduce(
+  snap: MatchSnapshot,
+  cmd: MatchCommand,
+): ReduceResult | ReduceError {
+  // Phase validity check
+  const valid = validCommandsFor(snap.phase);
+  if (!valid.includes(cmd._tag)) {
+    const allPhases: MatchPhase[] = [
+      "idle",
+      "entry",
+      "quiz",
+      "select",
+      "arrange",
+      "committed",
+      "clashing",
+      "disintegrating",
+      "between-rounds",
+      "result",
+    ];
+    return {
+      _tag: "wrong-phase",
+      current: snap.phase,
+      expected: allPhases.filter((p) => validCommandsFor(p).includes(cmd._tag)),
+    };
+  }
+
+  switch (cmd._tag) {
+    case "begin-match": {
+      const fresh = initialSnapshot(cmd.seed ?? snap.seed);
+      const next: MatchSnapshot = { ...fresh, phase: "entry" };
+      return {
+        next,
+        events: [{ _tag: "phase-entered", phase: "entry", at: Date.now() }],
+      };
+    }
+
+    case "choose-element": {
+      const dealtIndices = Array.from(
+        { length: Math.min(5, snap.collection.length) },
+        (_, i) => i,
+      );
+      const dealtLineup = dealtIndices.map((i) => snap.collection[i]!);
+      const dealtCombos = detectCombos(dealtLineup, { weather: snap.weather });
+      const p2Lineup = stubOpponentLineup(snap);
+      const p2Combos = detectCombos(p2Lineup, { weather: snap.weather });
+      const next: MatchSnapshot = {
+        ...snap,
+        playerElement: cmd.element,
+        selectedIndices: dealtIndices,
+        p1Lineup: dealtLineup,
+        p1Combos: dealtCombos,
+        p2Lineup,
+        p2Combos,
+        phase: "arrange",
+      };
+      return {
+        next,
+        events: [
+          { _tag: "player-element-chosen", element: cmd.element },
+          { _tag: "phase-entered", phase: "arrange", at: Date.now() },
+          { _tag: "state-changed" },
+        ],
+      };
+    }
+
+    case "complete-tutorial": {
+      return {
+        next: { ...snap, hasSeenTutorial: true },
+        events: [{ _tag: "tutorial-completed" }, { _tag: "state-changed" }],
+      };
+    }
+
+    case "tap-position": {
+      const i = cmd.index;
+      // Bounds guard
+      if (i < 0 || i >= snap.p1Lineup.length) {
+        return { next: snap, events: [] };
+      }
+      // Empty selection → select i
+      if (snap.selectedIndex === null) {
+        return {
+          next: { ...snap, selectedIndex: i },
+          events: [{ _tag: "state-changed" }],
+        };
+      }
+      // Tap same index → deselect
+      if (snap.selectedIndex === i) {
+        return {
+          next: { ...snap, selectedIndex: null },
+          events: [{ _tag: "state-changed" }],
+        };
+      }
+      // Tap different index → swap + clear selection
+      const nextLineup = [...snap.p1Lineup];
+      const tmp = nextLineup[snap.selectedIndex]!;
+      nextLineup[snap.selectedIndex] = nextLineup[i]!;
+      nextLineup[i] = tmp;
+      const nextCombos = detectCombos(nextLineup, { weather: snap.weather });
+      return {
+        next: {
+          ...snap,
+          p1Lineup: nextLineup,
+          p1Combos: nextCombos,
+          selectedIndex: null,
+        },
+        events: [{ _tag: "state-changed" }],
+      };
+    }
+
+    case "swap-positions": {
+      const { a, b } = cmd;
+      if (a === b) return { next: snap, events: [] };
+      if (a < 0 || b < 0 || a >= snap.p1Lineup.length || b >= snap.p1Lineup.length) {
+        return { next: snap, events: [] };
+      }
+      const nextLineup = [...snap.p1Lineup];
+      const tmp = nextLineup[a]!;
+      nextLineup[a] = nextLineup[b]!;
+      nextLineup[b] = tmp;
+      const nextCombos = detectCombos(nextLineup, { weather: snap.weather });
+      return {
+        next: {
+          ...snap,
+          p1Lineup: nextLineup,
+          p1Combos: nextCombos,
+          selectedIndex: null,
+        },
+        events: [{ _tag: "state-changed" }],
+      };
+    }
+
+    case "reset-match": {
+      const fresh = initialSnapshot(cmd.seed ?? `match-${Date.now()}`);
+      return {
+        next: fresh,
+        events: [{ _tag: "phase-entered", phase: "idle", at: Date.now() }],
+      };
+    }
+
+    // Fiber-driven commands fall through. match.live.ts handles these BEFORE
+    // calling reduce(); we never see them here in practice, but the case
+    // labels keep the switch exhaustive for the type checker.
+    case "lock-in":
+    case "advance-clash":
+    case "advance-round":
+      return { next: snap, events: [] };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Shared helpers — these moved out of match.live.ts so the reducer
+// stays self-contained. match.live.ts still uses them via re-export.
+// ─────────────────────────────────────────────────────────────────
+
+export function initialSnapshot(seed: string): MatchSnapshot {
+  const rng = rngFromSeed(seed);
+  const weather = getDailyElement();
+  const opponentElement: Element = rng.pick(ELEMENT_ORDER);
+  const condition: BattleCondition = CONDITIONS[opponentElement];
+  const collection: Card[] = Array.from({ length: 12 }, (_, i) =>
+    createCard(rng.pick(CARD_DEFINITIONS), new Date(2026, 4, 12 + i)),
+  );
+  return {
+    phase: "idle",
+    seed,
+    weather,
+    opponentElement,
+    condition,
+    playerElement: null,
+    hasSeenTutorial: false,
+    collection,
+    selectedIndices: [],
+    p1Lineup: [],
+    p2Lineup: [],
+    currentRound: 0,
+    rounds: [],
+    winner: null,
+    p1Combos: [],
+    p2Combos: [],
+    chainBonusAtRoundStart: 0,
+    clashSequence: [],
+    visibleClashIdx: -1,
+    activeClashPhase: null,
+    stamps: [],
+    dyingP1: [],
+    dyingP2: [],
+    shieldedP1: [],
+    shieldedP2: [],
+    selectedIndex: null,
+    lastWhisper: null,
+    playerClashWins: 0,
+    opponentClashWins: 0,
+    lastPlayed: null,
+    lastGenerated: null,
+    lastOvercome: null,
+    animState: "idle",
+  };
+}
+
+export function stubOpponentLineup(snap: MatchSnapshot): Card[] {
+  const rng = rngFromSeed(`${snap.seed}|opponent`);
+  return Array.from({ length: 5 }, () =>
+    createCard(rng.pick(CARD_DEFINITIONS), new Date(2026, 4, 13)),
+  );
+}
