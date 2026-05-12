@@ -4,6 +4,11 @@
 // All events share: eventId (canonical hash · see event-id.ts) + emittedAt.
 // Mint and ElementShift include wallet · WeatherEvent and QuizCompletedEvent
 // are wallet-agnostic (per walletAwareGet:false fix · SDD §3.2).
+//
+// output_type annotations (added 2026-05-12 · S1-T4 substrate-agentic cycle):
+// Each variant carries an `output_type` literal matching the 5-stream taxonomy
+// from construct-rooms-substrate (Signal/Verdict/Artifact/Intent/Operator-Model).
+// CI gate `scripts/check-envelope-coverage.sh` enforces 100% coverage.
 
 import { Schema as S } from "effect"
 
@@ -27,6 +32,7 @@ export type ElementAffinity = S.Schema.Type<typeof ElementAffinity>
 
 export const MintEvent = S.Struct({
   _tag: S.Literal("MintEvent"),
+  output_type: S.Literal("Artifact"),
   eventId: S.String,
   emittedAt: S.DateFromSelf,
   ownerWallet: SolanaPubkey,
@@ -38,6 +44,7 @@ export type MintEvent = S.Schema.Type<typeof MintEvent>
 
 export const WeatherEvent = S.Struct({
   _tag: S.Literal("WeatherEvent"),
+  output_type: S.Literal("Signal"),
   eventId: S.String,
   emittedAt: S.DateFromSelf,
   day: S.String,
@@ -49,6 +56,7 @@ export type WeatherEvent = S.Schema.Type<typeof WeatherEvent>
 
 export const ElementShiftEvent = S.Struct({
   _tag: S.Literal("ElementShiftEvent"),
+  output_type: S.Literal("Verdict"),
   eventId: S.String,
   emittedAt: S.DateFromSelf,
   wallet: SolanaPubkey,
@@ -60,6 +68,7 @@ export type ElementShiftEvent = S.Schema.Type<typeof ElementShiftEvent>
 
 export const QuizCompletedEvent = S.Struct({
   _tag: S.Literal("QuizCompletedEvent"),
+  output_type: S.Literal("Operator-Model"),
   eventId: S.String,
   emittedAt: S.DateFromSelf,
   archetype: Element,

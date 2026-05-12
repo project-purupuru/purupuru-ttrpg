@@ -9,6 +9,7 @@ import type { MintEvent } from "../src/world-event"
 
 const baseMintFields: Omit<MintEvent, "eventId"> = {
   _tag: "MintEvent",
+  output_type: "Artifact",
   emittedAt: new Date("2026-05-08T10:00:00Z"),
   ownerWallet:
     "8ZUczUAUSZxQ7K3sx9uS4CfNnbxYJyc1mEZxxxxxxxxx" as MintEvent["ownerWallet"],
@@ -67,6 +68,7 @@ describe("eventIdOf · canonical hash derivation", () => {
       ownerWallet: baseMintFields.ownerWallet,
       emittedAt: baseMintFields.emittedAt,
       _tag: baseMintFields._tag,
+      output_type: baseMintFields.output_type,
     }
     expect(eventIdOf(reordered, "score")).toBe(eventIdOf(baseMintFields, "score"))
   })

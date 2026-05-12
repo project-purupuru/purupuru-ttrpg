@@ -1,1068 +1,432 @@
 ---
-status: post-flatline-r3-applied
+status: post-flatline-r1-patched
 type: prd
-cycle: hackathon-frontier-2026-05
-mode: arch + ship
-created: 2026-05-07
-flatline_reviewed: 2026-05-07 (rounds 1 · 2 · 3 · all integrated)
-flatline_findings_r1: grimoires/loa/a2a/flatline/purupuru-ttrpg-genesis-prd-review-2026-05-07.json
-flatline_findings_r2: grimoires/loa/a2a/flatline/purupuru-ttrpg-prd-r4-review-2026-05-07.json
-deadline: 2026-05-11
-supersedes: purupuru-ttrpg-blink-frontier-prd-2026-05-06.md
-authority: zksoju (operator) · pending eileen ratification · gumi voice/quiz authority · zerker dashboard+indexer authority
-target: project-purupuru/purupuru-ttrpg (genesis · loa-mounted v1.130.0 · 2026-05-07)
-related_repos: project-purupuru/game · project-purupuru/score · project-purupuru/sonar · project-purupuru/world · freeside-mediums
-voice: keeper + vocabulary-bank + herald (per operator decree)
-demo_frame: bazi-style archetype quiz (Blink-native GET chain) → archetype card → Solana Genesis Stone mint (devnet · Metaplex Token Metadata · visible NFT) · weather bot ambient continuity · simulated activity feed
-revisions:
-  - r1 (2026-05-06 strawman): superseded · weather + 1 vote · too narrow
-  - r2 (2026-05-07 genesis): superseded · awareness layer · no concrete demo
-  - r3 (2026-05-07 post-flatline-r1): superseded · 7 high-consensus + 9 blockers integrated
-  - r4 (2026-05-07 post-demo-frame): superseded · multi-step quiz + Solana twin mint
-  - r5 (2026-05-07 post-eileen-alignment): separation-as-moat doctrine · three-view arch · zerker dashboard parallel · GET-chain quiz · Metaplex visible mint
-  - r6 (2026-05-07 post-flatline-r3 · THIS): proper HMAC construction · Solana ed25519-via-instructions-sysvar pattern · drop wallet-age check · day-1 spine model · Metaplex Phantom day-1 smoke test required · tiered sponsored-payer alerts
+cycle: substrate-agentic-translation-adoption-2026-05-12
+mode: arch + adopt
+input_brief: grimoires/loa/specs/simstim-brief-substrate-agentic-2026-05-12.md
+review: grimoires/loa/a2a/flatline/prd-review-2026-05-12.md
+created: 2026-05-12
+revision: post-flatline-r1 · 4 BLOCKERS resolved by operator HITL · 12 HIGH_CONSENSUS auto-integrated · grounding errors corrected
+operator: zksoju
 ---
 
-# PRD · purupuru awareness layer · solana frontier hackathon · v0 · r5
+# PRD · Substrate-Agentic Translation Layer · Compass Adoption Cycle
 
-> **Genesis PRD · post-eileen-alignment revision 2026-05-07.**
-> Eileen's framework forced honest re-audit against Frontier reality (NO theme · founder/business-viability hackathon · MVP + user-acquisition + monetization + team credentials are required artifacts). The "infrastructure-first" deck framing aligns with Frontier IF user-acquisition and monetization are crisp. The architectural separation (substrate truth vs presentation voice) is THE moat — agents present, never mutate state, hallucinations become cosmetic not financial.
->
-> **Scope tightens from r4**: Score dashboard moves to **zerker's parallel lane** (we provide events; he ships dashboard via Score's API/CLI/MCP). Quiz chain is **GET-only** between Q1-Q5 (only final mint is POST · 1 signing prompt instead of 6). Mint is **Metaplex Token Metadata** (visible NFT in Phantom collectibles · stone is the on-chain artifact users SEE). Quiz designed by **gumi** (5 resonant questions · archetype that feels familiar · not birthday/gender). 4-day clock holds.
+## 0 · TL;DR
 
----
+Conform compass to canonical loa substrates — `loa-hounfour` typed schemas (hand-ported · v7.0.0 SHA-pinned · Effect Schema reimplementation) · `construct-rooms-substrate` handoff envelope (vendored as JSON for production) · `loa-straylight` continuity-under-authorization doctrine (compile-time + doc-only · zero runtime imports until Phase 23b lands) — so that compass's **world experience** (observatory · ceremony · awareness · weather · activity · sim) gains a Next.js substrate + agent-navigable system layers that the operator can iterate on quickly. The **purupuru card game already exists** at `purupuru-game` (SvelteKit prototype · 18 cards · Wuxing battle mechanics) — compass does NOT host the card game; compass hosts the world that the card game eventually composes into.
 
-## 0 · tl;dr
+**Core reframe** (PRAISE-001 · load-bearing through SDD): the original 5-doc Gemini synthesis (`grimoires/loa/context/07..11-*.md`) proposed inventing a translation layer. KEEPER pre-flight + grounding in upstream repos established that the translation layer **already exists**. This cycle is INTEGRATION, not invention.
 
-```
-🎯 product             communities can't see what's actually happening on-chain
-                       we make it visible · live · native to the feeds they already use
+## 0.5 · Pre-decided architecture choices (NEW · operator-ratified · supersedes §11 deferrals)
 
-🪨 mechanism (the moat) substrate (sonar/score) holds truth · agents (gumi voice) present with personality
-                        SEPARATION = no hallucination · agents talk but don't mutate state ON PURPOSE
-                        most AI agent products fail because the same model that decides
-                        what to SAY also decides what to DO · we split them
+These four choices are PRD-level commitments. SDD elaborates HOW; SDD does not re-open WHAT.
 
-🔮 v0 demo proof       tap tweet → take 5-Q archetype quiz (GET chain · no signing) →
-                       reveal archetype → mint Genesis Stone (visible NFT · Metaplex) →
-                       see the world keep speaking (weather bot + simulated activity feed)
-
-🪺 monetization        sponsored awareness slots · brands/communities pay to surface
-                       their on-chain activity in feeds where audiences already scroll
-
-👥 user acquisition    meet players in social feeds · twitter native · then discord/telegram
-                       same substrate fans out · BLINK_DESCRIPTOR contributed upstream
-
-🌟 north star          "in a social experience, you should feel others were there with you"
-                        v0 expression: simulated activity feed + aggregate counters +
-                        2-wallet live demo (operator + zerker tap visibly during recording)
-
-⛓ solana lock-in      Anchor program · DEVNET ONLY v0
-                       claim_genesis_stone · ed25519 server-signed · Metaplex Token Metadata
-                       sponsored-payer (gasless) · upgrade-authority frozen post-deploy
-
-🚧 zksoju learning     Solana smart contracts (new for operator) · sprint-1 setup risk
-🚧 zerker learning     Solana indexer (Score → on-chain mint events) · post-anchor-deploy
-🌸 gumi parallel       quiz design · archetype copy · voice register · NOT blocking
-                       working in parallel · we scaffold placeholders · she swaps in
-
-🛡 mvd floor LOCKED    ambitious + 4 binding triggers (per §7.5)
-```
-
-**🟢 elevator pitch**: *"Communities can't see what's actually happening on-chain. We make it visible — in the social feeds they already use."*
-
-**🟣 problem-led narrative (deck open)**: *"On-chain games go silent the moment you close the app. We make them speak — in tweets, casts, discord, wherever your community already is."*
-
----
-
-## 1 · genesis context & supersession
-
-### what changed across revisions (5 total)
-
-| frame | r1 | r2 | r3 | r4 | r5 (THIS) |
-|---|---|---|---|---|---|
-| **scope** | weather+vote | awareness-layer | + flatline rigor | + demo flow | + eileen alignment |
-| **anchor program** | none | minimal witness | sponsored payer | + genesis mint | ed25519 sig · frozen authority |
-| **mint shape** | n/a | n/a | n/a | PDA only | **Metaplex Token Metadata · visible** |
-| **quiz chain** | n/a | n/a | n/a | POST chain (5 sigs) | **GET chain (1 sig at mint)** |
-| **score dashboard** | n/a | n/a | n/a | implicit | **zerker's parallel lane** |
-| **monetization** | none | none | none | none | **sponsored awareness slots** |
-| **deck framing** | n/a | infra-first | infra-first | infra-first | **separation-as-moat punchline** |
-| **shared rite** | n/a | implicit | implicit | implicit | **simulated feed + aggregate + 2-wallet demo** |
-
-### the eileen alignment summary (operator 2026-05-07 PM · third operator Q&A round)
-
-operator's distilled positions:
-- stone = POAP-like genesis · evolves into puruhani character (vision · roadmap)
-- v0 ships GENESIS only · evolution mechanic deferred
-- agents talk · don't mutate state · separation is the architectural feature, not bug
-- zerker owns Score dashboard + Solana indexer · we own substrate + emitter + anchor + quiz + mint + demo
-- gumi parallel · no blocking · 4 days achievable
-- universality emerges through Score dashboard's bespoke purupuru styling · expertise-replicated, not template-replicated
-- monetization via sponsored awareness slots · communities pay to surface their activity
-- "in a social experience, you should feel others were there with you" — north star insight
-
----
-
-## 2 · problem & vision (keeper eye · v5)
-
-### the problem (what users actually feel)
-
-> **the keeper observes**: a community member opens twitter on a wednesday morning. they follow `@puruhpuruweather` because they like the warm aesthetic of the daily weather post. they don't know about the 18-card battle system, the burn loop, the transcendence cards, the cosmic weather oracle. they see one post a day and that's all the world tells them.
->
-> meanwhile, on chain, *something is happening*: someone minted a pack 11 minutes ago, a wood-element puruhani's affinity surged 3% overnight, a fire battle resolved with `Setup Strike` triggering a chain break. **none of this is visible.**
->
-> the community manager opens GitHub or Dune to check what's happening. members don't follow her there. they make things up. conversations drift away from reality. **awareness is the first step of meaningful action, and there's no awareness layer.**
-
-### the vision (problem-led)
-
-*"On-chain games go silent the moment you close the app. We make them speak — in tweets, casts, discord, wherever your community already is."*
-
-build **the awareness layer** — a sealed-schema substrate that:
-
-- 🪺 emits canonical world-events (mint · weather shift · element surge · quiz completion)
-- 🪞 fans out to multiple presentation surfaces · same data, different shape per audience
-- 🌬 ships **Blinks first** with a **bazi-style archetype quiz → mint your stone** demo
-- 🪨 honors `[[puruhani-as-spine]]` — the stone is your POAP-like genesis · evolves into puruhani
-- 🪶 **separates substrate (truth) from presentation (voice) by design** — agents talk · never mutate state · hallucinations become cosmetic not financial
-- 🌟 makes you feel **others were here with you** — simulated activity feed · aggregate counters · live multi-wallet demo
-
-### why now (4-day frontier clock)
-
-- colosseum frontier deadline 2026-05-11 · NO theme · MVP + user-acquisition + monetization + team are required artifacts
-- `@0xhoneyjar/medium-registry@0.2.0` shipped cycle-R · `BLINK_DESCRIPTOR` is the cycle-X follow-up
-- web dig 2026-05-06: NO shipped TTRPG-weather-as-ambient-feed-surface example · genuine whitespace
-- existing components (genesis stone contract on Base · weather bot · score · sonar · bazi quiz UI in game's `/`) compose into a coherent demo with minimal net-new code · per operator: "Most components are already completed"
-
-### why us · founder credibility
-
-- existing live infrastructure across the org (sonar · score · weather bot · medium-registry)
-- doctrine library load-bearing (chathead-in-cache · metadata-as-integration-contract · environment-surfaces · chat-medium-presentation-boundary)
-- team executes (cycle-R shipped 2026-05-04 · constructs-network-migration shipped 2026-05-05 · score live · sonar live · medium-registry live)
-- gumi's existing pitch articulates the 5-year vision (soul-stage agents · daily friend duels · cosmic weather oracles) · v0 is a precursor that proves the awareness substrate
-
----
-
-## 3 · architecture (three views · visual first)
-
-### 3.1 · the three-view architecture (eileen alignment)
-
-```mermaid
-flowchart TB
-  classDef substrate fill:#1f2937,stroke:#fbbf24,color:#fbbf24
-  classDef operator fill:#1f2937,stroke:#a78bfa,color:#c4b5fd
-  classDef member fill:#1f2937,stroke:#34d399,color:#6ee7b7
-  classDef source fill:#1f2937,stroke:#f87171,color:#fca5a5
-
-  subgraph SUBSTRATE[L1+L2 · substrate · TRUTH layer · zerker + zksoju lanes]
-    direction LR
-    SC[score-puru API<br/>element affinity · 5 signals]:::source
-    SO[sonar · Hasura GraphQL<br/>raw on-chain events]:::source
-    BO[puruhpuruweather bot<br/>daily ambient broadcast]:::source
-    AP["Solana Anchor program<br/>devnet · genesis stone mints<br/>+ witness records"]:::source
-    PE["@purupuru/peripheral-events<br/>L2 sealed Effect Schema<br/>WorldEvent · BaziQuizState · canonical eventId hash"]:::substrate
-    SC --> PE
-    SO --> PE
-    BO --> PE
-    AP --> PE
-  end
-
-  subgraph OPERATOR[L4 · operator surface · zerker's lane · parallel]
-    direction TB
-    SD["Score Dashboard<br/>purupuru-styled<br/>live activity hub<br/>community-manager view"]:::operator
-  end
-
-  subgraph MEMBER[L4 · member surface · zksoju + gumi · v0 ship]
-    direction TB
-    BE["apps/blink-emitter<br/>GET chain quiz · result · mint<br/>community-member view"]:::member
-    SI["solana indexer (zerker)<br/>downstream of anchor deploy<br/>feeds Score"]:::source
-  end
-
-  PE --> SD
-  PE --> BE
-  AP -.indexed.-> SI
-  SI --> SC
-```
-
-**three views, one truth**:
-- **substrate**: sources of truth · zerker (sonar/score) + zksoju (anchor program) · never voiced directly
-- **operator surface**: Score dashboard · purupuru-styled · live activity for community managers · **zerker's lane**
-- **member surface**: Blinks (twitter) + future discord/telegram · ambient + interactive · **zksoju + gumi · v0 ship**
-
-universality emerges through bespoke styling: judges see the dashboard styled per-purupuru and infer "this is expertise replicated, not a template."
-
-### 3.2 · the separation-as-moat (the architectural punchline)
-
-```mermaid
-flowchart LR
-  classDef truth fill:#0f172a,stroke:#fbbf24,color:#fde68a
-  classDef voice fill:#1e1b4b,stroke:#a78bfa,color:#c4b5fd
-
-  subgraph TRUTH[SUBSTRATE · what is true]
-    direction TB
-    Score[Score · element affinity]:::truth
-    Sonar[Sonar · on-chain events]:::truth
-    Anchor[Anchor · mint records]:::truth
-    Weather[Weather oracle]:::truth
-  end
-
-  subgraph VOICE[PRESENTATION · how it lands]
-    direction TB
-    GumiVoice[gumi voice register<br/>cosmetic only · NEVER mutates state]:::voice
-    Templates[per-medium templates<br/>blink · discord · twitter card]:::voice
-    Aggregates[aggregate counters<br/>shared-rite signals]:::voice
-  end
-
-  TRUTH -->|read-only| VOICE
-  VOICE -.NEVER WRITES BACK.-> TRUTH
-```
-
-**the deck punchline**:
-
-> *"Most AI agent products fail because the same model that decides what to say also decides what to do. We split them. Substrate (what's true) is owned by data. Voice (how it lands) is owned by personality. Agents present · they never mutate state. Hallucinations become cosmetic, not financial."*
-
-### 3.3 · the demo state machine (GET chain · 1 signing prompt)
-
-```mermaid
-stateDiagram-v2
-  [*] --> WeatherBotPosts: daily · @puruhpuruweather
-  WeatherBotPosts --> BlinkInFeed: archetype-prompt embedded
-
-  BlinkInFeed --> UserScrollsBy: 90% · ambient
-  UserScrollsBy --> WorldFeelsAlive: success · no taps required
-  WorldFeelsAlive --> [*]
-
-  BlinkInFeed --> UserTapsBlink: 10% · curious
-  UserTapsBlink --> Q1: GET /api/actions/quiz/start
-
-  state QuizChain {
-    direction TB
-    Q1 --> Q2: tap answer · GET (no signing)
-    Q2 --> Q3: GET
-    Q3 --> Q4: GET
-    Q4 --> Q5: GET
-    Q5 --> Aggregate: server validates URL HMAC<br/>computes archetype
-  }
-
-  Aggregate --> ArchetypeRevealed: GET returns archetype card render<br/>+ aggregate ("23 others share today")<br/>+ "Claim your stone" button
-  ArchetypeRevealed --> ShareCard: optional · social-shareable
-  ArchetypeRevealed --> MintIntent: tap "Claim your stone"
-
-  MintIntent --> POSTMint: POST /api/actions/mint/genesis-stone (THE ONLY SIGNING)
-  POSTMint --> ServerSignsClaim: ed25519 over (domain, version, cluster, program_id, wallet, element, weather, quiz_state_hash, expires_at, nonce)
-  ServerSignsClaim --> AnchorTxBuilt: claim_genesis_stone instruction<br/>backend = fee_payer (sponsored)<br/>wallet = authority<br/>backend partial-signs FIRST
-  AnchorTxBuilt --> WalletSigns: phantom signs · submits
-  WalletSigns --> StoneOnchain: GenesisStone PDA + Metaplex metadata<br/>visible in Phantom collectibles
-  StoneOnchain --> [*]: shareable · gasless · 30-90s flow
-
-  WeatherBotPosts --> AmbientContinuity: weather keeps shifting
-  AmbientContinuity --> [*]: world doesn't pause
-```
-
-### 3.4 · hexagonal at the substrate boundary
-
-```mermaid
-flowchart LR
-  classDef domain fill:#0f172a,stroke:#fbbf24,color:#fde68a
-  classDef port fill:#1f2937,stroke:#60a5fa,color:#93c5fd
-  classDef adapter fill:#1f2937,stroke:#34d399,color:#6ee7b7
-
-  subgraph DOMAIN[L2 sealed domain · @purupuru/peripheral-events]
-    WE[WorldEvent · Schema.Union]:::domain
-    BQ[BaziQuizState · HMAC-validated URL encoding]:::domain
-    AC[mint claim auth · ed25519]:::domain
-    AG[aggregate computation · shared-rite signals]:::domain
-  end
-
-  subgraph PORTS[ports · interfaces only]
-    ESP[EventSourcePort]:::port
-    EVR[EventResolverPort]:::port
-    BRP[BaziResolverPort]:::port
-    MAP[MintAuthorizationPort]:::port
-    AGP[AggregatePort]:::port
-    MRP[MediumRenderPort]:::port
-  end
-
-  subgraph ADAPTERS[adapters · concrete]
-    SA[ScoreAdapter]:::adapter
-    SOA[SonarAdapter]:::adapter
-    BCA[BaziComputeAdapter · gumi rules]:::adapter
-    SOL[SolanaAnchorAdapter · sponsored-payer + ed25519 signer]:::adapter
-    AGA[AggregateAdapter · today's quiz counts · element distribution]:::adapter
-    BLA[BlinkRenderAdapter · GET chain · result · mint]:::adapter
-  end
-
-  ESP --- SA
-  ESP --- SOA
-  EVR --- ESP
-  BRP --- BCA
-  MAP --- SOL
-  AGP --- AGA
-  MRP --- BLA
-  WE --> ESP
-  BQ --> BRP
-  AC --> MAP
-  AG --> AGP
-```
-
----
-
-## 4 · functional requirements (with explicit acceptance criteria)
-
-### FR-1 · L2 substrate package · `@purupuru/peripheral-events`
-
-**THE SYSTEM SHALL** publish a package providing:
-
-- `WorldEvent` sealed Effect Schema discriminated union (v0 variants):
-  - `MintEvent` · Solana genesis stone claim
-  - `WeatherEvent` · daily oracle
-  - `ElementShiftEvent` · score-derived element-affinity delta
-  - `QuizCompletedEvent` · NEW · for aggregate signals
-- `BaziQuizState` sealed Effect Schema:
-  - URL-encoded state with **proper HMAC-SHA256 integrity check** (per flatline r3 · NOT raw sha256-with-prepended-secret · length-extension safe)
-  - `mac = HMAC-SHA256(secret, canonicalEncode({step, answers, account}))` using Node `crypto.createHmac('sha256', secret)` or Web Crypto `HMAC` algorithm
-  - canonicalEncode = length-prefixed CBOR or canonical-JSON · ambiguous concatenation forbidden
-  - server validates HMAC at every step transition · constant-time comparison (`timingSafeEqual`)
-  - server **recomputes element from HMAC-validated answers** at mint (NEVER trusts client-supplied element)
-  - golden test asserts length-extension forgery FAILS (canonical attack vector test)
-- canonical `eventId` derivation: `sha256(canonicalEncode(event) || schema_version || source_tag)`
-- ports: `EventSourcePort` · `EventResolverPort` · `BaziResolverPort` · `MintAuthorizationPort` · `AggregatePort` · `MediumRenderPort` · `NotifyPort`
-- typed accessors and effect-schema validation at every boundary
-- additive-only schema bumps
-
-**Acceptance Criteria**:
-- AC-1.1 through AC-1.6 (eventId stability · roundtrip · cross-source uniqueness · HMAC verification · element recomputation)
-- AC-1.7 NEW · invalid HMAC → step transition rejected with 400
-- AC-1.8 NEW · client-supplied element ignored at mint · server uses HMAC-validated answers only
-
-> Sources: vault doctrines · flatline r2 SKP-001/SKP-003 (HMAC) · IMP-003 (canonical eventId)
-
-### FR-2 · L3 medium-registry contribution · `BLINK_DESCRIPTOR`
-
-**THE SYSTEM SHALL** PR a new `BLINK_DESCRIPTOR` to `freeside-mediums/packages/protocol`:
-
-- 5th variant of `MediumCapability` discriminated union
-- captures Solana Action constraints:
-  - `iconMaxBytes`: 128 KiB · `titleMaxChars`: 80 · `descriptionMaxChars`: 280 · `buttonsMax`: 5
-  - `inputFields`: disallowed v0 (button-multichoice)
-  - `txShape`: `"anchor-witness" | "anchor-genesis-stone-claim"` (sponsored-payer · no payment instruction)
-  - `actionChaining`: **GET-only chain via `links.next`** v0 (POST chain v1+ when input fields enable richer state)
-  - `presentationBoundary`: `cmp-boundary-presentation`
-  - `walletAwareGet`: `false`
-  - `nftStandard`: `"metaplex-token-metadata"` (NEW · captures the visibility commitment)
-- `MEDIUM_REGISTRY_VERSION = "0.3.0"` per architect-lock A7
-
-**Acceptance Criteria**: AC-2.1 through AC-2.5 (CONST singleton · typed accessor · upstream PR · actionChaining documented · local-link fallback)
-
-### FR-3 · solana anchor program · TWO instructions · DEVNET LOCKED
-
-**Instruction A · `attest_witness(event_id, event_kind)`** — ambient presence trail · sponsored-payer · WitnessRecord PDA seeded `[b"witness", event_id, witness_wallet]` · idempotent.
-
-**Instruction B · `claim_genesis_stone(message: ClaimMessage)`** — server-signed genesis mint:
-
-- **CryptoLOCK ed25519 · Solana-correct pattern** (per flatline r3 SKP-002 fix · in-program signature verification is NOT supported · must use Ed25519 program instruction + instructions sysvar):
-  - transaction MUST include an `Ed25519Program` instruction BEFORE `claim_genesis_stone` containing: signer pubkey · message bytes · signature
-  - `claim_genesis_stone` reads the `instructions` sysvar at index `current_index - 1` and verifies:
-    - prior instruction is the Ed25519 program (`Ed25519SigVerify111111111111111111111111111`)
-    - signer pubkey matches the expected claim-signer (program-authority hardcoded)
-    - message bytes deserialize to a valid `ClaimMessage` matching the instruction args
-    - offsets match the Ed25519 instruction format (per Solana docs)
-  - backend uses dedicated Solana Ed25519 keypair (separate from sponsored-payer)
-  - **canonical byte serialization for `ClaimMessage`** (per flatline r3) · frozen via Anchor's IDL-derived layout · documented in code · golden test asserts byte-stable across versions
-- **structured signed payload** (per flatline r2 SKP-004):
-  ```rust
-  ClaimMessage {
-    domain: "purupuru.awareness.genesis-stone",
-    version: u8,         // schema version
-    cluster: u8,         // 0=devnet, 1=mainnet (rejects cross-cluster)
-    program_id: Pubkey,  // domain separation
-    wallet: Pubkey,
-    element: u8,         // 1=Wood, 2=Fire, 3=Earth, 4=Metal, 5=Water
-    weather: u8,         // cosmic weather imprint at mint time
-    quiz_state_hash: [u8; 32], // hash of HMAC-validated quiz state
-    issued_at: i64,
-    expires_at: i64,     // 5min after issued · prevents replay
-    nonce: [u8; 16],     // server-tracked · prevents replay
-  }
-  ```
-- `GenesisStone` PDA seeded `[b"stone", wallet]` · one per wallet · idempotent
-- **Metaplex Token Metadata** (per T1 lock):
-  - `mpl-token-metadata` instruction creates Metaplex PDA alongside GenesisStone PDA
-  - metadata `name`, `symbol`, `uri` (gumi art), `creators`, `collection`
-  - visible in Phantom collectibles tab · proves "on-chain artifact" claim
-- sponsored-payer (backend partial-signs FIRST as fee_payer · wallet signs SECOND as authority · per flatline r2 SKP-002)
-- **upgrade authority FROZEN post-deploy** (per flatline r2 SKP-005 · D-12 closed) · cannot patch v0 · must redeploy as new program ID if needed
-- emits `StoneClaimed` event for indexer consumption (zerker's lane)
-
-**Automated invariant tests**:
-- `test_no_lamport_transfers_from_authority` (no payment from witness wallet)
-- `test_no_token_state_mutation_outside_genesis_stone`
-- `test_double_claim_rejected`
-- `test_unsigned_claim_rejected`
-- `test_expired_signature_rejected` (NEW · per flatline r2 SKP-004)
-- `test_cross_cluster_rejected` (NEW · cluster byte mismatch)
-- `test_replay_with_used_nonce_rejected` (NEW)
-
-**Acceptance Criteria**: AC-3.1 through AC-3.10 (devnet success · invariant tests · PDA idempotency · server-side validation · Metaplex visibility · sponsored-payer end-to-end · upgrade frozen)
-
-### FR-4 · `apps/blink-emitter` · GET-chained quiz + final mint POST
-
-**Quiz chain endpoints (GET · no signing)**:
-
-- `GET /api/actions/quiz/start` → ActionGetResponse for Q1 with 4 answer buttons (each is a GET link with state in URL)
-- `GET /api/actions/quiz/step?step=N&answers=...&account=...&mac=...` → next Q's GET (server validates HMAC · returns next 4 buttons)
-- `GET /api/actions/quiz/result?...` → final ActionGetResponse with archetype card icon + aggregate ("23 others share this archetype today") + 1 button "Claim your stone" pointing at mint POST
-
-**Mint endpoint (POST · the only signing prompt)**:
-
-- `POST /api/actions/mint/genesis-stone` with `{ account, quiz_state_token }`
-  - quiz_state_token = short-lived JWT-shape (per flatline r2 SKP-005) issued at result reveal · expires 5min · binds wallet+element+weather+quiz_state_hash
-  - server validates token + recomputes element from HMAC-validated quiz state
-  - server signs `ClaimMessage` with ed25519 keypair (using `nacl.sign.detached` or `tweetnacl`)
-- **Solana transaction assembly (specified per flatline r3 SKP-006 fix)**:
-  - **transaction version**: legacy (v0 not strictly needed; legacy is broadly compatible with Phantom + Dialect)
-  - **fee_payer**: backend sponsored-payer pubkey
-  - **recent_blockhash**: fetched server-side via `getLatestBlockhash` (commitment: `confirmed`) at request time
-  - **instruction order**: `[Ed25519Program (signature verification), claim_genesis_stone (with Metaplex CPI inside)]`
-  - **required signers**: backend sponsored-payer (already added via partial-sign before return) + wallet (authority · phantom signs at submit-time)
-  - **serialization**: base64-encoded transaction in ActionPostResponse `transaction` field per Solana Actions spec
-  - **submission**: wallet submits (NOT backend) · backend already partially signed before return
-  - early compatibility spike (sprint-1 day-1) tests against Phantom + Dialect inspector with minimal Ed25519+claim_genesis_stone tx · validates this assembly works before building full flow
-
-**Sybil protection (per flatline r2+r3)**:
-- IP-based vercel rate limit: 50 quiz-starts / IP / hour · 5 mint-POSTs / IP / hour
-- **wallet balance check ONLY** (per flatline r3 SKP-001 fix · wallet-age check via `getSignaturesForAddress` is too slow for Action timeout — single `getBalance` RPC call only):
-  - require ≥0.01 SOL balance on Solana wallet to qualify for sponsored-payer mint
-  - dropped: 7-day age check (impractical RPC cost)
-- **tiered sponsored-payer alerts** (per flatline r3 SKP-005 · single threshold caused 0-warning outage risk):
-  - < 5 SOL: warn (vercel log + slack)
-  - < 2 SOL: page operator (urgent · alert webhook)
-  - < 1 SOL: halt mint endpoint (returns 503)
-  - day-of-demo: top up to >10 SOL the morning of recording · disable halt for recording window via `DISABLE_PAYER_HALT=true` env flag · re-enable post-recording
-  - pre-staged refill script keyed to backup keypair
-
-**Acceptance Criteria**: AC-4.1 through AC-4.10 (GET chain · HMAC validation · result token · partial-sign sequence · indexer confirmation · sybil rejection · sponsored-payer halt)
-
-### FR-5 · score integration · existing API (read-side)
-
-**THE SYSTEM SHALL** consume score's existing surfaces (read-only):
-- `score-puru` API · element affinity for archetype lore-coherence
-- Sonar/Hasura GraphQL · ERC-721 Transfer events for ambient WeatherEvent
-
-**Acceptance Criteria**: AC-5.1 through AC-5.3 (5min cron · subscription · daily oracle read).
-
-### FR-6 · cache invalidation · TTL fallback locked
-
-**ERC-4906 NOT IMPLEMENTED** in any puru contract (verified 2026-05-07). v0 uses TTL-based refresh exclusively · 60s for blink GET · 24h for icon · 60s for score-puru. Solana side has real-time PDA reads (no staleness).
-
-### FR-7 · per-medium voice authority (gumi)
-
-**gumi authors v0 voice corpus** (parallel work · not blocking):
-- 5 archetype quiz questions (resonant · familiar · NOT birthday/gender)
-- 4 answer copy strings per question (5 × 4 = 20)
-- 5 archetype reveals (one per element · ≤280 chars each)
-- 1 "Claim your stone" mint button copy
-- 1 daily-archetype-prompt copy for `@puruhpuruweather` (the Blink that wraps the quiz)
-- guidance for Score dashboard purupuru styling (zerker consumes)
-
-**voice register**: cosmic-weather observer voice · third-person · sora-tower lyric · gumi tone authority. zksoju scaffolds 25 acceptable placeholders ahead of time so demo records cleanly even if gumi's handoff slips · gumi swaps in real voice when ready.
-
-### FR-8 · cmp-boundary enforcement (load-bearing)
-
-substrate truth ≠ presentation. GET wallet-agnostic per Solana Actions spec. POST result-token includes wallet-aware narrative. enforced via FR-10 lint + golden tests.
-
-### FR-9 · observability (extended)
-
-structured logs · vercel dashboards · alerts on:
-- quiz GET-chain dropoff funnel (Q1 → Q5)
-- mint POST failure rate >10%
-- sponsored-payer balance < 1 SOL devnet
-- claim-signer keypair signing rate (anomaly detection)
-- HMAC validation failure rate (tampering signal)
-- StoneClaimed event indexer lag (zerker's surface · we monitor for our deploy health)
-
-### FR-10 · cmp-boundary lint + golden test suite
-
-automated tooling enforces FR-8. CI gate. blocks raw substrate-canonical tokens (event_id · puruhani_id · raw element codes) from leaking into render output.
-
-### FR-11 · demo simulator (operator cooking · sprint-4 work)
-
-100x-speed simulation for the 3min demo recording. design space:
-- 📦 fixture replay (pre-recorded events · deterministic) · 0.5d
-- 🎲 synthetic generator (high-cadence plausible events) · 1d
-- 🎬 post-recording acceleration (real cadence · video editing) · 0d
-
-operator decides at sprint-4 start. **constraint**: simulator MUST be opt-in (env flag · never live in production by default).
-
-### FR-12 · NEW · Score dashboard integration (zerker's lane · downstream of anchor deploy)
-
-**zerker SHALL** ship a Score dashboard surface that reads:
-- existing Score API + Sonar GraphQL (already live)
-- NEW: Solana indexer for `StoneClaimed` events from our anchor program (sprint-3 deploy)
-
-**zksoju + this repo provide**:
-- ed25519-signed `StoneClaimed` event emissions (FR-3 emit)
-- documented event shape for indexer consumption
-- coordination: anchor deploy date confirmed to zerker for indexer integration
-
-**out of scope for this repo**:
-- the dashboard UI (zerker's repo · likely additions to score-puru SvelteKit app)
-- the Solana indexer code (zerker's lane · operator+zerker learning curve)
-- dashboard purupuru styling (zerker consumes gumi's design tokens)
-
-**Acceptance Criteria**:
-- AC-12.1: anchor program emits `StoneClaimed` event with documented schema
-- AC-12.2: event schema available to zerker as Effect Schema export from `@purupuru/peripheral-events`
-- AC-12.3: deploy timing coordinated · zerker has 24h notice before our anchor deploys
-- AC-12.4: post-anchor-deploy demo includes a Score dashboard view (zerker integrates · we record)
-
----
-
-## 5 · technical & non-functional
-
-### stack (locked)
-
-| layer | choice | rationale |
+| Decision | Choice | Rationale |
 |---|---|---|
-| L2 substrate | TypeScript + Effect Schema (peerDep `^3.10.0`) | matches freeside-mediums · isolated compute (Q4 ECS · operator decree) |
-| L3 contribution | freeside-mediums upstream | existing repo · architect-locks A1-A8 |
-| L4 emitter app | Next.js 15 · App Router · Vercel | Q1 lock · OG image · GET chain endpoints |
-| Solana program | Anchor 0.30+ · Rust · ed25519 sig | ed25519 idiomatic · `ed25519_program` syscall |
-| NFT standard | Metaplex Token Metadata (mpl-token-metadata) | T1 lock · visible in Phantom collectibles · matches "on-chain artifact" framing |
-| package manager | bun | bonfire/loa-constructs default |
-| testing | vitest + msw + anchor-test | matches existing patterns |
+| **D1 · Type-system bridge** (was §11 Q1) | **Hand-port** ~5 hounfour schemas as compass-owned Effect Schemas | compass uses `effect/Schema`; hounfour uses `@sinclair/typebox` — incompatible. Hand-porting honors G5 LOC math, gives compile-time wins, accepts drift-detection as a quarterly CI rule |
+| **D2 · Straylight S3** | **Doc-only force-chain mapping + compile-time brand-type fence · zero runtime imports** | Phase 23a is "schema-contract draft only · runtime BLOCKED on hounfour v8.6 delta #8 (estate-transition.schema)." When 23b lands, swap implementation. Honors PRAISE-001 |
+| **D3 · S4 scope** | **Next.js substrate + agent-navigable system layers for the WORLD experience · NOT card game design** | Card game already exists at `~/Documents/GitHub/purupuru-game` (SvelteKit · 18 cards · transcendence). Compass hosts the world; the game composes in via separate cycle. S4's customer is the operator's iteration speed + the agent's navigation clarity |
+| **D4 · Persistence** (was §11 Q4) | **In-memory only** for any new system layer in this cycle. Future world↔game integration is its own cycle | Compass's existing Solana/KV bindings unchanged. New systems are pure |
+| **D5 · Adapter location** (was §11 Q5) | **No new `lib/adapters/` folder** — chain bindings live in `lib/live/solana.live.ts` (a Live Layer like any other consuming hounfour-typed envelopes via ports) | Preserves four-folder discipline (PRAISE-005). `*.solana.live.ts` suffix when chain-disambiguation needed |
+| **D6 · Adoption order** | **Envelope SHELL first (S1) · backfill verdict typing (S2) · doc-only force-chain (S3) · world substrate (S4)** | S1 ships envelope with `verdict: Type.Unknown()` placeholder; S2 narrows to hand-ported hounfour union. Avoids back-references |
 
-### performance
+## 1 · Problem
 
-- quiz GET p95 < 600ms (no signing · vercel edge)
-- mint POST p95 < 1.5s (anchor tx build + Metaplex metadata + sponsored-payer co-sign)
-- archetype card composition cached 60s per (element, weather)
+### 1.1 · Surface symptom
 
-### security (extended for r5)
+Compass shipped a substrate-simplification cycle (commit `f4ce25e` · 2026-05-10) that ECS-ified domain code under the four-folder pattern (`domain/ports/live/mock`). Two surfaces remain hand-rolled (`lib/activity/index.ts:42-48` · `lib/sim/population.system.ts:69`) using a `subscribe(cb)` pattern. The substrate doctrine names this exact pattern as a SIGNAL TO ADOPT into Effect's `PubSub` + `Stream` primitives.
 
-- POST validates `account` field (well-formed pubkey)
-- HMAC validation at every quiz GET transition
-- result_token (JWT-shape · 5min expiry · binds quiz state to wallet)
-- mint signature verification (ed25519 · `ed25519_program` syscall)
-- structured ClaimMessage payload (domain · cluster · program_id · expires_at · nonce)
-- separate keypairs: claim-signer (cold · vercel env) vs sponsored-payer (warm · funded operationally)
-- IP-based rate limits + wallet age/balance minimum (anti-sybil)
-- sponsored-payer balance halt threshold (DoS protection)
-- NO session keys · NO custom wallet flows · NO LLM verdicts (eileen)
-- presentation-boundary lint blocks raw ID leakage in CI
-- automated invariant tests on anchor program (7 tests · FR-3)
-- **upgrade authority FROZEN post-deploy** (cannot patch · must redeploy as new program ID)
+If we migrate without alignment, the envelope shape compass invents will diverge from the rest of the loa ecosystem.
 
-### deploy
+### 1.2 · Root problem (verified counts)
 
-- preview deployments per PR
-- production: `purupuru-blinks.vercel.app` (or D-1 rename)
-- **anchor program: DEVNET LOCKED v0** · mainnet deferred post-audit
-- THREE keypairs (devnet):
-  - sponsored-payer · funds tx fees · refilled per FR-9 alerts
-  - claim-signer (ed25519) · signs ClaimMessage · vercel env · rotation per D-13
-  - upgrade-authority · **set to None post-deploy**
+Three loa repos provide what compass needs · all verified 2026-05-12:
 
----
-
-## 6 · stakeholders & lanes (revised for r5)
-
-| handle | lane | clock |
+| Need | Provided by | Verified state |
 |---|---|---|
-| 🪨 **zksoju** | substrate (`@purupuru/peripheral-events`) · BLINK_DESCRIPTOR · anchor program (witness + claim_genesis_stone) · blink-emitter (GET chain + mint POST) · vercel deploy · demo recording · demo simulator | 4d critical path · single owner |
-| 🌬 **eileen** | architecture ratification · `[[mibera-as-npc]]` §6.1 enforcement · keypair posture (D-12 closed · D-13 open) · separation-as-moat conceptual authority | review gate before merge |
-| 🌊 **zerker** | Score dashboard (purupuru-styled) · Solana indexer (downstream of anchor deploy) · Score API/CLI/MCP read-side | parallel · integrates post-sprint-3 |
-| 🌸 **gumi** | quiz design (5 resonant questions · 4 answers each · NOT birthday/gender) · 5 archetype reveals · voice register · Metaplex metadata art (genesis stone visual) · dashboard purupuru styling guidance | parallel · NOT blocking · zksoju scaffolds placeholders |
+| Cross-construct envelope shape | `construct-rooms-substrate` · `data/trajectory-schemas/construct-handoff.schema.json` (5 enum: Signal/Verdict/Artifact/Intent/Operator-Model) + `room-activation-packet.schema.json` | Operator-machine path · NOT npm-published · vendored as JSON for compass production deploy (D5) |
+| Typed schemas for agent identity, lifecycle, capabilities, audit | `loa-hounfour@7.0.0` · **92 .schema.json files** (14 dist .d.ts exports) including `agent-identity` · `agent-lifecycle-state` · `agent-descriptor` · `agent-capacity-reservation` · `audit-trail-entry` · `capability-scoped-trust` · `bridge-invariant` · `domain-event` · `lifecycle-transition-payload` · `conformance-vector` | TypeBox schemas · NOT compatible with compass's `effect/Schema` · hand-port the candidate set (D1) |
+| Verify⊥judge fence · governed memory · signed assertions · recall receipts | `loa-straylight` · Phase 23a continuity-under-authorization | **Schema-contract DRAFT only · runtime BLOCKED on hounfour v8.6 delta #8 (estate-transition.schema not yet authored)** · zero npm release · S3 is doc-only (D2) |
 
-**learning curves flagged**:
-- 🪨 zksoju learns Solana smart contract development (Anchor + Metaplex + ed25519 sysvar) · sprint-1+2 risk
-- 🌊 zerker learns Solana indexer (subscribe to anchor program events · feed Score) · post-sprint-3 work
+Authoring a parallel `construct-translation-layer` pack would duplicate all three. The operator's stated constraint — "we don't want to end up creating more modules than we need to" — names this risk explicitly.
 
----
+### 1.3 · Strategic problem
 
-## 7 · scope & prioritization
+Compass is one of three purupuru-family repos · **`compass` (Next.js · this hackathon submission) · `world-purupuru` (SvelteKit · Spiral engine · canonical world) · `purupuru-game` (SvelteKit · 18-card battle prototype)**. They speak different stacks but should share substrate vocabulary. If compass conforms to canonical schemas + envelopes, the adoption pattern compounds. Sprawl, Mibera, Pru worlds get the playbook for free. If compass diverges, every subsequent world chooses between upstream canonical and compass-specific drift.
 
-### MVP (must-ship by 2026-05-11)
+## 2 · Goals
 
-- ✅ FR-1 — substrate package · WorldEvent + BaziQuizState (HMAC-validated) · ports + adapters
-- ✅ FR-2 — `BLINK_DESCRIPTOR` PR'd (actionChaining: GET-chain · nftStandard: metaplex)
-- ✅ FR-3 — Anchor program · BOTH instructions · DEVNET LOCKED · ed25519 sig · Metaplex metadata · 7 invariant tests · upgrade-authority frozen
-- ✅ FR-4 — blink-emitter · GET-chained quiz + result + mint POST · sybil protection · sponsored-payer
-- ✅ FR-5 — score adapter (read-only existing API)
-- ✅ FR-6 — TTL-based cache (ERC-4906 absent verified)
-- ✅ FR-7 — voice corpus (gumi · parallel · placeholders ready)
-- ✅ FR-8 — cmp-boundary enforcement
-- ✅ FR-9 — observability + dashboards + alerts
-- ✅ FR-10 — cmp-boundary lint + golden tests (CI gate)
-- 🟡 FR-11 — demo simulator (operator cooking · sprint-4)
-- 🌊 FR-12 — Score dashboard integration (**zerker's parallel lane** · downstream of anchor deploy)
-- ✅ dialect blink registry submission
-- ✅ 3min demo video
-- ✅ submission deck (separation-as-moat punchline · monetization · user acquisition)
+### 2.1 · Primary goals
 
-### 7.5 · MVD floor LOCKED · day-1 spine + stretch (per T2 + flatline r3 SKP-003 fix)
+- **G1** · Compass conforms to `construct-rooms-substrate` handoff envelope at every cross-bounded-context emission · grep-verifiable · 100% of `world-event.ts` discriminated-union variants tagged with one of 5 typed-stream values (IMP-014)
+- **G2** · Compass hand-ports a named candidate set (~5 schemas) of `loa-hounfour@7.0.0` types as Effect Schemas (D1) · structural conformance verified via runtime AJV against upstream JSON Schema
+- **G3** *(reframed)* · Compass's verify⊥judge fence is documented as a 9-step force-chain mapping (per straylight doctrine) AND enforced as a compile-time TypeScript brand-type fence · ZERO straylight runtime imports until Phase 23b unblocks
+- **G4** *(reframed)* · Compass gains a **Next.js substrate + agent-navigable system layers** for the world experience (observatory · ceremony · awareness · weather · activity · sim) such that the operator can iterate any system and the agent can navigate the structure via grep alone. Card game integration is a SEPARATE downstream cycle
+- **G5a** *(revised post-sprint-review SP-002/SP-003)* · Substrate-conformance LOC delta (S0+S1+S2+S3+S6 · scoped to `lib/` and `packages/peripheral-events/`) ≤ **+500 net** (includes hand-port floor +400 + envelope shell +200 + fence +50 - legacy removal -80 - other shrinkage). Honest accounting after sprint review caught the math wasn't closing. **Target: -100 LOC of NON-hand-port code** (net ALL substrate-refactor work that isn't hand-ports themselves should shrink by 100). Measured per-category at S6 close.
+- **G5b** *(split)* · World-substrate LOC budget (S4 · `lib/world/`) ≤ **+600** · operator pair-point if exceeded
+- **G5c** · Cycle net LOC ≤ **+1200** including world substrate · soft-fail requiring justification
 
-**flatline r3 critical reframe**: previous trigger-tree fired too late · scope was "MVP + cut-on-trigger" · should be "spine-first + stretch-additive." this revision adopts the spine model.
+### 2.2 · Secondary goals
 
-**🦴 Day-1 runnable spine (must work end-to-end by EOD 2026-05-08)**:
+- **G6** · Multi-world adoption playbook drafted at `grimoires/loa/specs/per-world-adoption-playbook.md` · 1-page checklist · Pru/Sprawl/Mibera each get 1 paragraph naming what adoption would mean · references real file:line per target (otherwise the paragraph is theater · IMP-S5)
+- **G7** · `construct-effect-substrate` doctrine pack updated with the integration story · status promoted from `candidate` → `validated · 1-project · adopting hounfour as canonical schema source`
+- **G8** *(restructured · IMP-009)* · Tracking issues opened on `loa-hounfour` + `loa-straylight` + `construct-rooms-substrate` (3/3) within 24h of S0 close. Eileen/Jani sign-off captured if received within 7 days; absence of NACK = passive accept; cycle ships independently
 
-THESE FIVE THINGS MUST RUN BY EOD DAY 1. ANYTHING NOT IN THIS LIST IS STRETCH.
+### 2.3 · Non-goals (explicit cuts)
 
-1. **GET quiz endpoint** with placeholder voice (5 Q's · button-multichoice · returns ActionGetResponse · runs locally + on vercel preview)
-2. **Result card render** (any image · element-determined by hardcoded answer-mapping if Bazi compute not done)
-3. **Devnet transaction** — EITHER:
-   - (a) `attest_witness` instruction working end-to-end (witness-only anchor · PDA only · NOT genesis stone) — this is the day-1 minimum
-   - (b) hardcoded mock transaction (memo-only) if anchor scaffold not compiling
-4. **Vercel production deployment** serving the blink (preview URL works in dialect inspector)
-5. **Deck draft** — separation-as-moat slide + product demo description + monetization line + user-acq line (rough but coherent)
+- ❌ NO new `construct-translation-layer` pack (CI lint enforces · `find . -path '*/construct-translation-layer*'` returns empty)
+- ❌ NO new `lib/adapters/` folder (D5)
+- ❌ NO card game design or implementation (D3 · `purupuru-game` already ships this)
+- ❌ NO straylight runtime imports (D2 · zero `assert()` / `recall()` calls)
+- ❌ NO TypeBox in compass dependencies (D1 · effect/Schema only)
+- ❌ NO puppet theater MVP (deferred · cycle N+2 candidate)
+- ❌ NO daemon NFT contract (puruhani materialization stays at "follows hounfour shape; ERC-6551 mint-on-demand · later cycle")
+- ❌ NO multi-chain envelope abstraction (Solana stays Solana for compass · hounfour types are chain-agnostic)
+- ❌ NO straylight implementation fork
+- ❌ NO Solana state changes for new systems (D4 · in-memory only this cycle)
+- ❌ NO active multi-world build (Pru/Sprawl/Mibera get the playbook only)
+- ❌ NO LLM-bound judgment in any new system (preserves verify⊥judge fence)
 
-**🌱 Stretch goals (sprint-2-4 · in priority order · cut from top if behind)**:
+## 3 · Success metrics
 
-if spine is verified end-to-end by EOD day-1, sprint-2 onward LAYERS THESE IN:
+### 3.1 · Quantitative gates (binary pass/fail · all measurable)
 
-| order | stretch | gate |
-|---|---|---|
-| 1 | proper HMAC-validated quiz state · result_token issuance | sprint-2 morning |
-| 2 | anchor `claim_genesis_stone` instruction with structured ClaimMessage + ed25519-via-instructions-sysvar | sprint-2 EOD · IF day-1 spike (FR-4 last bullet) confirmed Phantom+Dialect compatibility |
-| 3 | gumi voice corpus integration | sprint-3 morning · IF gumi handoff lands by then |
-| 4 | Metaplex Token Metadata for visible NFT | sprint-3 EOD · **IF day-1 Phantom devnet visibility spike succeeds** (critical risk per flatline r3 SKP-004) |
-| 5 | sybil protection (IP rate limit + balance check) | sprint-3 EOD |
-| 6 | upstream BLINK_DESCRIPTOR PR | sprint-3 EOD |
-| 7 | observability + tiered alerts + golden tests + cmp-boundary lint | sprint-3 EOD |
-| 8 | Score dashboard integration (zerker parallel) | sprint-4 · post-anchor-deploy |
-| 9 | demo simulator | sprint-4 |
-| 10 | dialect blink registry submission | sprint-4 morning |
-
-**🚨 Day-1 SMOKE TEST (must pass before stretch starts)**:
-- minimal Solana transaction with Ed25519Program instruction + a stub anchor instruction reading instructions sysvar — does it WORK in Phantom + Dialect inspector?
-- minimal Metaplex Token Metadata mint on devnet — does Phantom render it in the collectibles tab?
-- if EITHER fails: revert mint flow to PDA-only OR memo-only · rename language from "mint" to "claim record" · update deck framing to honest
-
-**Cut-tree (binding triggers · sharpened from r5)**:
-
-```
-DAY-1 EOD · spine MUST be running end-to-end
-  → if NO: HALT and operator-pair to fix · all stretch deferred · spine is only ship target
-
-SPRINT-2 EOD · if Phantom devnet visibility spike FAILED
-  → drop Metaplex from stretch list · ship PDA-only · update deck
-
-SPRINT-3 EOD · if gumi voice not landed
-  → ship placeholders · note in deck
-
-SPRINT-3 EOD · if BLINK_DESCRIPTOR PR not merged upstream
-  → ship local-only descriptor · open PR but don't gate on merge
-
-SPRINT-4 MORNING · if demo simulator not built
-  → post-recording video acceleration · 0d work
-
-SPRINT-4 MORNING · if zerker dashboard not ready
-  → text-only mention in deck · post-hackathon integration
-```
-
-**lock confirmed 2026-05-07 · operator decision · spine-first model binding**.
-
-### post-hackathon (the bonfire surface)
-
-unchanged from r4 plus: Score dashboard polish (zerker) · Solana indexer hardening (zerker) · cross-chain identity unification (D-11) · evolution-into-puruhani mechanic (gumi+codex pair · separate clock) · mainnet deploy (post-audit).
-
-### explicit non-goals (v0)
-
-unchanged from r4 plus:
-- ❌ Score dashboard styling/scope decisions (zerker owns)
-- ❌ Solana indexer (zerker owns · we provide event schema only)
-- ❌ Evolution-into-puruhani mechanic (vision/roadmap · v1+)
-- ❌ Multi-chain twin reconciliation (D-11)
-
----
-
-## 8 · doctrine composition
-
-unchanged from r4 plus:
-- `[[separation-of-truth-and-voice-as-architectural-moat]]` (NEW · this PRD names it · doctrine page after first ship · the deck punchline that distinguishes us at Frontier)
-- `[[shared-rite-as-social-feel]]` (NEW · operator's north-star · "in a social experience you should feel others were there") · v0 expression via aggregate counters + simulated feed + multi-wallet demo
-
----
-
-## 9 · open decisions
-
-unchanged from r4 plus tactical closures:
-
-| # | decision | r5 status |
-|---|---|---|
-| T1 | NFT shape | **CLOSED · Metaplex Token Metadata** (visible · matches "on-chain artifact" · simpler than cNFT on 4d clock) |
-| T2 | MVD floor | **CLOSED · ambitious + 5 binding triggers** (per §7.5) |
-| T3 | quiz POST signing | **CLOSED by Solana Actions spec** · GET-chain · only final mint is POST · 1 signing prompt |
-| D-12 | upgrade authority | **CLOSED · frozen post-deploy** (set to None) per flatline r2 SKP-005 |
-| D-13 | claim-signer keypair | **PARTIAL CLOSE · ed25519 dedicated keypair** (separate from sponsored-payer · cold-storage option for post-mainnet · rotation procedure post-hackathon) |
-| D-15 | bazi computation source | **CLOSED · gumi authors fresh design** (5 resonant questions · NOT extracted from existing game `/`) |
-
-still open:
-| D-1 | repo rename · operator preference |
-| D-4 | witness PDA cleanup posture · post-hackathon |
-| D-5 | score new endpoints · zerker · post-hackathon |
-| D-6 | 2 unnamed of 5 cosmic weather oracles · gumi · sprint-2 |
-| D-10 | sponsored-payer keypair management · post-hackathon |
-| D-11 | cross-chain identity unification · post-hackathon |
-| D-14 | demo simulator design · operator cooking · sprint-4 |
-| D-16 | NEW · gumi handoff timing · operator-paced parallel work · sprint-2 close target |
-| D-17 | NEW · zerker indexer ready-by-date · coordinated post-anchor-deploy · sprint-3 close target |
-
----
-
-## 10 · gaps (operator's explicit ask · honest)
-
-🪶 **substrate gaps (vault doctrine)**
-- `[[purupuru-world-event-schema]]` (vault flagged CRITICAL · this PRD authors in code)
-- `[[presence-broadcast-without-spam]]` (cadence rules · seeded by FR-9 data)
-- `[[blink-descriptor-spec]]` (after upstream PR)
-- `[[purupuru-surface-vs-game-boundary]]` (operator framing · unwritten)
-- `[[ecs-pda-projection-pattern]]`
-- `[[cross-chain-identity-twin-pattern]]`
-- `[[bazi-quiz-action-chain-pattern]]` (now: `[[get-chain-action-quiz-pattern]]` since we're GET-chained not POST-chained)
-- **NEW · `[[separation-of-truth-and-voice-as-architectural-moat]]`** — eileen's framework · the deck punchline
-- **NEW · `[[shared-rite-as-social-feel]]`** — north-star insight
-
-🪶 **technical gaps**
-- ERC-4906 absent · TTL locked
-- 2 of 5 cosmic weather oracles unnamed (gumi · sprint-2)
-- bazi quiz design · gumi parallel · placeholders ready
-- zksoju Solana smart-contract learning curve (sprint-1+2 risk)
-- zerker Solana indexer learning curve (post-sprint-3)
-- result_token format (JWT-shape · sprint-2 implementation detail)
-
-🪶 **process gaps**
-- codex pairing pattern (game work · separate clock)
-- the `project-purupuru/game` ↔ awareness-layer event-emission contract
-- freeside-mediums upstream PR review owner (zksoju self-merge viable)
-- coordination protocol with zerker for anchor deploy → indexer integration
-
-🪶 **scope gaps**
-- ambient broadcast cadence rules · undefined v0
-- demo path for judges (3min recording shape)
-- demo simulator (operator cooking)
-- monetization PROOF in demo (currently slide-only · per Eileen's "show, don't tell" — could we slip a sponsored slot into the demo?)
-
----
-
-## 11 · risks & dependencies (revised for r5)
-
-### technical risks
-
-| risk | likelihood | impact | mitigation |
+| ID | Metric | Target | How measured |
 |---|---|---|---|
-| zksoju Solana learning curve eats sprint-1-2 | **medium-high** (new) | high | use anchor-init template · Metaplex CPI examples · pair with codex if blocked · KEEP scope minimal (TWO instructions only) |
-| anchor program scope (TWO instructions + Metaplex CPI) eats sprint-2-3 | medium | high | scope tight per §4 FR-3 · invariant tests catch issues early · trigger 1 in MVD cuts Metaplex if needed |
-| HMAC quiz state implementation bugs | low | medium | golden tests · property-based tests on URL roundtrip · refer to OWASP cheatsheet |
-| ed25519 signing inconsistencies between Anchor and TS backend | medium | medium | use `@solana/web3.js` ed25519 utils · test signing roundtrip end-to-end before sprint-3 |
-| Metaplex Token Metadata setup overhead | low | medium | use `mpl-token-metadata` SDK · standard CPI pattern · trigger reverts to PDA-only if blocked |
-| **Metaplex Phantom devnet visibility unverified** (flatline r3 SKP-004) | medium | high | **day-1 smoke test** — mint minimal Metaplex token on devnet · verify Phantom renders in collectibles tab · IF fails: revert to PDA-only · prepare fallback (explorer link · in-app stone card) regardless |
-| **ed25519-via-instructions-sysvar Solana pattern unfamiliar** (flatline r3 SKP-002) | medium | high | day-1 spike: minimal Anchor program reads instructions sysvar after Ed25519Program instruction · refer to `solana-program` examples + Anchor docs · validate before sprint-2 starts |
-| **Solana transaction assembly for partial-sign** (flatline r3 SKP-006) | low-medium | medium | day-1 spike: backend partial-signs minimal tx · returned via Action POST · Phantom signs and submits · validates serialization + blockhash + fee_payer · before sprint-2 |
-| 5 quiz GETs feel sluggish at edge | low | medium | vercel edge runtime · 60s cache on archetype card composition · target p95 <600ms per GET |
-| gumi voice corpus delays | low (now parallel · placeholders exist) | low | trigger 3 · ship placeholders · gumi swaps post-handoff |
-| zerker indexer not ready at demo recording | medium | low | trigger 5 · demo records without dashboard · post-hackathon integration |
-| sponsored-payer drained by sybil | medium | high | IP rate limits · wallet age minimum · balance halt threshold (FR-4 + FR-9) |
-| sponsored-payer keypair compromise | low | high | vercel env · separate per-environment · devnet-only blast radius v0 |
-| claim-signer keypair compromise | low | very high | mainnet impact deferred (devnet only) · cold-storage option for post-mainnet |
-| dialect blink registry approval delays | medium | medium | submit registration day 1 · fall back to direct unfurl |
-| demo simulator scope creep | medium | medium | trigger 4 · post-recording acceleration is 0d |
-| game emits no events v0 | high | low | doesn't matter for v0 demo |
-| solana account constraint forces single voice | high | low | accepted limitation · observer voice |
+| Q1 | Conformance LOC delta | ≤ +500 net (revised per SP-002/SP-003 · target -100 for non-hand-port substrate refactor only) | `git diff --stat f4ce25e...HEAD -- lib/ packages/peripheral-events/ ':!lib/world/' \| tail -1` AND `git diff --stat f4ce25e...HEAD -- lib/ packages/peripheral-events/ ':!lib/world/' ':!*.hounfour-port.ts' ':!*hounfour-*.schema.json' \| tail -1` |
+| Q2 | World-substrate LOC budget | ≤ +600 | `git diff --stat f4ce25e...HEAD -- lib/world/ \| tail -1` |
+| Q3 | Hand-ported hounfour schemas | ≥ 5 distinct (named in §5.1.1) | `grep -lE "hounfour-port" lib/domain/*.ts \| wc -l` |
+| Q4 | Envelope conformance | 100% of `world-event.ts` variants tagged with `output_type` ∈ {Signal, Verdict, Artifact, Intent, Operator-Model} | `count(union variants) == grep -c 'output_type:' packages/peripheral-events/src/world-event.ts` |
+| Q5 | Tests baseline | 24/24 → S4 close ≥ N (N defined at S0 from world-substrate task list) | `pnpm test` |
+| Q6 | Verify⊥judge compile-time fence | `tsc --noEmit lib/test/judge-fence.spec-types.ts` emits expected type-error per `expect-type` (IMP-008) | CI step |
+| Q7 | S0→S1 promotion gate | (a) ≥80% compass domain types map to a hounfour schema with ≤2-field delta · (b) zero blockers requiring hounfour breaking change · (c) straylight Phase 23a status verified | NOTES.md decision record (IMP-006) |
+| Q8 | Tracking issues filed | 3/3 (one per upstream repo · each cites compass file:line + reproducible fixture · NOT just count of issues per IMP-009 quality bar) | `gh issue list --search "compass adoption tracker [substrate-agentic-2026-05-12]"` |
+| Q9 | Sprint commits atomic | Each substrate adoption is one commit, independently revertable | `git log --oneline f4ce25e..HEAD` review |
+| Q10 | Drift-detection CI rule | Quarterly job compares hand-ported Effect Schemas to upstream JSON Schema structurally; emits diff report | `.github/workflows/hounfour-drift.yml` exists post-S2 |
 
-### dependency risks
+### 3.2 · Qualitative gates (operator pair-point checks)
 
-| dep | owner | status |
-|---|---|---|
-| score-puru API + Sonar GraphQL | zerker | live · low risk |
-| `@puruhpuruweather` X bot | zksoju | live · low risk |
-| freeside-mediums upstream | zksoju (self-merge) | low risk |
-| eileen architecture ratification | eileen | medium · sprint-1 close gate |
-| gumi voice corpus | gumi | parallel · low risk (placeholders exist) |
-| zerker Solana indexer + dashboard | zerker | medium · post-anchor-deploy · trigger 5 fallback |
-| Solana devnet stability | external | low · standard reliability |
-| anchor + Metaplex SDK availability | external | low · stable libraries |
-
-### business risks
-
-| risk | mitigation |
+| Gate | Test |
 |---|---|
-| Frontier judges read this as "just another infra project" | deck framing leads with **separation-as-moat punchline** + **product demo** + **monetization** + **user acquisition** + **future potential** · Frontier's required artifacts all addressed |
-| MVP not impressive enough for "most impactful product" criterion | demo simulation + multi-wallet live demo + Score dashboard view (if zerker ships) all amplify the "real social behavior" feel |
-| team coordination eats build time | parallel work pattern (zksoju + gumi + zerker) · async-first · operator orchestrates |
-| demo doesn't convey monetization clearly | deck slide explicit · second-game mockup proves universality (per P4 · need to deck-author) |
-| MVD triggers fire and we ship degraded | acceptable · MVD locked · trigger order honors deck-critical-path-first |
+| Reframe held | No file in `lib/` defines a parallel translation primitive that hounfour or rooms-substrate already provides |
+| Card game stays out | `find compass/lib -name '*card*' -o -name '*battle*' -o -name '*deck*'` returns empty |
+| Adopt-don't-invent honored | Every PR title in cycle includes `[adopt:<substrate>]` tag (PRAISE-001) |
+| Multi-world cross-applies | Adoption playbook (G6) reads as a checklist a contractor could execute against world-purupuru / world-sprawl / world-mibera |
+| Operator iteration test | After S4 close, operator can rename/move/refactor a system in `lib/world/` in one commit without cascading test failures (IMP-007 rollback) |
+| Agent navigation test | A fresh agent (no context) can answer "what does the awareness system do, and what ports does it expose?" in ≤3 grep calls (D3 north star) |
 
----
+## 4 · Users / stakeholders
 
-## 12 · timeline · 4-day ship (sprint shape r5)
+(Unchanged from v1 except §4.4)
 
-| day | date | mode | output | gate |
+### 4.1 · Operator (zksoju · primary builder)
+
+- Wants Next.js substrate + system clarity that lets him iterate compass's world experience fast
+- Wants compass to be a worked example, not a one-off
+- Wants the cycle to honor "we don't want to end up creating more modules than we need to"
+- Pair-points: after S0 (audit + S0→S1 gate · Q7), S2 (hounfour hand-port reviewed), S3 (force-chain doc reviewed), S4 (world substrate reviewed for navigation clarity), S6 (doctrine ratification)
+
+### 4.2 · Eileen (`construct-rooms-substrate` + `loa-straylight` author)
+
+- Owns the verify⊥judge framework's canonical implementation
+- Will signal acceptance of compass-as-consumer via straylight issue thread (G8)
+- Reference: `~/vault/wiki/entities/eileen-dnft-conversation.md`
+
+### 4.3 · Jani (`loa-hounfour` author)
+
+- Owns the schema substrate · 92 .schema.json files
+- Will signal acceptance of compass conformance via hounfour PR comments (G8)
+
+### 4.4 · Gumi (purupuru lore + art · `world-purupuru` + `purupuru-game` collaborator)
+
+- Card game design happens at `purupuru-game` · NOT this cycle
+- Compass world experience (observatory · ceremony) gets her review when world substrate (S4) ships polish-ready scaffolding
+
+### 4.5 · Future world pilot (`world-sprawl` / `world-mibera` / `world-purupuru` curator)
+
+- Will execute the adoption playbook (G6) to bring their world onto canonical substrate
+- Should not need to learn loa internals to follow the checklist
+
+## 5 · Functional requirements (sprint-mapped · revised per D1-D6)
+
+### 5.1 · S0 — Conformance audit (no code change · operator pair-point gate)
+
+**FR-S0-1** · Map every compass domain type in `peripheral-events/src/world-event.ts`, `lib/sim/types.ts`, `lib/weather/types.ts`, `lib/activity/types.ts` to a hounfour schema OR mark "no upstream equivalent." Output: `grimoires/loa/context/12-hounfour-conformance-map.md`.
+
+**FR-S0-2** · Identify compass behaviors that are straylight-shaped (cross-session persistence · signed memory · governed recall). Append to map · mark each as "doc-only this cycle" or "defer to N+2."
+
+**FR-S0-3** *(time-boxed · IMP-013)* · For every blocker, file an issue against the upstream repo. If upstream issue is open >72h without comment, operator decides defer/fork/shim unilaterally; record in NOTES.md.
+
+**FR-S0-4** · Operator pair-point at S0 close. Decide: which schemas adopt now, which wait, which file upstream.
+
+**FR-S0-5** *(NEW · IMP-006)* · S0→S1 promotion gate (Q7). Cycle proceeds to S1 ONLY if all 3 sub-conditions pass. Otherwise pivots to S0.5 (negotiation cycle with upstream).
+
+#### 5.1.1 · Candidate hounfour schemas (working set · refined in S0)
+
+These are the hand-port candidates · S0 audit confirms or contests:
+
+| Schema | Adopt at | Rationale |
+|---|---|---|
+| `agent-identity` | S2 | Puruhani identity binding |
+| `agent-lifecycle-state` | S2 | Dormant/stirring/breathing/soul lifecycle |
+| `agent-descriptor` | S2 | Persona + voice file binding |
+| `audit-trail-entry` | S2 | Cross-context event provenance |
+| `capability-scoped-trust` | S3 | Verify⊥judge boundary contract |
+| `bridge-invariant` | S3 | Force-chain step gating |
+| `domain-event` | S1 | Envelope payload type |
+| `lifecycle-transition-payload` | S2 | Stage-transition events |
+
+S0 audit may add or remove from this set with operator pair-point. Final list locks at S0→S1 gate.
+
+### 5.2 · S1 — Adopt rooms-substrate handoff envelope (envelope shell first per D6)
+
+**FR-S1-1** · Vendor `construct-handoff.schema.json` + `room-activation-packet.schema.json` as JSON files in `compass/lib/domain/schemas/` (D5 · production-deployable).
+
+**FR-S1-2** *(IMP-014 coverage gate)* · Annotate `world-event.ts` discriminated union with `output_type` ∈ {Signal, Verdict, Artifact, Intent, Operator-Model}. CI rule: count of union variants must equal count of `output_type:` annotations.
+
+**FR-S1-3** · Migrate hand-rolled `subscribe(cb)` (`lib/activity/index.ts:42-48` · `lib/sim/population.system.ts:69`) to Effect's `PubSub` + `Stream` riding the canonical envelope.
+
+**FR-S1-4** · Single `Effect.provide` site for the new envelope (substrate doctrine invariant). Enforced via grep rule.
+
+**FR-S1-5** *(D6)* · Envelope `verdict` field typed as `Type.Unknown()` placeholder. S2 narrows to hand-ported hounfour union.
+
+### 5.3 · S2 — Hand-port hounfour schemas
+
+**FR-S2-1** *(D1)* · Hand-port the 5+ candidate schemas from §5.1.1 as Effect Schemas in `lib/domain/`. Suffix `*.hounfour-port.ts` for grep-discoverability.
+
+**FR-S2-2** · Each hand-ported schema ships with: (a) `*.mock.ts` factory · (b) runtime AJV validator that parses the upstream JSON Schema as a structural conformance check at module load · (c) inline doc comment with `Source: hounfour@<sha>:schemas/<file>.schema.json`.
+
+**FR-S2-3** · S1's `verdict: Type.Unknown()` placeholder narrows to a discriminated union of the hand-ported types.
+
+**FR-S2-4** · Operator pair-point: review hand-ports for Effect-Schema idiom-fit before sealing.
+
+### 5.4 · S3 — Doc-only force-chain mapping + compile-time fence (D2)
+
+**FR-S3-1** · Read straylight Phase 23a `docs/specs/recall-wedge-schema-contract.md`. Document the 9-step force chain (memory → belief → instruction → plan → permission → action → commitment → permanence) as it applies to compass's puruhani lifecycle. Output: `grimoires/loa/context/13-force-chain-mapping.md`.
+
+**FR-S3-2** · Each force-chain step gets a one-line answer: "Where does this gate live in compass?" Some answers may be "no compass surface yet · placeholder."
+
+**FR-S3-3** *(D2 · IMP-008)* · Implement compile-time verify⊥judge fence as a TypeScript brand-type:
+```typescript
+// lib/domain/verify-fence.ts (no straylight import)
+declare const VerifiedBrand: unique symbol
+export type VerifiedEvent<T> = T & { readonly [VerifiedBrand]: true }
+
+export const verify = <T>(e: T): Effect.Effect<VerifiedEvent<T>, ...> => ...
+export const judge = <T>(e: VerifiedEvent<T>) => ... // refuses unbranded T
+```
+Ship `lib/test/judge-fence.spec-types.ts` containing both passing AND failing type assertions verified by `expect-type` or `tstyche` (Q6 / NFR-SEC-1).
+
+**FR-S3-4** · Open issue on `loa-straylight` · subject "compass adoption tracker [substrate-agentic-2026-05-12]" · cite `lib/domain/verify-fence.ts:1` and ask: "Is this brand pattern compatible with Phase 23b signed-assertion API as currently drafted?"
+
+### 5.5 · S4 — Next.js substrate + agent-navigable system layers for the WORLD experience (D3 · MAJOR REFRAME)
+
+**Customer**: operator's iteration speed + agent's navigation clarity. NOT a card game.
+
+**FR-S4-1** · Audit existing `lib/{sim,weather,activity}/` for: (a) which systems have ports, which are direct imports · (b) which systems mix concerns (UI + state + IO) · (c) which need test substrate (`*.mock.ts`).
+
+**FR-S4-2** · Define `lib/world/` as the umbrella for system layers that compose the world experience:
+- `lib/world/world.system.ts` — composes weather + activity + sim into one observable world state Effect Layer
+- `lib/world/awareness.port.ts` + `lib/world/awareness.live.ts` + `lib/world/awareness.mock.ts` — the awareness layer as a typed surface
+- `lib/world/observatory.port.ts` + `*.live.ts` + `*.mock.ts` — observatory as a typed surface (read of world state)
+- `lib/world/ceremony.port.ts` + `*.live.ts` + `*.mock.ts` — ceremony as a typed surface (write into world state)
+
+**FR-S4-3** · Each system port ships with one Next.js component example showing how the operator wires it (`app/_components/<system>-example.tsx`) — so the operator can copy-paste the pattern into actual app routes.
+
+**FR-S4-4** · `lib/world/SKILL.md` describes the world substrate for an agent: (a) what each system exposes · (b) which port to import for which use case · (c) which systems depend on which others. Agent navigation test (Q operator-vibe-check): a fresh agent can answer "what does awareness do?" via 3 grep calls.
+
+**FR-S4-5** *(D4)* · No persistence beyond what compass already has. New systems are pure Effect Layers; no Solana writes; no new KV keys.
+
+**FR-S4-6** · Operator pair-point at S4 close: "Can I move/rename a system in 1 commit without cascading test failures?" YES = ship; NO = re-think.
+
+### 5.6 · S5 — Multi-world readiness (light touch · evidence-grounded per IMP-S5)
+
+**FR-S5-1** · `grimoires/loa/specs/per-world-adoption-playbook.md` · 1-page checklist.
+
+**FR-S5-2** · Stub `world-purupuru` / `world-sprawl` / `world-mibera` (1 paragraph each) under the playbook. Each paragraph MUST cite ONE actual file:line in the target world that demonstrates the shape compass adopted (or the absence). Otherwise it's documentation theater.
+
+### 5.7 · S6 — Distill upstream
+
+**FR-S6-1** · Update `construct-effect-substrate` (existing pack) with the integration story.
+
+**FR-S6-2** · Pack status: `candidate` → `validated · 1-project · adopting hounfour as canonical schema source · hand-port pattern documented`.
+
+**FR-S6-3** · Operator pair-point ratifies before publishing.
+
+## 6 · Non-functional requirements
+
+### 6.1 · Security
+
+- **NFR-SEC-1** · Verify⊥judge compile-time fence is mandatory (Q6 · IMP-008). `judge` cannot consume unbranded events.
+- **NFR-SEC-2** · No private keys committed.
+- **NFR-SEC-3** *(updated · IMP-019)* · Schema-bound validation at parse boundaries via `Schema.decodeUnknown` (Effect Schema). NOT TypeBox `Type.Check` (compass does not depend on TypeBox per D1).
+- **NFR-SEC-4** · OWASP Top 10 review at each PR.
+- **NFR-SEC-5** · Force-chain mapping (FR-S3-1) MUST hold for any future puruhani state transition. Skipping a step = security defect.
+
+### 6.2 · Performance
+
+- **NFR-PERF-1** *(deferred per IMP-013)* · World system layer composition does not regress current weather/sonifier pipeline latency. Vibe-check operator gate. Numerical p95 deferred until benchmark harness exists (not in this cycle).
+- **NFR-PERF-2** · Envelope validation overhead is bounded · measured at S1 close via spot-check (not p95 with no infra).
+
+### 6.3 · Compatibility
+
+- **NFR-COMPAT-1** · MIN_SUPPORTED hounfour: v6.0.0 (per SCHEMA-CHANGELOG). Compass pins to SHA at S0 close (§10.5).
+- **NFR-COMPAT-2** · Compass owns hand-ported types after S2 (D1). Upstream version bumps trigger drift-detection report (Q10), not auto-merge.
+- **NFR-COMPAT-3** · Solana adapter layer remains in `lib/live/solana.live.ts` (D5). Hounfour-typed envelopes are chain-agnostic.
+
+### 6.4 · Maintainability
+
+- **NFR-MAINT-1** · Suffix discipline: `*.port.ts` · `*.live.ts` · `*.mock.ts` · `*.system.ts` · `*.schema.ts` · `*.hounfour-port.ts` · `*.spec-types.ts`.
+- **NFR-MAINT-2** · Every package (`lib/world/` for S4) keeps a SKILL.md current.
+- **NFR-MAINT-3** · NOTES.md decision log captures every substrate-adoption choice.
+
+### 6.5 · Rollback (NEW · IMP-007)
+
+- **NFR-ROLLBACK-1** · Each sprint ships behind a feature branch off `feat/substrate-agentic-adoption`.
+- **NFR-ROLLBACK-2** · Test failures > 5 simultaneous trigger automatic pause + operator pair-point.
+- **NFR-ROLLBACK-3** · Each sprint commit is atomic and independently revertable. No entangled cross-sprint commits.
+- **NFR-ROLLBACK-4** · S2 hand-port commits are reversible by `git revert` of one `adopt-hounfour-<schema>` commit per schema · until S3 lands.
+
+## 7 · Risks
+
+| ID | Risk | L | I | Mitigation |
 |---|---|---|---|---|
-| 0 | 2026-05-07 | ARCH | r5 PRD · separation-as-moat doctrine · supersedes r4 · re-flatline-r3 pending | operator-approved + flatline-r3-clean |
-| 1 | 2026-05-08 AM | ARCH | SDD via `/architect` · sprint-plan via `/sprint-plan` | review-passed |
-| 1 | 2026-05-08 PM | SHIP | **DAY-1 SPINE** (must run end-to-end EOD) · scaffold next.js + GET quiz endpoint w/ placeholder voice + result card render + vercel preview deploy + deck draft · plus 3 day-1 spikes (Metaplex Phantom devnet visibility · ed25519-via-instructions-sysvar · partial-sign tx assembly) · day-1 minimum anchor = `attest_witness` only | spine runs end-to-end · 3 spikes pass-or-degrade |
-| 2 | 2026-05-09 | SHIP | layer in proper HMAC quiz state · `claim_genesis_stone` instruction (if spike #2 passed) · Metaplex CPI (if spike #1 passed) · BLINK_DESCRIPTOR upstream PR · gumi voice integration (if handoff lands) | result card with mint button works in dialect inspector |
-| 3 | 2026-05-10 | SHIP | devnet anchor deploy + upgrade-authority frozen · result_token issuance + mint POST · sybil protection (IP rate limit + balance check · NO age check) · tiered sponsored-payer alerts · cmp-boundary lint + golden tests · observability · zerker indexer integration starts | review + audit |
-| 4 | 2026-05-11 | SHIP + FRAME | dialect registry submitted · demo simulator (per D-14) · multi-wallet demo recording · deck written (separation-as-moat + monetization + universality + roadmap) · pre-recording sponsored-payer top-up to >10 SOL · colosseum submission filed | submitted before deadline |
+| R-1 | Hounfour candidate schemas don't fit compass needs · adoption stalls | M | H | S0 audit surfaces BEFORE code · time-boxed upstream issue (FR-S0-3) |
+| R-2 | Straylight Phase 23a contract changes mid-cycle | M | M | S3 is doc-only (D2); no runtime coupling to invalidate |
+| R-3 | Eileen/Jani pair-point delayed | H | L | G8 ships independently · 7-day silent-no protocol |
+| R-4 | World substrate (S4) bloats · LOC budget G5b exceeded | M | M | Operator pair-point if >+600; cut scope to top-3 systems |
+| R-5 | LOC delta goes positive on conformance side | M | M | G5a is split from G5b; conformance side measured separately · should not have card-game contamination |
+| R-6 | Vendoring vs hard-importing hounfour: drift detection fails | M | M | Drift-detection CI rule (Q10) · quarterly comparison · NOT auto-merge |
+| R-7 | Card game accidentally gets implemented in compass | L | H | CI lint blocks `find compass/lib -name '*card*' -o -name '*battle*'` non-empty |
+| R-8 | Cycle scope creeps to puppet theater | L | H | CI lint blocks `puppet-*.ts` files · §2.3 explicit cut |
+| R-9 | Straylight Phase 23b lands mid-cycle and supersedes the brand-type fence | L | M | D2 brand-type is forward-compatible · swap implementation when 23b stabilizes |
+| R-10 | Multi-world playbook (S5) becomes premature standardization | L | M | S5 evidence requirement (FR-S5-2 · file:line per world) · or playbook stays as draft |
+| R-11 *(NEW)* | Effect-Schema idiom drift (S2 hand-ports diverge from canonical Effect-Schema patterns) | M | L | Operator pair-point S2 close · review for idiom-fit |
+| R-12 *(NEW)* | Hounfour ships v8.0.0 mid-cycle · breaking change | L | H | NFR-COMPAT-1 pins SHA at S0 · NFR-COMPAT-2 prohibits auto-merge · drift report at S6 distill |
 
-### sprint shape
+## 8 · Dependencies
 
-- **sprint-1** (day 1): substrate + adapters + repo bootstrap + anchor scaffold + 3 keypairs + HMAC encoder + placeholder voice + D-9 confirm
-- **sprint-2** (day 2): BLINK_DESCRIPTOR upstream + GET-chained quiz + result_token issuer + cmp-boundary lint + gumi voice integration
-- **sprint-3** (day 3): anchor deploy (devnet) + Metaplex metadata + mint POST + sybil protection + observability + indexer coordination with zerker
-- **sprint-4** (day 4): production deploy + dialect registry + demo simulator + multi-wallet demo recording + deck + submission
+### 8.1 · Upstream
 
----
+- **`loa-hounfour@7.0.0`** · 92 schemas · 14 dist exports · MIN_SUPPORTED 6.0.0 · TypeBox · authoritative source of agent/capability types · SHA pinned at S0 (§10.5)
+- **`construct-rooms-substrate`** · canonical envelope schemas · vendored as JSON in compass for production
+- **`loa-straylight`** Phase 23a · doc-only reference · no runtime dependency
 
-## 13 · team-facing issue draft (smol register · normal casing version available · ready for operator)
+### 8.2 · Internal compass state
 
-> **Operator note**: replace stale issue #1 (vote-persistence) and align with #2/#3 (operator's smol-style and my mermaid-version). Use whichever framing fits the audience.
+- Current `compass/lib/` four-folder discipline (commit `f4ce25e`)
+- 24 passing tests baseline (Q5)
+- Solana Anchor + Metaplex Token Metadata stack (untouched this cycle)
 
-```markdown
-🪺 awareness layer · solana frontier · 4d ship · r5 demo-locked
+### 8.3 · Tools
 
-building the awareness layer for purupuru — what's happening on-chain surfacing natively in social feeds, with a concrete demo experience and an architectural moat that wins at frontier.
+- Loa framework v1.39+
+- 3 model providers READY (opus + gpt-5.3-codex + gemini-2.5-pro) · flatline currently degraded (#759) · 2-agent fallback in use
 
-## the pitch
+## 9 · Out-of-scope (explicit · canonical)
 
-🟢 elevator: communities can't see what's actually happening on-chain. we make it visible — in the social feeds they already use.
+Per IMP-015: this list is derived from §2.3. If conflict, §2.3 wins.
 
-🟣 narrative: on-chain games go silent the moment you close the app. we make them speak — in tweets, casts, discord, wherever your community already is.
+- Puppet theater MVP
+- Three.js renderer for daemon visualization
+- Multi-chain envelope abstraction
+- ERC-6551 TBA materialization
+- Straylight implementation fork
+- Card game UI · animations · art · sound (handled in `purupuru-game`)
+- Card game design (handled in `purupuru-game`)
+- Multi-world active pilots
+- LLM-in-system-layers
+- Cross-construct messaging beyond rooms-substrate
+- Anchor program changes
+- Onboarding flow changes
+- Gamified UI flourishes for existing observatory/ceremony pages
 
-## the architectural moat (eileen's design)
+## 10 · References
 
-most AI agent products fail because the same model that decides what to SAY also decides what to DO. we split them. substrate (what's true) is owned by data. voice (how it lands) is owned by personality. agents present, never mutate state. hallucinations become cosmetic, not financial.
+- **Input brief**: `grimoires/loa/specs/simstim-brief-substrate-agentic-2026-05-12.md`
+- **Patched aspiration docs**: `grimoires/loa/context/07..11-*.md` (reference only · superseded)
+- **PRD review** (this revision driver): `grimoires/loa/a2a/flatline/prd-review-2026-05-12.md`
+- **Substrate cycle predecessor**: `grimoires/loa/specs/enhance-substrate-ecs-2026-05-11.md` + commit `f4ce25e`
+- **PRD v1 backup**: `grimoires/loa/prd.v1.pre-flatline-patches.md`
+- **Canonical envelope**: `~/Documents/GitHub/construct-rooms-substrate/data/trajectory-schemas/`
+- **Schema substrate**: `~/Documents/GitHub/loa-hounfour/` (`@0xhoneyjar/loa-hounfour@7.0.0` · npm publish status verified at S0)
+- **Governance substrate**: `https://github.com/0xHoneyJar/loa-straylight` Phase 23a
+- **Card game canonical home**: `~/Documents/GitHub/purupuru-game/` (SvelteKit · 18 cards · WORKING prototype)
+- **World canonical home**: `~/Documents/GitHub/world-purupuru/` (Spiral engine)
+- **Vault doctrine**: `~/vault/wiki/concepts/multi-axis-daemon-architecture.md` · `continuous-metadata-as-daemon-substrate.md` · `mibera-as-npc.md` · `puruhani-as-spine.md` · `eileen-dnft-conversation.md` · `freeside-as-layered-station.md`
+- **Operator decree** (KEEPER pre-flight 2026-05-12): "we don't want to end up creating more modules than we need to" · "lay the foundations to focus on building the purupuru card game NOT some random observational agent surface"
+- **Operator decree** (post-flatline 2026-05-12): "the game is technically already done, and it just needs to be refined, polished" · "I just want to create the underlying layer so I can start to actually dig in and work with NextJs and the different components"
 
-## the demo
+## 10.5 · Upstream provenance pin manifest (NEW · IMP-012 · resolved at S0 close)
 
-🌬 cosmic weather post (already live · @puruhpuruweather)
-🔮 tap blink → 5-step archetype quiz (GET chain · 1 signing prompt only at mint)
-📜 archetype card revealed (shareable · aggregate "23 others share this today")
-🪨 mint your Genesis Stone on Solana (devnet · Metaplex · visible in Phantom collectibles)
-🌊 weather + simulated activity feed keeps speaking · the world doesn't pause
+| Substrate | Pin | Resolved at |
+|---|---|---|
+| `loa-hounfour` | git SHA: `<TBD-S0>` (tag v7.0.0 OR HEAD-of-main with operator confirmation) | S0 close |
+| `construct-rooms-substrate` | git SHA: `<TBD-S0>` (operator-machine clone HEAD) | S0 close |
+| `loa-straylight` | git SHA: `<TBD-S0>` (Phase 23a draft commit) | S0 close |
 
-## three views, one truth
+All conformance work resolves against these SHAs. Mid-cycle upstream changes do NOT auto-rebase. Pin moves only at S6 distill or operator decree.
 
-🪨 substrate: sonar · score · anchor · weather oracle (zerker + zksoju lanes)
-🌊 operator surface: Score dashboard · purupuru-styled · live activity hub (zerker · parallel)
-🪞 member surface: Blinks first · discord/telegram next (zksoju + gumi · v0 ship)
+## 11 · Open questions for SDD phase (reduced)
 
-## what's already shipped
+Most v1 questions resolved by D1-D6 in §0.5. Remaining:
 
-✅ Genesis Stone (Element Stone · element + cosmic weather imprint) on Base Sepolia
-✅ score-puru API · 4-stage scoring pipeline · 5 behavioral signals
-✅ @puruhpuruweather X bot · daily ambient broadcast
-✅ Loa mounted on this repo (v1.130.0) · post-flatline-r1+r2 PRD at grimoires/loa/prd.md
+1. **Single Effect.provide site location** · `app/layout.tsx` (current host) OR new `lib/runtime/world.runtime.ts`? SDD §5 decision.
+2. **Drift-detection CI rule shape** (Q10) · structural diff via JSON Schema parse? SHA-based? SDD names tooling.
+3. **Sprint-2 hand-port idiom guide** · do we follow effect-school's "Schema.Class" pattern, or simpler `Schema.Struct({...})`? SDD recommends · operator ratifies.
+4. **Compass-as-fixture-vs-tutorial** *(IMP-016)* · does compass become a downstream CI gate for hounfour (so hounfour breaking changes show as compass test failures BEFORE hounfour merges)? Operator decision at S6.
 
-## what we're shipping v0
+## 12 · Acceptance summary (aligned to §2 goals · IMP-022)
 
-🆕 Solana twin Genesis Stone (Anchor + Metaplex · devnet · D-11 unifies later)
-🆕 GET-chained archetype quiz (5 questions · 1 signing prompt at mint)
-🆕 BLINK_DESCRIPTOR upstream PR to freeside-mediums (cycle-X sibling to cycle-R)
-🆕 L2 substrate package (@purupuru/peripheral-events · sealed Effect Schema · HMAC quiz state)
+This PRD is accepted when:
 
-## lanes (parallel · no blocking)
+- All 6 sprint scopes are grounded in concrete file lists (handled in Sprint Plan)
+- D1-D6 are preserved load-bearing through SDD
+- Eileen + Jani receive tracking issues (G8 · 7-day passive-accept protocol)
+- The reframe ("adopt, don't invent") is captured in NOTES.md
+- Gumi is informed compass world substrate ships polish-ready scaffolding by S4 close (her domain is `purupuru-game` · NOT compass)
+- G1 · G2 · G3 (reframed) · G4 (reframed) · G5a · G5b · G5c are each independently verifiable per §3.1 metrics
 
-🪨 zksoju · substrate · BLINK_DESCRIPTOR · anchor program · deploy · demo · simulator
-🌬 eileen · architecture ratification · separation-of-truth doctrine authority
-🌊 zerker · Score dashboard (purupuru-styled) · Solana indexer (downstream of our deploy)
-🌸 gumi · 5 archetype questions · 4 answers each · 5 archetype reveals · voice register · stone art
+## 13 · Sprint dependency graph (NEW · IMP missing-section)
 
-## monetization
-
-sponsored awareness slots — brands and community operators pay to surface their on-chain activity in the feeds where their audiences already scroll. we are the infrastructure FOR them. platform/medium agnostic.
-
-## user acquisition
-
-meet players where they already are. twitter native (Blinks), then discord/telegram (same substrate, different mediums). zero install friction.
-
-## the open question
-
-the loop above is r5 after eileen alignment. is this the shape, or does it need pivoting? specifically: does the "separation as moat" framing resonate, or is there a sharper way to say it?
-
-📚 PRD · grimoires/loa/prd.md (post-flatline-r1+r2 + post-eileen-alignment · r5)
-⏰ Clock · 2026-05-11 Solana Frontier
+```
+S0 (audit · no code)
+  │ S0→S1 promotion gate (Q7)
+  ▼
+S1 (envelope shell · verdict: unknown)
+  │ envelope shape locked
+  ▼
+S2 (hand-port hounfour · narrow verdict union)
+  │ types stable
+  ├──────────────┐
+  ▼              ▼
+S3 (doc-only)  S4 (world substrate · uses S1 envelope · uses S2 types)
+  │              │
+  └──────┬───────┘
+         ▼
+       S5 (multi-world playbook · light touch)
+         │
+         ▼
+       S6 (distill upstream · doctrine update)
 ```
 
----
+S3 and S4 are independent after S2. S5 + S6 are sequential.
 
-## 14 · vocabulary bank (extended for r5)
+## 14 · Fallback / scope-degradation tree (NEW · IMP missing-section)
 
-(unchanged from r4 plus:)
+If at S0:
+- **Hounfour blocking issue** → S0.5 negotiation cycle · cycle pauses
+- **Straylight Phase 23a unstable** → S3 downgrades to "1-paragraph mention in NOTES.md · zero deliverables"
+- **Rooms substrate unavailable for vendoring** → S1 vendors operator's hand-typed envelope schema · file upstream issue
 
-### tier 1 · substrate-truth (engineering)
+If at S2:
+- **Hand-port count <5 viable** → cut to N viable (operator confirms) · adjust Q3
+- **Hand-port idiom drift** → S2 close pair-point reworks before S3 starts
 
-- `ClaimMessage` · structured ed25519 signed payload (domain · cluster · program_id · wallet · element · weather · quiz_state_hash · expires_at · nonce)
-- `result_token` · short-lived JWT after Q5 · binds wallet+element+weather to mint flow
-- `HMAC quiz state` · server-validated URL state per step
-- `Metaplex Token Metadata` · NFT standard for visible genesis stone
-- `StoneClaimed` event · indexer surface for zerker
+If at S4:
+- **G5b LOC budget +600 exceeded by 50%** → cut to top-3 systems (world.system, awareness, observatory · drop ceremony to N+1)
+- **Operator iteration test fails** → re-design system layout · do NOT ship S4 until test passes
 
-### tier 2 · operator-handle (planning)
-
-- "separation-as-moat" · the architectural punchline
-- "three views, one truth" · substrate / operator / member surfaces
-- "shared rite" · the social-feel north star
-- "GET-chained quiz" · 5 GETs + 1 mint POST = 1 signing prompt
-- "sponsored awareness slots" · monetization frame
-
-### tier 3 · player-felt (storytelling)
-
-(unchanged plus:)
-- "your genesis · your beginning" — gumi-authored stone reveal copy direction
-- "47 others took fortune today" — aggregate signal copy
-- never use: "claim" in DeFi sense (only "claim your stone" in genesis context) · "fee" · "rent" (use "gasless" affirmatively)
-
-### tier 4 · cold-deployed (operator-only)
-
-(unchanged plus:)
-- "ed25519_program syscall" · "Metaplex CPI" · "HMAC quiz state token" · "sponsored-payer halt threshold" — all internal vocabulary
-
----
-
-## sources
-
-- **vault**: same as r4 plus new gaps `[[separation-of-truth-and-voice-as-architectural-moat]]` and `[[shared-rite-as-social-feel]]`
-- **bonfire research**: same as r4
-- **repos recon**: same as r4
-- **flatline reviews**:
-  - r1 (2026-05-07 · 190s · $0): 7 high-consensus + 9 blockers integrated
-  - r2 (2026-05-07 · 147s · $0): 17 high-consensus + 16 blockers (5 fixed inline · 11 surfaced for operator decisions · all integrated in r5)
-  - r3 (PENDING · this revision)
-- **interview rounds**:
-  - mid (Q1-Q4 architecture)
-  - post-flatline-r1 (Q1'-Q4' devnet · sponsored-payer · ECS+PDA · MVD-deferred)
-  - post-demo-frame (Q1''-Q3'' Solana twin · multi-step quiz · simulator-open)
-  - post-flatline-r2 (NFT shape · MVD lock · POST signing)
-  - post-eileen-alignment (P1 stone-evolution-deferred · P2 separation-as-moat · P3 shared-rite-aggregates · P4 universality-via-dashboard · F1 gumi-parallel · F2 zerker-owns-dashboard)
-- **gumi's pitch**: same as r4 (vision: 18 cards · burn loop · soul-stage agents · cosmic weather oracles · daily friend duels)
-- **eileen's framing document** (2026-05-07 · `/Users/zksoju/Downloads/message (4).txt`): 10-category judging rubric · "what loses" diagnostic list · the strong-version Web3/AI test
-- **upstream operator brief** (2026-05-07 PM · post-eileen): full reframe · separation-as-moat doctrine · zerker dashboard parallel · gumi quiz design · 4d achievable · simulation in demo
-
----
-
-## FR-12 Amendment · Indexer in-repo scope flip (2026-05-09)
-
-> **⚠️ HISTORICAL — SUPERSEDED 2026-05-09 evening.** This amendment captured the negotiated decisions from the morning session when we assumed the indexer would live in this repo. Subsequent analysis revealed: (a) the observatory naturally deploys to Vercel which can't host long-lived WebSocket subscriptions, (b) sonar's existing Envio framework is EVM-only so couldn't host Solana indexing either, (c) the team's body-parts naming pattern supports a sister-service decomposition. The indexer is now in [project-purupuru/radar](https://github.com/project-purupuru/radar) — a separate Node + Hono service deploying to Railway. AC-12.5/12.7/12.8/12.10/12.11/12.12 from the table below moved to radar's own PRD `grimoires/loa/prd.md`. AC-12.5 (event-to-row latency) and AC-12.9 (env-flag wiring at `lib/activity/index.ts`) and AC-12.12 (E2E test) remain valid for THIS repo's observatory-side consumer work — that's a separate small follow-up sprint.
->
-> **Original amendment context preserved below for audit trail.**
->
-> **Amendment authority**: zerker (lane owner per `prd.md:574`) · negotiated 2026-05-09 in response to GitHub issue [#5](https://github.com/project-purupuru/purupuru-ttrpg/issues/5) drafted by zksoju
-> **Status**: SUPERSEDES the in-repo scope boundary stated at `prd.md:510` for FR-12 only · all other FR-12 acceptance criteria preserved verbatim
-> **Cycle**: hackathon (ship 2026-05-11) · indexer must be demo-ready 2026-05-11 morning
-
-### A · scope boundary flip
-
-`prd.md:510` (FR-12, original) excluded the indexer from this repo:
-
-> "out of scope for this repo: the Solana indexer code (zerker's lane · operator+zerker learning curve)"
-
-This carve-out was authored when the assumption was a separate `score-puru` SvelteKit app. Soju's issue #5 still reflects that assumption ("in your repo · likely the score-puru SvelteKit app"). The reality on the ground:
-
-- `purupuru-ttrpg` is Next.js 16 + pnpm, not SvelteKit
-- No separate `score-puru` repo is in active use for this hackathon's observatory deliverable
-- The observatory ActivityRail (`components/observatory/ActivityRail.tsx`) is *the* Score dashboard surface for the hackathon demo
-- `lib/activity/types.ts:38-44` already defines `MintActivity` 1:1-isomorphic with `StoneClaimed`
-
-**Decision**: indexer code lives in this repo. Splitting it across repos would (a) duplicate the activity-stream contract, (b) require cross-repo deploy coordination on a 2-day clock, and (c) contradict the drift report's resolution §6.3 which already framed indexer wiring as a sprint-3 zerker-lane materialization within the observatory surface.
-
-### B · new acceptance criteria (additive · supplements AC-12.1 through AC-12.4)
-
-| ID | Criterion | Source |
-|---|---|---|
-| AC-12.5 | Indexer subscribes to devnet `StoneClaimed` events from program `7u27WmTz2hZHvvhL89XcSCY3eFhxEfHjUN5MjzMY6v38` and surfaces them in observatory ActivityRail within 30s of mint | issue #5 DoD §1 |
-| AC-12.6 | Indexer process runs as a long-lived Node process, deployable to Railway (Vercel ruled out: serverless does not hold WebSocket subscriptions) | negotiated 2026-05-09 |
-| AC-12.7 | In-memory ring buffer of last ~200 events; no Postgres / Hasura / SQLite for v0 — soju re-triggers fresh devnet events morning of demo, so no persistence across process restart needed | negotiated 2026-05-09; issue #5 non-goals |
-| AC-12.8 | WebSocket reconnect strategy: indexer detects silent `onLogs` death and reconnects with bounded backoff. Health pip in observatory chrome reflects connection state visibly so a stalled feed degrades visibly rather than silently | issue #5 §"Why this is non-obvious"; demo-day risk mitigation |
-| AC-12.9 | Env-flag toggle `INDEXER_MODE=real\|mock` — local dev defaults to `mock` (existing `lib/activity/mock.ts` path); production / Railway sets `real`. The switch lives at `lib/activity/index.ts:5` (currently a hard import — will become conditional) | negotiated 2026-05-09 |
-| AC-12.10 | Health endpoint at `app/api/indexer/status/route.ts` exposing `{ lastEventAt, count, connected }` (count = events seen since process boot; connected = WS state) | issue #5 DoD §"Health indicator" |
-| AC-12.11 | Element byte (1=Wood, 2=Fire, 3=Earth, 4=Metal, 5=Water) → lowercase `Element` string conversion happens AT the indexer boundary (`lib/indexer/`), not in the consumer. Observatory keeps its lowercase internal vocab. Resolves drift report §7.2 deferred decision | drift report §7.2; `lib/score/types.ts:7` |
-| AC-12.12 | End-to-end tested with a fresh devnet claim before demo recording on 2026-05-11. Test = trigger claim via purupuru-blink.vercel.app/preview → observe row appear in ActivityRail within 30s | issue #5 DoD §"Tested end-to-end" |
-
-Pre-existing AC-12.1 through AC-12.4 (`prd.md:514-517`) remain in force unchanged — they govern the substrate-side deliverables (anchor program emit, Effect Schema export, deploy timing coordination, demo inclusion).
-
-### C · technical decisions (locked this turn)
-
-| Decision | Choice | Why | Risk if wrong |
-|---|---|---|---|
-| RPC provider | raw `api.devnet.solana.com` (free, no signup) | zero signup friction; demo volume is ~10 events; INDEXER_MODE flip path lets us swap to Helius via env-var if RPC flakes | silent WS disconnect during demo recording — mitigated by AC-12.8 reconnect + AC-12.10 health pip |
-| IDL acquisition | vendor copy NOW from soju's branch into `lib/indexer/idl/purupuru_anchor.json` | unblocks build immediately; `@purupuru/peripheral-events` npm package timeline (🟡 in flight per issue #5) is uncertain on the 2-day clock | IDL drift if soju upgrades program before D-12 upgrade-authority freeze — mitigated by post-freeze re-vendor task in sprint plan |
-| Storage shape | in-memory ring buffer (~200 events, module singleton) | simplest path; persistence not needed (soju re-triggers events morning of demo) | process restart loses recent feed — acceptable for demo window |
-| Deploy target | Railway | long-lived Node process required by WebSocket subscription; Vercel serverless cannot hold the connection | Railway cold-start eats demo window — mitigated by warming up service ≥30 min before recording |
-| Server-boot hook | Next.js 16 `instrumentation.ts` (currently absent) | canonical Next 16 pattern for run-once-on-boot side effects; aligns with the codebase's existing `"use client"` boundary discipline (`PentagramCanvas.tsx`) | inappropriate for HMR cycles in dev — mitigated by env-flag default `mock` in dev |
-
-### D · open discovery items (become spike tasks in /sprint-plan)
-
-| Item | Investigation needed | Output |
-|---|---|---|
-| Reconnect loop shape | exponential backoff vs heartbeat-based vs simple-retry? Solana `onLogs` does not surface explicit disconnect events — need a liveness-check pattern (e.g., periodic `getSlot` call with a dead-man timer) | sprint task: 30-min spike, decide pattern, document in SDD |
-| Devnet rate-limit headroom | actual req/s ceiling on `api.devnet.solana.com` for ~10 events/demo + heartbeat polling — burn through it once before demo to know the cliff | sprint task: 15-min spike during pre-demo dry-run |
-| Element byte resolution | confirm `StoneClaimed.element` is exactly `u8` 1-5 in the IDL (not 0-4, not bigger enum). Anchor IDLs sometimes encode enums differently than hand-coded integers | sprint task: read IDL after vendoring; one-line confirmation |
-
-### E · non-goals (preserved from issue #5)
-
-- ❌ Backfill from before indexer was running (devnet only · soju re-triggers fresh batch morning of demo)
-- ❌ Multi-program indexing (only `7u27WmTz...` matters)
-- ❌ Mainnet (devnet only · post-hackathon mainnet is a separate cycle)
-- ❌ Analytics / aggregations (counts · histograms etc) beyond the live feed
-- ❌ Persistence across process restart (in-memory ring buffer is sufficient given soju's re-trigger)
-- ❌ Reconciliation between indexer-observed events and any prior history (no prior history matters for demo)
-
-### F · risk register additions
-
-Supplements existing risk register entries `prd.md:482` (indexer lag) and the indexer-readiness risks at `sprint.md:228, 173`.
-
-| Risk | Likelihood | Impact | Mitigation | Trigger condition |
-|---|---|---|---|---|
-| **R-13**: Devnet RPC silent WS disconnect during demo recording | medium | high (live feed goes dark) | reconnect loop (AC-12.8) + visible health pip (AC-12.10) + env-flag swap to Helius (AC-12.9) as 2-min escape hatch | onLogs callback stops firing for >60s without explicit error |
-| **R-14**: IDL drift if zksoju upgrades anchor program before D-12 upgrade-authority freeze (`prd.md:622`) | low | high (parser fails silently — events look like noise) | re-vendor IDL post-D-12 freeze; zksoju notifies zerker before any pre-freeze re-deploy | borsh decode fails on incoming logs |
-| **R-15**: Railway cold-start latency eats the demo window | low | medium (first event delayed, may miss 30s SLO) | warm Railway service ≥30 min before recording; health endpoint serves as warmup probe | first deployed-cold ping >5s |
-
-### G · coordination delta
-
-Updates the lane-ownership tables at `prd.md:574-578`.
-
-| Concern | Pre-amendment owner | Post-amendment owner |
-|---|---|---|
-| Anchor program | zksoju | zksoju (unchanged) |
-| `StoneClaimed` event schema in IDL | zksoju | zksoju (unchanged) |
-| Effect Schema export `@purupuru/peripheral-events` | zksoju | zksoju (unchanged · 🟡 in flight) |
-| Pre-demo event batch trigger (~10 fresh claims morning of 2026-05-11) | zksoju | zksoju (unchanged) |
-| Upgrade-authority freeze (D-12 / `prd.md:622`) | zksoju | zksoju (unchanged) |
-| **Indexer process (subscribe + parse + adapt)** | ❌ explicitly out-of-repo | ✅ **zerker · in this repo** |
-| **IDL vendoring into this repo** | ❌ N/A | ✅ **zerker** |
-| **Railway deploy + env-var contract** | ❌ N/A | ✅ **zerker** |
-| **`INDEXER_MODE` env-flag wiring at `lib/activity/index.ts`** | ❌ N/A | ✅ **zerker** |
-| **Health endpoint + observatory chrome health pip** | ❌ N/A | ✅ **zerker** |
-
-### H · Definition of Done (from issue #5, adapted)
-
-- [ ] Indexer subscribed to devnet · receives `StoneClaimed` within 30s of mint (AC-12.5)
-- [ ] In-memory ring buffer populated with idempotent rows on `(signature, log_index)` (AC-12.7)
-- [ ] `INDEXER_MODE=real|mock` env switch wired at `lib/activity/index.ts` (AC-12.9)
-- [ ] Observatory ActivityRail renders the live data with existing purupuru styling (AC-12.5; no new design tokens needed)
-- [ ] Health endpoint + visible pip in observatory chrome (AC-12.10)
-- [ ] Reconnect loop survives a manual WS-kill test (AC-12.8)
-- [ ] IDL vendored at `lib/indexer/idl/purupuru_anchor.json` (Decision C)
-- [ ] Tested end-to-end with a fresh devnet claim during 2026-05-10 (T-1 dry-run) (AC-12.12)
-- [ ] Railway deploy live + warmed ≥30 min before 2026-05-11 demo recording (R-15 mitigation)
-
-### I · sources & traceability
-
-- **GitHub issue**: [project-purupuru/purupuru-ttrpg#5](https://github.com/project-purupuru/purupuru-ttrpg/issues/5) (zksoju · 2026-05-09)
-- **Pre-amendment PRD lines**: 497-517 (FR-12 original) · 574-579 (lane ownership) · 482 (risk register) · 510 (in-repo carve-out)
-- **SDD lines**: 349, 377 (StoneClaimed event flow) · 514 (Sonar/Hasura context) · 555, 569 (observability) · 612-616 (sprint-3 timing) · 640 (D-17 ready-by-date)
-- **Sprint plan lines**: 147 (S3-T9 indexer coordination) · 173 (sprint-3 risk: indexer not ready) · 228 (risk register: indexer lag) · 255 (D-17 dependency)
-- **Drift report**: `grimoires/loa/context/04-observatory-awareness-drift.md` §6.3 (resolution materialized) · §7.2 (element casing boundary)
-- **Repo reality**: `lib/activity/types.ts:38-44` (MintActivity 1:1 with StoneClaimed) · `lib/activity/index.ts:5` (mock/real seam) · `components/observatory/ActivityRail.tsx` (read-side consumer) · `lib/score/types.ts:7` (lowercase Element)
-- **Negotiation transcript**: this session (Phase 0.5 routing decision · 2 focused interview questions on RPC + IDL)
-
-### J · forward dispatch
-
-This amendment is the PRD-side gate for the indexer workstream. The dependency chain to demo-readiness:
-
-1. **/architect** → SDD addendum: indexer architecture (RPC client, IDL parsing, ring buffer, reconnect loop, instrumentation.ts boot hook, INDEXER_MODE wiring, health endpoint) — gated on this amendment landing
-2. **/sprint-plan** → indexer sprint with concrete tasks: scaffold deps, vendor IDL, indexer core, server boot, stream wiring, health endpoint, demo dry-run — gated on SDD addendum
-3. **/simstim** → execution dispatch
-4. **/run-bridge** → autonomous excellence loop with kaironic termination
+If at S6:
+- **construct-effect-substrate doctrine ratification stalls** → ship cycle as `candidate · 1-project-validated` · operator promotes later

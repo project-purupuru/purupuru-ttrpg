@@ -1,0 +1,186 @@
+{
+  "phase": "spec",
+  "document": "grimoires/loa/a2a/flatline/substrate-agentic-translation-layer-merged.md",
+  "source_files": [
+    "grimoires/loa/context/07-substrate-architecture-and-layering.md",
+    "grimoires/loa/context/08-event-envelope-and-cross-messaging.md",
+    "grimoires/loa/context/09-daemon-nft-as-composed-runtime.md",
+    "grimoires/loa/context/10-puppet-theater-and-ecs-visualizer.md",
+    "grimoires/loa/context/11-translation-layer-canon.md"
+  ],
+  "review_method": "3-agent adversarial substitute (flatline-orchestrator degraded · provider-disconnect issue #774)",
+  "reviewers": ["skeptic", "improver-steel-man", "consensus-judge"],
+  "timestamp": "2026-05-12T01:50:00Z",
+  "consensus_summary": {
+    "high_consensus_count": 6,
+    "disputed_count": 2,
+    "blocker_count": 5,
+    "steel_man_count": 7,
+    "model_agreement_percent": 85,
+    "confidence": "high"
+  },
+  "per_file_scores": {
+    "§07": { "groundedness": 620, "coherence": 780, "actionability": 480, "risk_inverse": 550, "total_4000": 2430 },
+    "§08": { "groundedness": 380, "coherence": 720, "actionability": 420, "risk_inverse": 380, "total_4000": 1900 },
+    "§09": { "groundedness": 320, "coherence": 680, "actionability": 350, "risk_inverse": 280, "total_4000": 1630, "label": "MOST DANGEROUS — locative claims about non-existent files" },
+    "§10": { "groundedness": 410, "coherence": 740, "actionability": 520, "risk_inverse": 450, "total_4000": 2120 },
+    "§11": { "groundedness": 480, "coherence": 760, "actionability": 540, "risk_inverse": 600, "total_4000": 2380 }
+  },
+  "blockers": [
+    {
+      "id": "B1",
+      "score": 950,
+      "file": "§08",
+      "claim": "compass shipped the Effect Stream-Hub-PubSub primitives. these are the arteries for activityStream and populationStore",
+      "truth": "compass uses hand-rolled Set<callback> subscribe pattern · zero matches for Hub/PubSub/Stream in lib/runtime/, lib/activity/, lib/sim/ · only weather + sonifier are on Effect Layers",
+      "fix": "rewrite §08 §1 to honest current state: 'compass shipped Effect Layers for weather + sonifier · the activityStream + populationStore still use hand-rolled subscribe(cb), flagged by construct-effect-substrate SKILL.md as the next adoption target'",
+      "evidence_path": "compass/lib/activity/index.ts:42-48 · compass/lib/sim/population.system.ts:69"
+    },
+    {
+      "id": "B2",
+      "score": 850,
+      "file": "§07 / §08",
+      "claim": "Solana parallel column · Anchor emit! events · program logs",
+      "truth": "loa stack has no Solana layer · ecosystem-architecture.md L1-L5 are framework/protocol/runtime/platform/product · compass mints Metaplex NFTs but ships no Anchor program · §08 conflicts with §09's ERC-6551 EVM column",
+      "fix": "either delete the Solana column from §07 (downgrade to 'optional anchor target') OR commit to it and remove §09's ERC-6551 framing",
+      "evidence_path": "loa/docs/ecosystem-architecture.md:55-59"
+    },
+    {
+      "id": "B3",
+      "score": 800,
+      "file": "§09",
+      "claim": "the architectural anchor is the ERC-6551 token-bound account · puruhani as the spine",
+      "truth": "no 6551 implementation exists in loa-* / freeside-* / compass · puruhani in compass is a sprite/CDN asset (lib/world-purupuru-cdn.ts:100-117) · vault doctrine puruhani-as-spine names 'mint-on-demand, never mint-at-onboarding'",
+      "fix": "downgrade to 'when on-chain materialization is needed, ERC-6551 is the canonical pattern (see puruhani-as-spine doctrine)' · do not assert it as shipped",
+      "evidence_path": "vault/wiki/entities/puruhani-as-spine.md"
+    },
+    {
+      "id": "B4",
+      "score": 750,
+      "file": "§08",
+      "claim": "every envelope must carry signature or substrate-truth pointer · these four are non-negotiable across all altitudes",
+      "truth": "no schema, no codec, no example · in-memory subscribe(cb) events have no chain anchor and no signature · the rule is unimplementable as written for code-altitude",
+      "fix": "adopt IMP-3's Effect Schema definition · narrow 'signature' to discriminated union of {ed25519 sig, substrate-pointer with txSig+slot} so code-altitude has a valid encoding",
+      "evidence_path": "compass/packages/peripheral-events/src/world-event.ts (actual envelope is {_tag, eventId, emittedAt, ...})"
+    },
+    {
+      "id": "B5",
+      "score": 720,
+      "file": "§09",
+      "claim": "this split is enforced at the construct-boundary.port.ts interface",
+      "truth": "file doesn't exist in compass, construct-effect-substrate, or loa · invented in §09 with passive voice ('is enforced at') · a claim of enforcement requires a typed interface and a Layer; neither shipped",
+      "fix": "ship the file. IMP-4 provides the paste-ready interface that fences verify ⊥ judge at compile time",
+      "evidence_path": "no path · file does not exist"
+    }
+  ],
+  "high_consensus": [
+    {
+      "id": "HC-1",
+      "score": 880,
+      "file": "§08",
+      "title": "Ship the actual Effect Schema for the event envelope",
+      "current": "prose-only spec: '[id · trace · scope · payload · signature]'",
+      "proposed": "import { Schema as S } from 'effect'; export const EventEnvelope = S.Struct({ id: S.UUID, trace: S.Struct({ parent: S.NullOr(S.UUID), root: S.UUID, emittedAt: S.DateFromString }), scope: S.TemplateLiteral(...), provenance: S.Struct({ emitter: S.String, altitude: S.Literal('substrate', 'runtime', 'distribution') }), payload: S.Unknown, signature: S.Union(S.Struct({ kind: S.Literal('ed25519'), sig: S.String }), S.Struct({ kind: S.Literal('substrate-pointer'), txSig: S.String, slot: S.Number })) }); export type EventEnvelope = S.Schema.Type<typeof EventEnvelope>",
+      "rationale": "skeptic B4 + judge cross-check + improver IMP-3 all converge: the envelope must be a Schema, not prose · without it §09 §10 §11 all reference 'the envelope' as if shipped",
+      "agreement": "skeptic + judge + improver"
+    },
+    {
+      "id": "HC-2",
+      "score": 870,
+      "file": "§09",
+      "title": "Ship construct-boundary.port.ts as a real typed interface",
+      "current": "passive-voice claim 'this split is enforced at construct-boundary.port.ts'",
+      "proposed": "// lib/ports/construct-boundary.port.ts\nexport class ConstructBoundary extends Context.Tag('ConstructBoundary')<ConstructBoundary, {\n  readonly verify: (e: EventEnvelope) => Effect.Effect<VerifiedEvent, SubstrateRejection, never>      // pure · deterministic\n  readonly judge: (e: VerifiedEvent) => Effect.Effect<JudgmentEvent, JudgmentError, FinnRuntime>      // LLM-bound · revocable\n}>() {}\n// invariant: judge(e) MUST consume only VerifiedEvent (compile-time fence)",
+      "rationale": "skeptic B5 + judge identifies §09 as MOST DANGEROUS + improver IMP-4 ships the interface · turns 'verify ⊥ judge' from code-review hope into compile-time fence",
+      "agreement": "skeptic + judge + improver"
+    },
+    {
+      "id": "HC-3",
+      "score": 830,
+      "file": "§09",
+      "title": "Mark daemon-NFT-as-composed-runtime locative claims as PROPOSED",
+      "current": "the stack axis is defined in daemon.schema.ts. the civic alignment is enforced by governance.port.ts. the exodia composition is assembled in exodia.live.ts. time is recorded via the event envelope in memory.system.ts.",
+      "proposed": "rewrite as 'PROPOSED layout: stack → daemon.schema.ts (proposed) · civic → governance.port.ts (proposed) · exodia → exodia.live.ts (proposed) · time → memory.system.ts (proposed) · community → pubsub channels'. Add a §Files-to-build section so Sprint 1 can execute the proposal.",
+      "rationale": "all 4 named files are invented · judge: 'pure invention dressed as map' · skeptic: 'phantom files' · improver implicitly addresses by demanding real signatures",
+      "agreement": "skeptic + judge"
+    },
+    {
+      "id": "HC-4",
+      "score": 830,
+      "file": "§09",
+      "title": "Add typed error channel to mintTBA Effect.gen pseudocode",
+      "current": "Effect.gen function with mintTBA, initializeState, connectEventStream, resolveVoice — no signatures, no errors, no requirements",
+      "proposed": "Mark as illustrative AND retype as Effect.Effect<Daemon, MintFailure | SchemaDrift | StreamUnavailable | VoiceResolutionError, TBAClient | MetadataStore | EventBus | FinnRuntime>. Annotate each yield* with what it can fail with.",
+      "rationale": "skeptic missing-deps + judge weakest-claim + improver IMP-5 · the operator's whole point is typed-error envelopes (§08); §09's canonical lifecycle should embody it",
+      "agreement": "skeptic + judge + improver"
+    },
+    {
+      "id": "HC-5",
+      "score": 800,
+      "file": "§07",
+      "title": "Add Test substrate row + Identity/owner column to translation table",
+      "current": "3 rows × 4 columns",
+      "proposed": "4 rows (Substrate / Runtime / Distribution / Test) × 5 columns (the 4 + Identity/owner). Test row: '*.mock.ts Layer + property tests | hounfour invariant suite + finn sandbox replay | shadow-fork TBA + simulated metadata mutations | solana-test-validator + Anchor bankrun | CI / fagan reviewer'",
+      "rationale": "improver IMP-1 + IMP-2 · the four-folder pattern explicitly names *.mock.ts (per construct-effect-substrate patterns/suffix-as-type); leaving the test row out hides the symmetry that makes the doctrine FAGAN-safe; identity column turns table from descriptive to actionable",
+      "agreement": "improver + judge"
+    },
+    {
+      "id": "HC-6",
+      "score": 750,
+      "file": "§11",
+      "title": "Replace aspirational promotion criteria with measurable gates",
+      "current": "adopted by ≥3 distinct projects + route events between 2 different constructs + test counter-examples",
+      "proposed": "Quantitative: ≥1 envelope round-trip (substrate→runtime→distribution→back) measured under 200ms p95 in a non-Next.js project. Counter-example test must include: malformed sig · replay (same id twice) · scope-mismatch routing. ≥1 promotion project must be Solana (the §07 column is otherwise aspirational).",
+      "rationale": "judge weakest-claim + improver IMP-10 · 'adopted by 3 projects' is the same gate as construct-effect-substrate (still candidate); without sharper gates the translation pack will sit candidate forever too",
+      "agreement": "judge + improver"
+    }
+  ],
+  "disputed": [
+    {
+      "id": "D-1",
+      "file": "§10",
+      "title": "Puppet theater — vapor or productive thesis?",
+      "skeptic_view": "no three.js code in compass · 'experimentation thesis' is promoting an unbuilt artifact · §10 violates suffix discipline (puppet.component.ts not in pack)",
+      "improver_view": "the 3-altitude event visibility is the proof-of-isomorphism · IMP-7 adds Mermaid + IMP-8 expands to schema + mock + test files",
+      "resolution_proposal": "Adopt IMP-7 Mermaid diagram NOW (concrete) · downgrade puppet theater prose to 'proposed thesis · MVP file list to ship in cycle N+2' · add the Mermaid above 'the puppet theater is not a demo' paragraph"
+    },
+    {
+      "id": "D-2",
+      "file": "§09 + §07",
+      "title": "Are finn / hounfour 'constructs' or 'layers'?",
+      "skeptic_view": "loa/docs/ecosystem-architecture.md:55-59 puts finn at L3 Runtime and hounfour at L2 Protocol · they are LAYERS, not constructs · constructs are a cross-cutting distribution plane",
+      "improver_view": "(does not address — IMP-6 just expands composes-with frontmatter)",
+      "resolution_proposal": "Rewrite §07 §08 §09 to use 'finn (the runtime)' and 'hounfour (the protocol/schema layer)' · reserve 'construct' for the cross-cutting plane (observer, crucible, artisan, etc.) per ecosystem-architecture's 'Construct Lifecycle' section"
+    }
+  ],
+  "naming_drift": [
+    { "term": "construct-boundary.port.ts", "where": "§09", "issue": "invented; doesn't exist", "fix": "ship via HC-2" },
+    { "term": "loa-daemon-relay.ts", "where": "§08", "issue": "invented; not a contract path or TS convention", "fix": "improver IMP-11 proposes 'loa-hounfour repo at programs/daemon-relay/ (Anchor program) with TS port at loa-finn/src/relay/relay.port.ts'" },
+    { "term": "puppet.component.ts", "where": "§10", "issue": "*.component.ts is not in the substrate pack suffix discipline (only port/live/mock/system)", "fix": "rename to puppet.entity.ts OR add component to the pack's suffix doctrine" },
+    { "term": "finn construct", "where": "§09", "issue": "finn is the runtime (L3), not a construct", "fix": "see D-2" },
+    { "term": "hounfour construct", "where": "§07", "issue": "hounfour is the protocol/schema repo (L2), not a construct", "fix": "see D-2" },
+    { "term": "BEAUVOIR.md voice", "where": "§09", "issue": "BEAUVOIR.md is the bridgebuilder/soul template; reusing the name conflates two artifacts", "fix": "qualify as 'BEAUVOIR.md voice file (per dAMP-as-default-voice-substrate doctrine, distinct from Loa bridgebuilder template)'" },
+    { "term": "compass hades-pattern", "where": "§10", "issue": "never defined anywhere; appears to be invented atmosphere", "fix": "delete reference OR cite the actual ceremony commit (compass commit 41a4aaa style(ceremony): Hades pattern)" }
+  ],
+  "steel_man": [
+    { "id": "SM-1", "score": 920, "claim": "ECS≡Effect≡Hexagonal isomorphism as canonical mental model", "preserves": "operator's discovered truth from compass cycle · removing forces 3 vocabularies to be re-translated at every boundary" },
+    { "id": "SM-2", "score": 950, "claim": "The 4-column translation table (§07)", "preserves": "THE artifact · load-bearing translation device · survives any rewrite" },
+    { "id": "SM-3", "score": 940, "claim": "Substrate verifies, construct judges (with: 'never route on-chain value through LLM verdicts')", "preserves": "safety invariant · without it mibera-as-NPC collapses into 'LLM controls assets'" },
+    { "id": "SM-4", "score": 890, "claim": "Daemon NFT ≡ Effect.Service shape (§09)", "preserves": "operationalizes SM-1 at daemon scale · Effect.gen example is paste-ready scaffold" },
+    { "id": "SM-5", "score": 870, "claim": "Event envelope carries provenance + scope + idempotency + signature/substrate-truth pointer (§08)", "preserves": "cross-altitude wire format · removing means each integration re-invents replay protection" },
+    { "id": "SM-6", "score": 860, "claim": "Three-altitude simultaneous event visibility (§10)", "preserves": "what makes puppet theater a doctrine artifact, not a demo · same envelope projected onto 3 surfaces IS the proof of isomorphism" },
+    { "id": "SM-7", "score": 900, "claim": "Metadata document as sync forcing function (§11 emergence check)", "preserves": "names the hidden glue · already validated in continuous-metadata-as-daemon-substrate (4-layer daemon stack)" }
+  ],
+  "metrics": {
+    "total_latency_ms": 130000,
+    "skeptic_findings": 38,
+    "improver_findings": 19,
+    "judge_scoring_artifacts": 20,
+    "model_agreement_percent": 85
+  },
+  "recommendation": {
+    "verdict": "DO NOT INTEGRATE AS-IS",
+    "rationale": "5 BLOCKERS · §09 scored 1630/4000 (MOST DANGEROUS) · Solana vs ERC-6551 chain confusion across §07/§08/§09 is structurally incoherent · 4 of 5 files reference the envelope schema as if shipped when it doesn't exist",
+    "next_action": "Address all 5 BLOCKERS + 6 HIGH_CONSENSUS items + the 7 naming drifts. Re-review the corrected files individually (avoiding the long-prompt PROVIDER_DISCONNECT). Consider whether the operator wants to feed the synthesis report back to Gemini for a v2 of the 5 docs."
+  }
+}

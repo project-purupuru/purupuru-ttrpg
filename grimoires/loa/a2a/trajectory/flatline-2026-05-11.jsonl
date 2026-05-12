@@ -1,0 +1,126 @@
+{
+  "type": "flatline_protocol",
+  "event": "complete",
+  "timestamp": "2026-05-12T01:39:16Z",
+  "state": "DONE",
+  "data": {
+    "consensus_summary": {
+      "high_consensus_count": 0,
+      "disputed_count": 0,
+      "low_value_count": 0,
+      "blocker_count": 0,
+      "model_agreement_percent": 0,
+      "models": 2,
+      "tertiary_items": 0,
+      "confidence": "degraded"
+    },
+    "high_consensus": [],
+    "disputed": [],
+    "low_value": [],
+    "blockers": [],
+    "degraded": true,
+    "degraded_model": "both",
+    "confidence": "degraded",
+    "degradation_reason": "no_items_to_score",
+    "phase": "spec",
+    "document": "grimoires/loa/a2a/flatline/substrate-agentic-translation-layer-merged.md",
+    "domain": "substrate-architecture-translation-layer-daemon-nft-ecs-effect",
+    "tertiary_model_used": null,
+    "tertiary_status": "disabled",
+    "execution": {
+      "mode": "interactive",
+      "mode_reason": "Default (no explicit mode specified)",
+      "run_id": null
+    },
+    "timestamp": "2026-05-12T01:39:16Z",
+    "metrics": {
+      "total_latency_ms": 65000,
+      "cost_cents": 0,
+      "cost_usd": 0
+    }
+  }
+}
+{
+  "type": "flatline_protocol",
+  "event": "complete",
+  "timestamp": "2026-05-12T02:22:56Z",
+  "state": "DONE",
+  "data": {
+    "consensus_summary": {
+      "high_consensus_count": 0,
+      "disputed_count": 0,
+      "low_value_count": 0,
+      "blocker_count": 0,
+      "model_agreement_percent": 0,
+      "models": 2,
+      "tertiary_items": 0,
+      "confidence": "degraded"
+    },
+    "high_consensus": [],
+    "disputed": [],
+    "low_value": [],
+    "blockers": [],
+    "degraded": true,
+    "degraded_model": "both",
+    "confidence": "degraded",
+    "degradation_reason": "no_items_to_score",
+    "phase": "prd",
+    "document": "grimoires/loa/prd.md",
+    "domain": " prd substrate agentic translation",
+    "tertiary_model_used": null,
+    "tertiary_status": "disabled",
+    "execution": {
+      "mode": "interactive",
+      "mode_reason": "Default (no explicit mode specified)",
+      "run_id": null
+    },
+    "timestamp": "2026-05-12T02:22:56Z",
+    "metrics": {
+      "total_latency_ms": 72000,
+      "cost_cents": 0,
+      "cost_usd": 0
+    }
+  }
+}
+{
+  "type": "flatline_protocol",
+  "event": "complete",
+  "timestamp": "2026-05-12T02:43:38Z",
+  "state": "DONE",
+  "data": {
+    "consensus_summary": {
+      "high_consensus_count": 0,
+      "disputed_count": 0,
+      "low_value_count": 0,
+      "blocker_count": 0,
+      "model_agreement_percent": 0,
+      "models": 2,
+      "tertiary_items": 0,
+      "confidence": "degraded"
+    },
+    "high_consensus": [],
+    "disputed": [],
+    "low_value": [],
+    "blockers": [],
+    "degraded": true,
+    "degraded_model": "both",
+    "confidence": "degraded",
+    "degradation_reason": "no_items_to_score",
+    "phase": "sdd",
+    "document": "grimoires/loa/sdd.md",
+    "domain": " 2 stack decisions 2",
+    "tertiary_model_used": null,
+    "tertiary_status": "disabled",
+    "execution": {
+      "mode": "hitl",
+      "mode_reason": "Simstim workflow active (.run/simstim-state.json state=RUNNING)",
+      "run_id": null
+    },
+    "timestamp": "2026-05-12T02:43:38Z",
+    "metrics": {
+      "total_latency_ms": 64000,
+      "cost_cents": 0,
+      "cost_usd": 0
+    }
+  }
+}
