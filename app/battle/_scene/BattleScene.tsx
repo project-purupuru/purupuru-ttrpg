@@ -73,14 +73,27 @@ export function BattleScene() {
         />
 
         <AnimatePresence mode="wait">
-          {(snap.phase === "idle" || snap.phase === "entry") && (
-            <PhaseShell key="entry">
+          {snap.phase === "idle" && (
+            <PhaseShell key="idle">
               <EntryScreen
                 opponentElement={snap.opponentElement}
                 weather={snap.weather}
                 playerElement={snap.playerElement}
                 seed={snap.seed}
               />
+            </PhaseShell>
+          )}
+
+          {/* entry phase: first-time → inline quiz; returning → choose-element handoff */}
+          {snap.phase === "entry" && snap.playerElement === null && (
+            <PhaseShell key="entry-quiz">
+              <ElementQuiz />
+            </PhaseShell>
+          )}
+
+          {snap.phase === "entry" && snap.playerElement !== null && (
+            <PhaseShell key="entry-returning">
+              <ReturningSplash element={snap.playerElement} />
             </PhaseShell>
           )}
 
@@ -196,6 +209,35 @@ function ArenaPhase() {
           className="px-5 py-2 rounded-full bg-puru-honey-base text-puru-ink-rich font-puru-display text-sm shadow-puru-tile hover:shadow-puru-tile-hover transition-all"
         >
           Advance clash
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ReturningSplash({
+  element,
+}: {
+  readonly element: import("@/lib/honeycomb/wuxing").Element;
+}) {
+  return (
+    <div className="grid place-items-center min-h-[60dvh]">
+      <div className="flex flex-col items-center gap-4 text-center max-w-md">
+        <p className="font-puru-display text-sm text-puru-ink-soft uppercase tracking-wide">
+          welcome back
+        </p>
+        <h2 className="font-puru-display text-3xl text-puru-ink-rich">
+          {ELEMENT_META[element].kanji} {ELEMENT_META[element].name}
+        </h2>
+        <p className="font-puru-body text-puru-ink-soft text-sm">
+          {ELEMENT_META[element].caretaker} is ready.
+        </p>
+        <button
+          type="button"
+          onClick={() => matchCommand.chooseElement(element)}
+          className="mt-2 px-6 py-3 rounded-full bg-puru-honey-base text-puru-ink-rich font-puru-display text-base shadow-puru-tile hover:shadow-puru-tile-hover transition-all"
+        >
+          Step into the arena
         </button>
       </div>
     </div>
