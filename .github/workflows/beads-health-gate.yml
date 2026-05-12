@@ -91,6 +91,9 @@ jobs:
           fi
 
       - name: Smoke beads-health.sh --repair end-to-end
+        # Run even if BHRF bats failed — we WANT the diagnostic to see
+        # why CI diverges from local.
+        if: always()
         run: |
           set -euxo pipefail
           scratch="$(mktemp -d)"
