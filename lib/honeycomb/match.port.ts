@@ -123,7 +123,11 @@ export type MatchCommand =
   | { readonly _tag: "lock-in" }
   | { readonly _tag: "advance-clash" }
   | { readonly _tag: "advance-round" }
-  | { readonly _tag: "reset-match"; readonly seed?: string };
+  | { readonly _tag: "reset-match"; readonly seed?: string }
+  /** Dev-only: force-set the phase. Bypasses the transition matrix. */
+  | { readonly _tag: "dev:force-phase"; readonly phase: MatchPhase }
+  /** Dev-only: shallow-merge a snapshot patch. Bypasses validation. */
+  | { readonly _tag: "dev:inject-snapshot"; readonly patch: Partial<MatchSnapshot> };
 
 export type MatchError =
   | {
@@ -148,26 +152,28 @@ export class Match extends Context.Tag("purupuru-ttrpg/Match")<
  * reject wrong-phase commands with a typed error.
  */
 export function validCommandsFor(phase: MatchPhase): readonly MatchCommand["_tag"][] {
+  // Dev-only commands valid in EVERY phase (gated separately by NODE_ENV).
+  const DEV_ALL: readonly MatchCommand["_tag"][] = ["dev:force-phase", "dev:inject-snapshot"];
   switch (phase) {
     case "idle":
-      return ["begin-match", "reset-match"];
+      return ["begin-match", "reset-match", ...DEV_ALL];
     case "entry":
-      return ["choose-element", "reset-match"];
+      return ["choose-element", "reset-match", ...DEV_ALL];
     case "quiz":
-      return ["choose-element", "reset-match"];
+      return ["choose-element", "reset-match", ...DEV_ALL];
     case "select":
-      return ["complete-tutorial", "lock-in", "reset-match"];
+      return ["complete-tutorial", "lock-in", "reset-match", ...DEV_ALL];
     case "arrange":
-      return ["lock-in", "tap-position", "swap-positions", "reset-match"];
+      return ["lock-in", "tap-position", "swap-positions", "reset-match", ...DEV_ALL];
     case "committed":
-      return ["advance-clash", "reset-match"];
+      return ["advance-clash", "reset-match", ...DEV_ALL];
     case "clashing":
-      return ["advance-clash", "reset-match"];
+      return ["advance-clash", "reset-match", ...DEV_ALL];
     case "disintegrating":
-      return ["advance-round", "reset-match"];
+      return ["advance-round", "reset-match", ...DEV_ALL];
     case "between-rounds":
-      return ["lock-in", "tap-position", "swap-positions", "reset-match"];
+      return ["lock-in", "tap-position", "swap-positions", "reset-match", ...DEV_ALL];
     case "result":
-      return ["begin-match", "reset-match"];
+      return ["begin-match", "reset-match", ...DEV_ALL];
   }
 }

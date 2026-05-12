@@ -349,6 +349,28 @@ export const MatchLive: Layer.Layer<Match, never, Clash> = Layer.scoped(
           return;
         }
 
+        // Dev-only escape hatch (NODE_ENV guard + global flag).
+        if (cmd._tag === "dev:force-phase" || cmd._tag === "dev:inject-snapshot") {
+          const isDev =
+            process.env.NODE_ENV !== "production" &&
+            (globalThis as { __PURU_DEV__?: { enabled: boolean } }).__PURU_DEV__?.enabled === true;
+          if (!isDev) {
+            return yield* Effect.fail({
+              _tag: "wrong-phase" as const,
+              current: snap.phase,
+              expected: [],
+            });
+          }
+          if (cmd._tag === "dev:force-phase") {
+            yield* interruptReveal;
+            yield* update((s) => ({ ...s, phase: cmd.phase }));
+            yield* publish({ _tag: "phase-entered", phase: cmd.phase, at: Date.now() });
+          } else {
+            yield* update((s) => ({ ...s, ...cmd.patch }));
+          }
+          return;
+        }
+
         switch (cmd._tag) {
           case "lock-in": {
             // Build lineups

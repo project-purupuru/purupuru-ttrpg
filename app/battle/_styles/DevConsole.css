@@ -1,0 +1,142 @@
+  /* DevConsole — phase scrubber + event log + snapshot view styles.
+     Pulled out of DevConsole.tsx Tailwind utilities for the new
+     sub-panels. NODE_ENV gate ensures this only ships in dev builds. */
+
+  .dev-section {
+    padding: var(--space-sm) 0;
+    border-bottom: 1px solid oklch(0.85 0.02 85 / 0.3);
+  }
+  .dev-section:last-child { border-bottom: none; }
+
+  .dev-h3 {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--puru-ink-soft);
+    margin: 0 0 var(--space-xs);
+  }
+
+  /* Phase scrubber buttons */
+  .dev-phase-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-2xs);
+  }
+  .dev-phase-btn {
+    padding: var(--space-2xs) var(--space-xs);
+    border: 1px solid oklch(0.85 0.02 85 / 0.4);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    color: var(--puru-ink-dim);
+    cursor: pointer;
+    text-align: left;
+    transition: background 120ms, color 120ms;
+  }
+  .dev-phase-btn:hover {
+    background: var(--puru-cloud-base);
+    color: var(--puru-ink-rich);
+  }
+  .dev-phase-btn--active {
+    background: var(--puru-honey-base);
+    color: var(--puru-ink-rich);
+    border-color: var(--puru-honey-rich);
+    font-weight: 600;
+  }
+
+  .dev-action-row {
+    display: flex;
+    gap: var(--space-2xs);
+    margin-top: var(--space-xs);
+  }
+  .dev-action-btn {
+    flex: 1;
+    padding: var(--space-2xs) var(--space-xs);
+    border: 1px solid oklch(0.85 0.02 85 / 0.4);
+    border-radius: var(--radius-sm);
+    background: oklch(0.95 0.005 85);
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    color: var(--puru-ink-base);
+    cursor: pointer;
+    text-transform: lowercase;
+    letter-spacing: 0.06em;
+  }
+  .dev-action-btn:hover { background: var(--puru-cloud-base); }
+
+  /* Event log */
+  .dev-events {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 180px;
+    overflow-y: auto;
+  }
+  .dev-event-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 2px var(--space-2xs);
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    color: var(--puru-ink-base);
+    background: oklch(0.97 0.005 85);
+    border-radius: 3px;
+  }
+  .dev-event-tag {
+    font-weight: 600;
+    color: var(--puru-ink-rich);
+  }
+  .dev-event-ts {
+    color: var(--puru-ink-ghost);
+    font-feature-settings: "tnum" 1;
+  }
+  .dev-empty {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    color: var(--puru-ink-ghost);
+    font-style: italic;
+    padding: var(--space-xs);
+  }
+
+  /* Snapshot JSON */
+  .dev-json {
+    margin: 0;
+    padding: var(--space-xs);
+    max-height: 360px;
+    overflow-y: auto;
+    background: oklch(0.97 0.005 85);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    line-height: 1.5;
+    color: var(--puru-ink-base);
+    white-space: normal;
+  }
+  .dev-json-line {
+    display: flex;
+    gap: 4px;
+    align-items: baseline;
+    padding: 1px 0;
+  }
+  .dev-json-line--clickable {
+    cursor: pointer;
+    color: var(--puru-honey-rich);
+  }
+  .dev-json-line--clickable:hover { background: oklch(0.93 0.01 85); }
+  .dev-json-key {
+    color: var(--puru-water-vivid);
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .dev-json-colon { color: var(--puru-ink-ghost); }
+  .dev-json-value {
+    color: var(--puru-ink-base);
+    word-break: break-all;
+  }

@@ -190,12 +190,14 @@ export function reduce(
       };
     }
 
-    // Fiber-driven commands fall through. match.live.ts handles these BEFORE
-    // calling reduce(); we never see them here in practice, but the case
-    // labels keep the switch exhaustive for the type checker.
+    // Fiber-driven and dev commands fall through. match.live.ts handles
+    // these BEFORE calling reduce(); we never see them here in practice,
+    // but the case labels keep the switch exhaustive for the type checker.
     case "lock-in":
     case "advance-clash":
     case "advance-round":
+    case "dev:force-phase":
+    case "dev:inject-snapshot":
       return { next: snap, events: [] };
   }
 }

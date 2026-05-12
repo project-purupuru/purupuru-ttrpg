@@ -21,19 +21,75 @@ import { motion, AnimatePresence } from "motion/react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ComboDebug } from "./ComboDebug";
+import { EventLogView } from "./EventLogView";
 import { KaironicPanel } from "./KaironicPanel";
+import { PhaseScrubber } from "./PhaseScrubber";
 import { SeedReplayPanel } from "./SeedReplayPanel";
+import { SnapshotJsonView } from "./SnapshotJsonView";
 import { SubstrateInspector } from "./SubstrateInspector";
 
-type Tab = "kaironic" | "substrate" | "seed" | "combo";
+type Tab = "scrub" | "kaironic" | "substrate" | "seed" | "combo";
 
-const TABS: readonly Tab[] = ["kaironic", "substrate", "seed", "combo"];
+const TABS: readonly Tab[] = ["scrub", "kaironic", "substrate", "seed", "combo"];
+
+const STORAGE_KEY = "puru-dev-panel-enabled";
+
+function readPersisted(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writePersisted(open: boolean): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (open) window.localStorage.setItem(STORAGE_KEY, "1");
+    else window.localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Install the global __PURU_DEV__ surface so dev:* commands are accepted. */
+function installDevGlobal(): void {
+  if (typeof window === "undefined") return;
+  if (process.env.NODE_ENV === "production") return;
+  (globalThis as { __PURU_DEV__?: unknown }).__PURU_DEV__ = {
+    enabled: true,
+    forcePhase: (phase: import("@/lib/honeycomb/match.port").MatchPhase) => {
+      import("@/lib/runtime/match.client").then((m) => {
+        m.matchCommand.dispatch({ _tag: "dev:force-phase", phase });
+      });
+    },
+    injectSnapshot: (
+      patch: Partial<import("@/lib/honeycomb/match.port").MatchSnapshot>,
+    ) => {
+      import("@/lib/runtime/match.client").then((m) => {
+        m.matchCommand.dispatch({ _tag: "dev:inject-snapshot", patch });
+      });
+    },
+  };
+}
 
 export function DevConsole() {
   const params = useSearchParams();
-  const initialOpen = params?.get("dev") === "1";
+  // NODE_ENV gate — entire panel is dead code in production.
+  if (process.env.NODE_ENV === "production") return null;
+
+  const initialOpen = params?.get("dev") === "1" || readPersisted();
   const [open, setOpen] = useState(initialOpen);
-  const [tab, setTab] = useState<Tab>("kaironic");
+  const [tab, setTab] = useState<Tab>("scrub");
+
+  useEffect(() => {
+    installDevGlobal();
+  }, []);
+
+  useEffect(() => {
+    writePersisted(open);
+  }, [open]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -93,6 +149,13 @@ export function DevConsole() {
           </nav>
 
           <div className="flex flex-col">
+            {tab === "scrub" && (
+              <>
+                <PhaseScrubber />
+                <EventLogView />
+                <SnapshotJsonView />
+              </>
+            )}
             {tab === "kaironic" && <KaironicPanel weights={emptyKaironic} />}
             {tab === "substrate" && <SubstrateInspector />}
             {tab === "seed" && <SeedReplayPanel />}
