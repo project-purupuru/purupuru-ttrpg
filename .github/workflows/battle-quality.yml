@@ -7,6 +7,30 @@ on:
     branches: [main]
 
 jobs:
+  # battle-foundations cycle 2026-05-12: asset manifest validator + reducer tests
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Unit tests (vitest)
+        run: pnpm test
+      - name: Asset manifest audit
+        # Validator exits 0 on green-or-expected-broken, non-zero on new
+        # 4xx/5xx. Exit 69 (EX_UNAVAILABLE) → warning, not failure.
+        run: pnpm assets:check || ([ $? = 69 ] && echo "::warning::network unavailable")
+
   lighthouse:
     runs-on: ubuntu-latest
     timeout-minutes: 10
