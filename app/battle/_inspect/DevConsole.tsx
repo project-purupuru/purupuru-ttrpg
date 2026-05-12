@@ -57,21 +57,22 @@ function writePersisted(open: boolean): void {
 function installDevGlobal(): void {
   if (typeof window === "undefined") return;
   if (process.env.NODE_ENV === "production") return;
-  (globalThis as { __PURU_DEV__?: unknown }).__PURU_DEV__ = {
-    enabled: true,
-    forcePhase: (phase: import("@/lib/honeycomb/match.port").MatchPhase) => {
-      import("@/lib/runtime/match.client").then((m) => {
-        m.matchCommand.dispatch({ _tag: "dev:force-phase", phase });
-      });
-    },
-    injectSnapshot: (
-      patch: Partial<import("@/lib/honeycomb/match.port").MatchSnapshot>,
-    ) => {
-      import("@/lib/runtime/match.client").then((m) => {
-        m.matchCommand.dispatch({ _tag: "dev:inject-snapshot", patch });
-      });
-    },
-  };
+  // Eager import — we want a synchronous matchCommand handle so Playwright
+  // can drive the state machine without dynamic imports inside page.evaluate.
+  import("@/lib/runtime/match.client").then((m) => {
+    (globalThis as { __PURU_DEV__?: unknown }).__PURU_DEV__ = {
+      enabled: true,
+      forcePhase: (phase: import("@/lib/honeycomb/match.port").MatchPhase) =>
+        m.matchCommand.dispatch({ _tag: "dev:force-phase", phase }),
+      injectSnapshot: (
+        patch: Partial<import("@/lib/honeycomb/match.port").MatchSnapshot>,
+      ) => m.matchCommand.dispatch({ _tag: "dev:inject-snapshot", patch }),
+      beginMatch: (seed?: string) => m.matchCommand.beginMatch(seed),
+      chooseElement: (element: import("@/lib/honeycomb/wuxing").Element) =>
+        m.matchCommand.chooseElement(element),
+      resetMatch: (seed?: string) => m.matchCommand.resetMatch(seed),
+    };
+  });
 }
 
 export function DevConsole() {

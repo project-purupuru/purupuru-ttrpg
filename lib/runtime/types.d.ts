@@ -10,6 +10,7 @@
  */
 
 import type { MatchSnapshot } from "@/lib/honeycomb/match.port";
+import type { Element } from "@/lib/honeycomb/wuxing";
 
 declare global {
   // eslint-disable-next-line no-var
@@ -18,6 +19,9 @@ declare global {
         readonly enabled: boolean;
         readonly injectSnapshot: (patch: Partial<MatchSnapshot>) => void;
         readonly forcePhase: (phase: MatchSnapshot["phase"]) => void;
+        readonly beginMatch: (seed?: string) => void;
+        readonly chooseElement: (element: Element) => void;
+        readonly resetMatch: (seed?: string) => void;
       }
     | undefined;
 }

@@ -25,18 +25,17 @@ async function setupScene(page: import("@playwright/test").Page): Promise<void> 
   // Wait for __PURU_DEV__ install (dev panel mount)
   await page.waitForFunction(
     () => (window as { __PURU_DEV__?: { enabled: boolean } }).__PURU_DEV__?.enabled === true,
-    { timeout: 8000 },
+    { timeout: 12000 },
   );
-  // Walk the state machine into arrange so lineups are populated
+  // Walk the state machine into arrange so lineups are populated.
   await page.evaluate(async (seed) => {
-    const mod = await import("/lib/runtime/match.client.ts" as never);
-    mod.matchCommand.beginMatch(seed);
-    await new Promise((r) => setTimeout(r, 200));
-    mod.matchCommand.chooseElement("wood");
-    await new Promise((r) => setTimeout(r, 200));
+    window.__PURU_DEV__!.beginMatch(seed);
+    await new Promise((r) => setTimeout(r, 250));
+    window.__PURU_DEV__!.chooseElement("wood");
+    await new Promise((r) => setTimeout(r, 250));
   }, SEED);
   // Wait for the battle wrapper to mount
-  await page.waitForSelector(".battle-wrapper.mounted", { timeout: 8000 });
+  await page.waitForSelector(".battle-wrapper.mounted", { timeout: 12000 });
 }
 
 test.describe("battle visual regression", () => {
