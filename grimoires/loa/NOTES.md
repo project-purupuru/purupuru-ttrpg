@@ -85,3 +85,5 @@ When zerker returns to do the implementation PRD, see `grimoires/loa/context/00-
 - **Tailwind 4** via `@tailwindcss/postcss` (no JS config; use `@theme` in CSS)
 - **Pixi.js v8** vanilla (no @pixi/react) — instantiate inside useEffect with cleanup
 - pnpm 10.x
+
+| 2026-05-12 | S6 distill SHIPPED upstream · construct-effect-substrate v0.1.0 → v0.2.0 (doctrine_depth: 2) | Cycle 2's distill landed as `0xHoneyJar/construct-effect-substrate#1` (squash-merged to main as `5b06d16`). 4 NEW patterns (hand-port-with-drift · doc-only-then-runtime · lift-pattern-template · state-ownership-matrix) + 1 compounded (single-effect-provide-site) + scaffold-system.sh + doctrine-evolution.md + MEMORY.md + cycles/ lineage. Status remains `candidate` per original ≥3 distinct projects criterion · doctrine_depth field added to track depth separately from breadth. | autonomous distill pass |
