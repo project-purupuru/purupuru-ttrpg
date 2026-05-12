@@ -161,6 +161,47 @@
     .card-slot--art:hover:not(:disabled) .card-set-overlay { opacity: 1; }
   }
 
+  /* Selected (mid-swap) — gentle honey ring + lift */
+  .card-slot.selected {
+    outline: 2px solid var(--puru-honey-base);
+    outline-offset: 3px;
+    transform: rotate(var(--fan-rot)) translateY(calc(var(--fan-y) - 16px));
+    box-shadow: var(--shadow-card-hover), 0 0 24px oklch(0.82 0.14 85 / 0.35);
+    z-index: 5;
+  }
+
+  /* Stamped (lost a clash) — red 敗 stamp glyph */
+  .card-slot.stamped { filter: saturate(0.6) brightness(0.85); }
+  .card-stamp {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    display: grid;
+    place-items: center;
+    font-family: var(--font-card);
+    font-size: clamp(2.5rem, 8vw, 4rem);
+    color: oklch(0.55 0.22 28);
+    text-shadow: 0 2px 6px oklch(0 0 0 / 0.6);
+    pointer-events: none;
+    animation: stamp-land 420ms var(--ease-puru-bounce) both;
+  }
+  @keyframes stamp-land {
+    0%   { opacity: 0; transform: scale(2.4) rotate(-12deg); }
+    60%  { opacity: 1; transform: scale(0.88) rotate(2deg); }
+    100% { opacity: 1; transform: scale(1) rotate(0); }
+  }
+
+  /* Disintegrating — fade + dissolve */
+  .card-slot.disintegrating {
+    animation: card-dissolve 700ms var(--ease-puru-settle) forwards;
+    pointer-events: none;
+  }
+  @keyframes card-dissolve {
+    0%   { opacity: 1; filter: blur(0) saturate(1); transform: rotate(var(--fan-rot)) translateY(var(--fan-y)) scale(1); }
+    60%  { opacity: 0.6; filter: blur(2px) saturate(0.5); }
+    100% { opacity: 0; filter: blur(6px) saturate(0.2); transform: rotate(var(--fan-rot)) translateY(calc(var(--fan-y) + 18px)) scale(0.92); }
+  }
+
   /* Turn match indicator — honey sparkle */
   .turn-match {
     position: absolute;

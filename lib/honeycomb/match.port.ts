@@ -14,8 +14,11 @@ import { Context, type Effect, type Stream } from "effect";
 import type { Card } from "./cards";
 import type { Combo } from "./combos";
 import type { BattleCondition } from "./conditions";
-import type { RoundResult } from "./clash.port";
+import type { ClashResult, RoundResult } from "./clash.port";
 import type { Element } from "./wuxing";
+
+/** Per-card in-progress clash animation phase — drives OpponentZone CSS states. */
+export type ClashStepPhase = "approach" | "impact" | "settle";
 
 export type MatchPhase =
   | "idle"
@@ -53,6 +56,35 @@ export interface MatchSnapshot {
 
   /** Chain bonus carried across rounds (Garden grace). */
   readonly chainBonusAtRoundStart: number;
+
+  // ── In-progress clash animation state (populated during `clashing`) ──
+  /** Pre-resolved clash sequence for the current round; empty otherwise. */
+  readonly clashSequence: readonly ClashResult[];
+  /** Index into clashSequence; -1 before any clash has surfaced. */
+  readonly visibleClashIdx: number;
+  /** Animation phase for the visible clash, or null between clashes. */
+  readonly activeClashPhase: ClashStepPhase | null;
+  /** Lineup positions that have received a 敗 stamp this round. */
+  readonly stamps: readonly number[];
+  /** Positions disintegrating this round (player + opponent). */
+  readonly dyingP1: readonly number[];
+  readonly dyingP2: readonly number[];
+  /** Positions saved by Caretaker A Shield this round. */
+  readonly shieldedP1: readonly number[];
+  readonly shieldedP2: readonly number[];
+  /** Tap-to-swap helper. Null when nothing is currently selected. */
+  readonly selectedIndex: number | null;
+  /** Most recent whisper line surfaced by the navigator. */
+  readonly lastWhisper: string | null;
+  /** Player + opponent cumulative clash wins this match (for UI score chips). */
+  readonly playerClashWins: number;
+  readonly opponentClashWins: number;
+  /** Most recent play signals — drives BattleField sparks / ripple. */
+  readonly lastPlayed: Element | null;
+  readonly lastGenerated: Element | null;
+  readonly lastOvercome: Element | null;
+  /** Coarse animation state derived for BattleField wrapper (idle / golden-hold / hitstop). */
+  readonly animState: "idle" | "golden-hold" | "hitstop";
 }
 
 export type MatchEvent =
@@ -66,12 +98,19 @@ export type MatchEvent =
       readonly round: number;
       readonly eliminated: readonly string[];
     }
-  | { readonly _tag: "match-completed"; readonly winner: "p1" | "p2" | "draw" };
+  | { readonly _tag: "match-completed"; readonly winner: "p1" | "p2" | "draw" }
+  /** Lightweight tick — fired after any snapshot mutation that doesn't have
+   * its own named event. Lets `useMatch()` re-read state on visual ticks. */
+  | { readonly _tag: "state-changed" };
 
 export type MatchCommand =
   | { readonly _tag: "begin-match"; readonly seed?: string }
   | { readonly _tag: "choose-element"; readonly element: Element }
   | { readonly _tag: "complete-tutorial" }
+  /** Tap a card position to select / deselect / swap with the prior selection. */
+  | { readonly _tag: "tap-position"; readonly index: number }
+  /** Direct swap of two positions in the player lineup (drag-to-reorder). */
+  | { readonly _tag: "swap-positions"; readonly a: number; readonly b: number }
   | { readonly _tag: "lock-in" }
   | { readonly _tag: "advance-clash" }
   | { readonly _tag: "advance-round" }
@@ -110,7 +149,7 @@ export function validCommandsFor(phase: MatchPhase): readonly MatchCommand["_tag
     case "select":
       return ["complete-tutorial", "lock-in", "reset-match"];
     case "arrange":
-      return ["lock-in", "reset-match"];
+      return ["lock-in", "tap-position", "swap-positions", "reset-match"];
     case "committed":
       return ["advance-clash", "reset-match"];
     case "clashing":
@@ -118,7 +157,7 @@ export function validCommandsFor(phase: MatchPhase): readonly MatchCommand["_tag
     case "disintegrating":
       return ["advance-round", "reset-match"];
     case "between-rounds":
-      return ["lock-in", "reset-match"];
+      return ["lock-in", "tap-position", "swap-positions", "reset-match"];
     case "result":
       return ["begin-match", "reset-match"];
   }

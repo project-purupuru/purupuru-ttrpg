@@ -38,6 +38,22 @@ function defaultMockSnapshot(seed: string): MatchSnapshot {
     p1Combos: [],
     p2Combos: [],
     chainBonusAtRoundStart: 0,
+    clashSequence: [],
+    visibleClashIdx: -1,
+    activeClashPhase: null,
+    stamps: [],
+    dyingP1: [],
+    dyingP2: [],
+    shieldedP1: [],
+    shieldedP2: [],
+    selectedIndex: null,
+    lastWhisper: null,
+    playerClashWins: 0,
+    opponentClashWins: 0,
+    lastPlayed: null,
+    lastGenerated: null,
+    lastOvercome: null,
+    animState: "idle",
   };
 }
 

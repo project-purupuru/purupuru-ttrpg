@@ -84,6 +84,9 @@ export const matchCommand = {
   beginMatch: (seed?: string) => matchCommand.dispatch({ _tag: "begin-match", seed }),
   chooseElement: (element: Element) => matchCommand.dispatch({ _tag: "choose-element", element }),
   completeTutorial: () => matchCommand.dispatch({ _tag: "complete-tutorial" }),
+  tapPosition: (index: number) => matchCommand.dispatch({ _tag: "tap-position", index }),
+  swapPositions: (a: number, b: number) =>
+    matchCommand.dispatch({ _tag: "swap-positions", a, b }),
   lockIn: () => matchCommand.dispatch({ _tag: "lock-in" }),
   advanceClash: () => matchCommand.dispatch({ _tag: "advance-clash" }),
   advanceRound: () => matchCommand.dispatch({ _tag: "advance-round" }),

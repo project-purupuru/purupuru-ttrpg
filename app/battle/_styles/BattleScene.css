@@ -32,6 +32,31 @@
 		opacity: 1;
 	}
 
+	/* Lock-in button — bottom-center prominent action.
+	   The TurnClock floats above the arena, so we tuck this just below it. */
+	.battle-lock-btn {
+		position: absolute;
+		bottom: calc(env(safe-area-inset-bottom, 0px) + var(--space-2xl) + 200px);
+		left: 50%;
+		transform: translateX(-50%);
+		z-index: 50;
+		padding: var(--space-sm) var(--space-2xl);
+		border-radius: var(--radius-full);
+		border: none;
+		background: var(--puru-honey-base);
+		color: var(--puru-ink-rich);
+		font-family: var(--font-body);
+		font-size: var(--text-md);
+		font-weight: 700;
+		letter-spacing: 0.02em;
+		cursor: pointer;
+		box-shadow: var(--shadow-tile), 0 6px 24px oklch(0.82 0.14 85 / 0.35);
+		background-image: linear-gradient(to bottom, oklch(1 0 0 / 0.18) 0%, transparent 50%);
+		transition: transform 160ms var(--ease-puru-bounce), box-shadow 200ms var(--ease-puru-settle);
+	}
+	.battle-lock-btn:hover { transform: translateX(-50%) translateY(-2px); }
+	.battle-lock-btn:active { transform: translateX(-50%) scaleY(0.94) scaleX(1.02); transition-duration: 80ms; }
+
 	.help-btn {
 		position: fixed;
 		bottom: var(--space-md);

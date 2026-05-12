@@ -10,9 +10,8 @@
  * Dev tooling (KaironicPanel · DevConsole) lives in app/battle/_inspect/.
  */
 
-import { useMatch } from "@/lib/runtime/match.client";
+import { matchCommand, useMatch } from "@/lib/runtime/match.client";
 import type { Element } from "@/lib/honeycomb/wuxing";
-import { whisper as deriveWhisper, type WhisperMood } from "@/lib/honeycomb/whispers";
 import { ArenaSpeakers } from "./ArenaSpeakers";
 import { BattleField } from "./BattleField";
 import { BattleHand } from "./BattleHand";
@@ -48,9 +47,9 @@ export function BattleScene() {
   // energies: per-element 0..1 derived from collection composition + lineup.
   const energies = deriveEnergies(snap);
   const turnElement = snap.weather;
-  const tide = 50; // neutral · TODO derive from clash deltas when wired
-  const animState: "idle" | "golden-hold" | "hitstop" =
-    snap.phase === "clashing" ? "hitstop" : snap.phase === "disintegrating" ? "golden-hold" : "idle";
+  // tide drifts toward the side that's winning clashes
+  const tideDelta = snap.playerClashWins - snap.opponentClashWins;
+  const tide = Math.max(0, Math.min(100, 50 + tideDelta * 12));
   const arenaPhase =
     snap.phase === "arrange" || snap.phase === "between-rounds"
       ? "rearrange"
@@ -59,6 +58,17 @@ export function BattleScene() {
         : snap.phase === "result"
           ? "result"
           : "locked";
+
+  // Build per-position clash-winner map for OpponentZone (uses visibleClashIdx range).
+  const clashWinners = new Map<number, "player" | "opponent">();
+  for (let i = 0; i <= snap.visibleClashIdx; i++) {
+    const c = snap.clashSequence[i];
+    if (!c) continue;
+    if (c.loser === "p2") clashWinners.set(c.p2Card.position, "player");
+    else if (c.loser === "p1") clashWinners.set(c.p1Card.position, "opponent");
+  }
+
+  const canLockIn = snap.phase === "arrange" || snap.phase === "between-rounds";
 
   return (
     <div className="battle-scene" data-scene="battle" aria-label="The Tide">
@@ -84,31 +94,57 @@ export function BattleScene() {
             energies={energies}
             turnElement={turnElement}
             tide={tide}
-            animState={animState}
+            animState={snap.animState}
             phase={mapToFieldPhase(snap.phase)}
             weather={snap.weather}
             backdrop
             arenaPhase={arenaPhase}
+            lastPlayed={snap.lastPlayed}
+            lastGenerated={snap.lastGenerated}
+            lastOvercome={snap.lastOvercome}
           />
 
           <OpponentZone
             lineup={snap.p2Lineup}
             arenaPhase={arenaPhase}
             opponentElement={snap.opponentElement}
+            visibleClashIdx={snap.visibleClashIdx}
+            activeClashPhase={snap.activeClashPhase}
+            clashWinners={clashWinners}
+            stamps={new Set(snap.stamps)}
+            dying={new Set(snap.dyingP2)}
           />
 
           <ArenaSpeakers
             playerElement={snap.playerElement ?? snap.weather}
             opponentElement={snap.opponentElement}
             phase={snap.phase}
-            whisper={currentWhisper(snap)}
+            whisper={snap.lastWhisper}
+            playerWins={snap.playerClashWins}
+            opponentWins={snap.opponentClashWins}
+            activeClashPhase={snap.activeClashPhase}
           />
 
           <BattleHand
             cards={snap.p1Lineup}
             phase={snap.phase}
             turnElement={turnElement}
+            selectedIndex={snap.selectedIndex}
+            stamps={new Set(snap.stamps)}
+            dying={new Set(snap.dyingP1)}
+            onTap={matchCommand.tapPosition}
+            onSwap={matchCommand.swapPositions}
           />
+
+          {canLockIn && (
+            <button
+              type="button"
+              className="battle-lock-btn"
+              onClick={() => matchCommand.lockIn()}
+            >
+              Lock in
+            </button>
+          )}
         </div>
       )}
 
@@ -146,17 +182,6 @@ function deriveEnergies(snap: import("@/lib/honeycomb/match.port").MatchSnapshot
     }
   }
   return base;
-}
-
-function currentWhisper(snap: import("@/lib/honeycomb/match.port").MatchSnapshot): string | null {
-  const last = snap.rounds.at(-1);
-  if (!last) return null;
-  const lastClash = last.clashes.at(-1);
-  if (!lastClash) return null;
-  const playerEl = snap.playerElement ?? snap.weather;
-  const mood: WhisperMood =
-    lastClash.loser === "draw" ? "draw" : lastClash.loser === "p2" ? "win" : "lose";
-  return deriveWhisper(playerEl, mood, last.round);
 }
 
 function mapToFieldPhase(

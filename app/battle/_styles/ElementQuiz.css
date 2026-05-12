@@ -14,26 +14,52 @@
     opacity: 0;
   }
 
-  .quiz-title {
-    font-family: var(--font-card);
-    font-size: clamp(var(--text-xl), 6vw, var(--text-3xl));
-    font-weight: 500;
-    color: var(--puru-ink-rich);
-    text-align: center;
+  /* Observatory typography stack — restrained, instrument-panel feel.
+     Eyebrow is uppercase + spaced (telemetry). Title is tight sans with
+     negative tracking. Sub is dim, regular. Echoes /observatory page. */
+  .quiz-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2xs);
     margin: 0 0 var(--space-xl);
-    letter-spacing: 0.02em;
-    line-height: 1.1;
-    animation: fade-in 600ms var(--ease-puru-settle) forwards;
+    text-align: center;
+    animation: fade-in 700ms var(--ease-puru-settle) forwards;
     opacity: 0;
   }
-  .quiz-title::after {
+  .quiz-eyebrow {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--puru-ink-ghost);
+    line-height: 1;
+  }
+  .quiz-title {
+    font-family: var(--font-display);
+    font-size: clamp(1.8rem, 5.5vw, 2.6rem);
+    font-weight: 700;
+    color: var(--puru-ink-rich);
+    margin: 0;
+    letter-spacing: -0.018em;
+    line-height: 1.05;
+  }
+  .quiz-sub {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--puru-ink-dim);
+    letter-spacing: 0.01em;
+    line-height: 1.4;
+  }
+  .quiz-header::after {
     content: '';
     display: block;
-    width: 48px;
+    width: 56px;
     height: 1px;
-    margin: var(--space-sm) auto 0;
+    margin-top: var(--space-xs);
     background: linear-gradient(to right, transparent, var(--puru-honey-base), transparent);
-    opacity: 0.6;
+    opacity: 0.5;
   }
 
   /* Element tint wash on selection */

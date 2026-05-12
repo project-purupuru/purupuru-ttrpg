@@ -53,7 +53,11 @@ export function ElementQuiz() {
       className={`quiz${selected !== null ? " quiz-tinted" : ""}`}
       data-element={selected ?? undefined}
     >
-      <h2 className="quiz-title">choose your element.</h2>
+      <header className="quiz-header">
+        <span className="quiz-eyebrow">Observatory · Calibration</span>
+        <h2 className="quiz-title">Choose your element.</h2>
+        <span className="quiz-sub">The tide reads your alignment.</span>
+      </header>
 
       <div className="scene-grid">
         {SCENES.map((s, i) => {
