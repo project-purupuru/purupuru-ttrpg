@@ -8,8 +8,15 @@
 
 import type { Card } from "@/lib/honeycomb/cards";
 import { ELEMENT_META, type Element } from "@/lib/honeycomb/wuxing";
+import { CARD_SATURATED, CARD_PASTEL, JANI_CARDS } from "@/lib/cdn";
 
 export type OpponentZoneArenaPhase = "rearrange" | "locked" | "clashing" | "result";
+
+function cardArtFor(card: Card): string {
+  if (card.cardType === "jani") return JANI_CARDS[card.element];
+  if (card.cardType === "caretaker_b") return CARD_PASTEL[card.element];
+  return CARD_SATURATED[card.element];
+}
 
 interface OpponentZoneProps {
   readonly lineup: readonly Card[];
@@ -73,7 +80,15 @@ export function OpponentZone({
                 {isArrange ? (
                   <img className="card-back" src={BRAND_CARD_BACK} alt="face down" />
                 ) : (
-                  <span className="card-kanji">{ELEMENT_META[card.element].kanji}</span>
+                  <>
+                    <img
+                      className="card-art"
+                      src={cardArtFor(card)}
+                      alt={`${ELEMENT_META[card.element].caretaker} · ${card.cardType}`}
+                      loading="lazy"
+                    />
+                    <span className="card-kanji">{ELEMENT_META[card.element].kanji}</span>
+                  </>
                 )}
                 {winner === "player" && isStamped && (
                   <>

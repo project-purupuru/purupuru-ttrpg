@@ -418,7 +418,7 @@ export const MatchLive: Layer.Layer<Match, never, Clash> = Layer.scoped(
           }
           case "tap-position": {
             const i = cmd.index;
-            yield* Ref.update(stateRef, (s) => {
+            yield* update((s) => {
               if (i < 0 || i >= s.p1Lineup.length) return s;
               if (s.selectedIndex === null) return { ...s, selectedIndex: i };
               if (s.selectedIndex === i) return { ...s, selectedIndex: null };
@@ -433,7 +433,7 @@ export const MatchLive: Layer.Layer<Match, never, Clash> = Layer.scoped(
           }
           case "swap-positions": {
             const { a, b } = cmd;
-            yield* Ref.update(stateRef, (s) => {
+            yield* update((s) => {
               if (a === b) return s;
               if (a < 0 || b < 0 || a >= s.p1Lineup.length || b >= s.p1Lineup.length) return s;
               const next = [...s.p1Lineup];
