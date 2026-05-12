@@ -119,6 +119,9 @@ importers:
       eslint-config-next:
         specifier: 16.2.6
         version: 16.2.6(@typescript-eslint/parser@8.59.2)(eslint@9.0.0)(typescript@5.0.2)
+      expect-type:
+        specifier: ^1.3.0
+        version: 1.3.0
       jsdom:
         specifier: ^29.1.1
         version: 29.1.1
