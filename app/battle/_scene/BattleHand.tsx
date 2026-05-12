@@ -20,23 +20,29 @@ interface BattleHandProps {
   readonly selectedIndex?: number | null;
   readonly stamps?: ReadonlySet<number>;
   readonly dying?: ReadonlySet<number>;
+  readonly visibleClashIdx?: number;
+  readonly activeClashPhase?: "approach" | "impact" | "settle" | null;
   readonly onPlay?: (card: Card) => void;
   readonly onTap?: (index: number) => void;
   readonly onSwap?: (a: number, b: number) => void;
   readonly onSkip?: () => void;
 }
 
+/** Canonical fan from cycle-088 +page.svelte:
+ *   --fan-rotate: fanOffset * 3 deg
+ *   --fan-y:      |fanOffset| * 4 px
+ *   where fanOffset = i - (total-1)/2
+ */
 function fanRotation(index: number, total: number): number {
   if (total <= 1) return 0;
-  const spread = 7;
-  const offset = ((total - 1) * spread) / 2;
-  return index * spread - offset;
+  const fanCenter = (total - 1) / 2;
+  return (index - fanCenter) * 3;
 }
 
 function fanLift(index: number, total: number): number {
   if (total <= 1) return 0;
-  const mid = (total - 1) / 2;
-  return Math.abs(index - mid) * 5;
+  const fanCenter = (total - 1) / 2;
+  return Math.abs(index - fanCenter) * 4;
 }
 
 function setLabel(t: Card["cardType"]): string {
@@ -58,6 +64,8 @@ export function BattleHand({
   selectedIndex = null,
   stamps,
   dying,
+  visibleClashIdx = -1,
+  activeClashPhase = null,
   onPlay,
   onTap,
   onSwap,
@@ -87,58 +95,71 @@ export function BattleHand({
   };
 
   return (
-    <div className={`hand${canPlay ? "" : " disabled"}`}>
+    <div className={`lineup player-lineup${canPlay ? "" : " disabled"}`}>
       {total > 0 ? (
         <>
-          <div className="cards">
+          <div
+            className={`lineup-row${activeClashPhase !== null ? " has-active-clash" : ""}`}
+          >
             {cards.map((card, i) => {
               const isSelected = selectedIndex === i;
               const isStamped = stamps?.has(i) ?? false;
               const isDying = dying?.has(i) ?? false;
+              const isActiveClash = visibleClashIdx === i;
               const cls = [
                 "card-slot",
-                "card-slot--art",
+                "player-card",
                 isSelected && "selected",
                 isStamped && "stamped",
                 isDying && "disintegrating",
+                isActiveClash && activeClashPhase === "approach" && "clashing-approach",
+                isActiveClash && activeClashPhase === "impact" && "clashing-impact",
+                isActiveClash && activeClashPhase === "settle" && "clashing-settle",
               ]
                 .filter(Boolean)
                 .join(" ");
               return (
-                <button
+                <div
                   key={card.id}
-                  type="button"
-                  className={cls}
-                  data-element={card.element}
-                  data-card-type={card.cardType}
-                  disabled={!canPlay && !onPlay}
-                  draggable={canPlay}
-                  onClick={() => onCardClick(i, card)}
-                  onDragStart={(e) => onDragStart(e, i)}
-                  onDragOver={onDragOver}
-                  onDrop={(e) => onDrop(e, i)}
+                  className="card-slot-wrap"
+                  data-slot={i}
                   style={
                     {
-                      "--fan-rot": `${fanRotation(i, total)}deg`,
+                      "--fan-rotate": `${fanRotation(i, total)}deg`,
                       "--fan-y": `${fanLift(i, total)}px`,
+                      "--fan-z": i + 1,
+                      "--deal-delay": `${i * 80}ms`,
                     } as React.CSSProperties
                   }
-                  aria-label={`Play ${card.element} ${ELEMENT_META[card.element].name}`}
-                  aria-pressed={isSelected}
                 >
-                  <CdnImage
-                    className="card-art"
-                    sources={cardArtFor(card)}
-                    alt={`${ELEMENT_META[card.element].caretaker} · ${setLabel(card.cardType)}`}
-                  />
-                  <span className="card-set-overlay">{setLabel(card.cardType)}</span>
-                  {card.element === turnElement && (
-                    <span className="turn-match" aria-label="Matches this turn's element">
-                      +
-                    </span>
-                  )}
-                  {isStamped && <span className="card-stamp">敗</span>}
-                </button>
+                  <button
+                    type="button"
+                    className={cls}
+                    data-element={card.element}
+                    data-card-type={card.cardType}
+                    disabled={!canPlay && !onPlay}
+                    draggable={canPlay}
+                    onClick={() => onCardClick(i, card)}
+                    onDragStart={(e) => onDragStart(e, i)}
+                    onDragOver={onDragOver}
+                    onDrop={(e) => onDrop(e, i)}
+                    aria-label={`Play ${card.element} ${ELEMENT_META[card.element].name}`}
+                    aria-pressed={isSelected}
+                  >
+                    <CdnImage
+                      className="card-art"
+                      sources={cardArtFor(card)}
+                      alt={`${ELEMENT_META[card.element].caretaker} · ${setLabel(card.cardType)}`}
+                    />
+                    <span className="card-set-overlay">{setLabel(card.cardType)}</span>
+                    {card.element === turnElement && (
+                      <span className="turn-match" aria-label="Matches this turn's element">
+                        +
+                      </span>
+                    )}
+                    {isStamped && <span className="card-stamp">敗</span>}
+                  </button>
+                </div>
               );
             })}
           </div>

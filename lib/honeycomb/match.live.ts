@@ -386,10 +386,10 @@ export const MatchLive: Layer.Layer<Match, never, Clash> = Layer.scoped(
             return;
           }
           case "choose-element": {
-            // Auto-deal first 5 collection cards as the starting lineup so the
-            // arrange/select surface has visible cards immediately. The
-            // operator can still rearrange before lock-in. (Pre-lock combos
-            // computed so CombosPanel + spark feedback are live.)
+            // Auto-deal player lineup AND opponent lineup so both sides are
+            // populated from the arrange phase onward. Opponent stays face-
+            // down until lock-in. Mirrors world-purupuru createBattleState.start():
+            // playerLineup + opponentLineup are both populated synchronously.
             yield* Ref.update(stateRef, (s) => {
               const dealtIndices = Array.from(
                 { length: Math.min(5, s.collection.length) },
@@ -397,17 +397,19 @@ export const MatchLive: Layer.Layer<Match, never, Clash> = Layer.scoped(
               );
               const dealtLineup = dealtIndices.map((i) => s.collection[i]!);
               const dealtCombos = detectCombos(dealtLineup, { weather: s.weather });
+              const p2Lineup = stubOpponentLineup(s);
+              const p2Combos = detectCombos(p2Lineup, { weather: s.weather });
               return {
                 ...s,
                 playerElement: cmd.element,
                 selectedIndices: dealtIndices,
                 p1Lineup: dealtLineup,
                 p1Combos: dealtCombos,
+                p2Lineup,
+                p2Combos,
               };
             });
             yield* publish({ _tag: "player-element-chosen", element: cmd.element });
-            // After choosing, transition straight to arrange so the hand is
-            // editable and the lock-in button is available.
             yield* transition("arrange");
             return;
           }

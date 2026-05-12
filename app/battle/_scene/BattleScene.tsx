@@ -138,6 +138,8 @@ export function BattleScene() {
                 selectedIndex={snap.selectedIndex}
                 stamps={new Set(snap.stamps)}
                 dying={new Set(snap.dyingP1)}
+                visibleClashIdx={snap.visibleClashIdx}
+                activeClashPhase={snap.activeClashPhase}
                 onTap={matchCommand.tapPosition}
                 onSwap={matchCommand.swapPositions}
               />
