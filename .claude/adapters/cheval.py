@@ -524,6 +524,46 @@ def cmd_invoke(args: argparse.Namespace) -> int:
         print(_error_json("INVALID_INPUT", "Missing --agent argument"), file=sys.stderr)
         return EXIT_CODES["INVALID_INPUT"]
 
+    # Cycle-108 sprint-1 T1.H — advisor-strategy role-based routing.
+    # Backward-compat: --role is OPTIONAL. When omitted (existing callers),
+    # this block is a no-op. When provided AND advisor_strategy.enabled,
+    # resolve role+skill+provider via the loader (T1.C) and override
+    # args.model BEFORE resolve_execution runs. Explicit --model wins
+    # over --role (operator escape valve).
+    _advisor_resolved = None  # captured for downstream MODELINV emit (T1.F)
+    if getattr(args, "role", None) and not args.model:
+        try:
+            from loa_cheval.config.advisor_strategy import (
+                load_advisor_strategy,
+                ConfigError as _AdvisorConfigError,
+            )
+            _project_root = Path(__file__).resolve().parents[2]
+            _advisor_cfg = load_advisor_strategy(_project_root)
+            if _advisor_cfg.enabled:
+                # Infer provider from agent binding — we need agent_name first,
+                # but provider isn't known until resolve_execution. Strategy:
+                # default provider to anthropic for resolution; the actual
+                # provider from resolve_execution may differ. Operator can
+                # constrain via per_skill_overrides or explicit --model.
+                _inferred_provider = "anthropic"
+                _skill = args.skill or agent_name
+                try:
+                    _advisor_resolved = _advisor_cfg.resolve(
+                        role=args.role, skill=_skill, provider=_inferred_provider,
+                    )
+                    args.model = f"{_inferred_provider}:{_advisor_resolved.model_id}"
+                    # T1.F will attach _advisor_resolved fields to MODELINV envelope
+                except _AdvisorConfigError as _e:
+                    print(
+                        _error_json("INVALID_CONFIG", f"advisor-strategy resolve failed: {_e}"),
+                        file=sys.stderr,
+                    )
+                    return EXIT_CODES.get("INVALID_CONFIG", 2)
+        except ImportError:
+            # advisor_strategy module not yet present (pre-T1.C state) —
+            # silently skip; existing behavior preserved.
+            pass
+
     # Resolve agent → provider:model
     try:
         binding, resolved = resolve_execution(
@@ -1306,6 +1346,27 @@ def main() -> int:
             "to deterministic defaults at load time so test-side structural "
             "compares are stable."
         ),
+    )
+
+    # Cycle-108 sprint-1 T1.H — advisor-strategy role/skill/sprint-kind flags
+    # (PRD §5 FR-2, SDD §3.5). Backward-compat: when --role is omitted,
+    # cheval behavior is unchanged (legacy path preserved).
+    parser.add_argument(
+        "--role",
+        choices=["planning", "review", "implementation"],
+        default=None,
+        help="cycle-108 T1.H — caller's logical role; resolved to tier+model via advisor-strategy config",
+    )
+    parser.add_argument(
+        "--skill",
+        default=None,
+        help="cycle-108 T1.H — caller's skill name (e.g. 'implementing-tasks'); used for per_skill_overrides lookup",
+    )
+    parser.add_argument(
+        "--sprint-kind",
+        dest="sprint_kind",
+        default=None,
+        help="cycle-108 T1.H — stratification label for MODELINV (e.g. 'glue'); see SDD §8 taxonomy",
     )
 
     # Deep Research non-blocking mode (SDD 4.2.2, 4.5)
