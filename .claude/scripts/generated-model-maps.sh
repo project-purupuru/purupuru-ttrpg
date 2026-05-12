@@ -160,6 +160,12 @@ declare -A COST_INPUT=(
     ["claude-opus-4-1"]="0.005"
     ["claude-opus-4.0"]="0.005"
     ["claude-opus-4-0"]="0.005"
+    # Headless / CLI-kind adapters — subscription-mode, no per-token billing.
+    # Workaround for gen-adapter-maps.sh:241 skipping 0-pricing entries
+    # while model-adapter.sh.legacy:94 requires every key. See /feedback.
+    ["codex-headless"]="0"
+    ["gemini-headless"]="0"
+    ["claude-headless"]="0"
 )
 
 declare -A COST_OUTPUT=(
@@ -207,6 +213,10 @@ declare -A COST_OUTPUT=(
     ["claude-opus-4-1"]="0.025"
     ["claude-opus-4.0"]="0.025"
     ["claude-opus-4-0"]="0.025"
+    # Headless / CLI-kind adapters — subscription-mode, no per-token billing.
+    ["codex-headless"]="0"
+    ["gemini-headless"]="0"
+    ["claude-headless"]="0"
 )
 
 # VALID_FLATLINE_MODELS — Sprint-4 T4.2 (closes SDD §1.4 C4 SSOT coverage gap).

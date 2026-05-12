@@ -63,6 +63,14 @@ simstim:
 flatline_protocol:
   enabled: true
   auto_trigger: false
+  # Operator-stated 2026-05-12 (card-game cycle): use latest GPT + Gemini.
+  # Default gpt-5.3-codex produces output the scoring engine can't parse
+  # post-1.157.0 upgrade. gpt-5.5-pro restores the working substrate-cycle
+  # config. gemini-3.1-pro enables 3-model review (was disabled by default).
+  models:
+    primary: claude-opus-4-7
+    secondary: gpt-5.5-pro
+    tertiary: gemini-3.1-pro
 
 # ─────────────────────────────────────────────────────────────────────────
 # Run Bridge · Autonomous Excellence Loop (added 2026-05-07 PM)

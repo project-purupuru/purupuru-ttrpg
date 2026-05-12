@@ -1,432 +1,386 @@
 ---
-status: post-flatline-r1-patched
+status: flatline-integrated-r1
 type: prd
-cycle: substrate-agentic-translation-adoption-2026-05-12
-mode: arch + adopt
-input_brief: grimoires/loa/specs/simstim-brief-substrate-agentic-2026-05-12.md
-review: grimoires/loa/a2a/flatline/prd-review-2026-05-12.md
+cycle: card-game-in-compass-2026-05-12
+mode: migrate + arch
+branch: feat/honeycomb-battle
+predecessor_cycle: substrate-agentic-translation-adoption-2026-05-12 (shipped 2026-05-12 · archived to grimoires/loa/archive/)
+input_brief: grimoires/loa/context/14-card-game-in-compass-brief.md
+flatline_review: grimoires/loa/a2a/flatline/card-game-prd-opus-manual-2026-05-12.json (Opus review + skeptic · scoring-engine bypass per #759 + 1.157.0 regression)
 created: 2026-05-12
-revision: post-flatline-r1 · 4 BLOCKERS resolved by operator HITL · 12 HIGH_CONSENSUS auto-integrated · grounding errors corrected
+revision: r1 · post-flatline · 2 CRITICAL + 5 HIGH findings integrated · MEDIUM/LOW deferred to SDD
 operator: zksoju
+authored_by: /plan-and-analyze (Opus 4.7 1M)
 ---
 
-# PRD · Substrate-Agentic Translation Layer · Compass Adoption Cycle
+# PRD · Card Game in Compass · Honeycomb Surface Migration
+
+> **r1 · post-flatline integration** (2026-05-12). 2 CRITICAL + 5 HIGH findings from Opus review + skeptic folded in: D9 (S0 calibration spike), D10 (asset extraction deferred to S6), D11 (AI = parameterized policy not LLM), AC-4 strengthened to ALL invariants, AC-5 reformulated as falsifiable behavioral fingerprint, AC-14 LOC recalibrated to +7,500, new AC-15/16/17 for perf/a11y/playability, R11/R12 added, sprint graph reordered with de-scope ladder. Flatline scoring engine had to be bypassed manually due to 1.157.0 regression (#759 + cost-map gap) — both reported via /feedback.
 
 ## 0 · TL;DR
 
-Conform compass to canonical loa substrates — `loa-hounfour` typed schemas (hand-ported · v7.0.0 SHA-pinned · Effect Schema reimplementation) · `construct-rooms-substrate` handoff envelope (vendored as JSON for production) · `loa-straylight` continuity-under-authorization doctrine (compile-time + doc-only · zero runtime imports until Phase 23b lands) — so that compass's **world experience** (observatory · ceremony · awareness · weather · activity · sim) gains a Next.js substrate + agent-navigable system layers that the operator can iterate on quickly. The **purupuru card game already exists** at `purupuru-game` (SvelteKit prototype · 18 cards · Wuxing battle mechanics) — compass does NOT host the card game; compass hosts the world that the card game eventually composes into.
+Migrate the full card-game experience from `world-purupuru/sites/world/src/routes/(immersive)/battle/` (SvelteKit) into `compass/app/battle/` (Next.js · React). Ship a visible, playable, solo-vs-AI Wuxing card game with the world-purupuru visual vocabulary and the Honeycomb substrate (already in compass) underneath. Surface eleven components, wire the end-to-end flow (Enter The Tide → ElementQuiz → BattleField + Hand + Opponent + TurnClock + ArenaSpeakers → Result), grow Honeycomb to host clash resolution and the per-element AI opponent, relocate the kaironic tuning surface behind a backtick (`` ` ``) hotkey toggle, and extract the asset library to a new dedicated repo (`project-purupuru/purupuru-assets`) that both compass and world-purupuru pull from.
 
-**Core reframe** (PRAISE-001 · load-bearing through SDD): the original 5-doc Gemini synthesis (`grimoires/loa/context/07..11-*.md`) proposed inventing a translation layer. KEEPER pre-flight + grounding in upstream repos established that the translation layer **already exists**. This cycle is INTEGRATION, not invention.
+**Done bar** (operator-ratified): full audit-passing slice. `/implement → /review-sprint → /audit-sprint` green on every sprint. End-to-end playable solo battle in compass.
 
-## 0.5 · Pre-decided architecture choices (NEW · operator-ratified · supersedes §11 deferrals)
+**Out of scope this cycle**: Three.js viewport (R3F · queued for next cycle), friend-duel networking, real Five Oracles (TREMOR/CORONA/BREATH), daemon NFT (Puruhani TBA) mint integration, on-chain combat moves.
 
-These four choices are PRD-level commitments. SDD elaborates HOW; SDD does not re-open WHAT.
+## 0.5 · Pre-decided architecture choices (operator-ratified during discovery)
 
-| Decision | Choice | Rationale |
-|---|---|---|
-| **D1 · Type-system bridge** (was §11 Q1) | **Hand-port** ~5 hounfour schemas as compass-owned Effect Schemas | compass uses `effect/Schema`; hounfour uses `@sinclair/typebox` — incompatible. Hand-porting honors G5 LOC math, gives compile-time wins, accepts drift-detection as a quarterly CI rule |
-| **D2 · Straylight S3** | **Doc-only force-chain mapping + compile-time brand-type fence · zero runtime imports** | Phase 23a is "schema-contract draft only · runtime BLOCKED on hounfour v8.6 delta #8 (estate-transition.schema)." When 23b lands, swap implementation. Honors PRAISE-001 |
-| **D3 · S4 scope** | **Next.js substrate + agent-navigable system layers for the WORLD experience · NOT card game design** | Card game already exists at `~/Documents/GitHub/purupuru-game` (SvelteKit · 18 cards · transcendence). Compass hosts the world; the game composes in via separate cycle. S4's customer is the operator's iteration speed + the agent's navigation clarity |
-| **D4 · Persistence** (was §11 Q4) | **In-memory only** for any new system layer in this cycle. Future world↔game integration is its own cycle | Compass's existing Solana/KV bindings unchanged. New systems are pure |
-| **D5 · Adapter location** (was §11 Q5) | **No new `lib/adapters/` folder** — chain bindings live in `lib/live/solana.live.ts` (a Live Layer like any other consuming hounfour-typed envelopes via ports) | Preserves four-folder discipline (PRAISE-005). `*.solana.live.ts` suffix when chain-disambiguation needed |
-| **D6 · Adoption order** | **Envelope SHELL first (S1) · backfill verdict typing (S2) · doc-only force-chain (S3) · world substrate (S4)** | S1 ships envelope with `verdict: Type.Unknown()` placeholder; S2 narrows to hand-ported hounfour union. Avoids back-references |
+These are PRD-level commitments. SDD elaborates HOW; SDD does not re-open WHAT.
+
+| ID | Decision | Source | Rationale |
+|---|---|---|---|
+| **D1** · Honeycomb growth | Clash resolution + AI opponent become new ports/services under `lib/honeycomb/` (e.g., `clash.{port,live}.ts`, `opponent.{port,live}.ts`). Same single Effect.provide site at `lib/runtime/runtime.ts`. | discovery Q4 answer · operator chose "Grow Honeycomb (Recommended)" | Coherent story; the Honeycomb substrate doctrine the operator ratified yesterday ("Honeycomb substrate · effect-substrate") absorbs the new systems. Memory entry: [[honeycomb-substrate]]. |
+| **D2** · Asset library extraction | Extract world-purupuru's `public/art/`, `public/brand/`, `public/fonts/`, `public/data/materials/` (and related visual assets) into a new repo `project-purupuru/purupuru-assets`. Both compass and world-purupuru sync via a per-version tarball release + `scripts/sync-assets.sh`. NOT a git submodule. | discovery Q1 answer · operator: "I don't really want to do a git submodule, but just maybe a repo to point towards for assets would make sense" · "we have a separate CLI that actually is able to reach into the asset library" | "no or very little duplication of efforts especially around assets/state logic." Future-extends to a CLI (sky-eyes-style "world viewer") that lets agents peek into the library. |
+| **D3** · Dev panel hotkey | The kaironic tuning surface (and future tweakpane / DialKit / shader inspectors) is hidden by default and toggled with backtick (`` ` ``). Quake-console mental model — closer to game-dev tuning than web-app DevTools. | discovery Q2 answer · operator: "Hotkey toggle (Recommended)" · confirmation: "backtick is okay" | Operator memory [[dev-tuning-separation]] · kaironic panel must NOT sit in the game flow. |
+| **D4** · Entry screen shape | "Enter The Tide" splash gate on `/battle` — atmospheric, lore-grounded, Tsuheji-map background, single CTA button into the match. NOT wallet auth. Wallet stays mocked per prior cycle's PRD §0 stance. | discovery Q3 answer + confirmation: "There was some sort of 'enter the tide' type of screen that was the button that was on the battle page, and it had a map in the background and it said 'A pro pro the game'" (= "Purupuru: the game") | One-screen onboarding · matches world-purupuru's existing `EntryScreen.svelte` shape |
+| **D5** · Three.js deferred | This cycle ships visual parity with world-purupuru in **2D** (asset migration + motion vocab from `puru-curves` + tilt + frame art). R3F / shaders go in a follow-up cycle (`card-game-3d-202X`). | discovery Q5 confirmation: operator wants to "progress towards Next.js" but accepted Three.js out of THIS cycle | Cycle budget · 11-component port + clash + AI + asset extraction is already substantial. R3F mid-stream would compound rework risk. |
+| **D6** · AI opponent personality | AI elemental personality maps 1:1 to element archetype: Fire = aggressive, Water = adaptive, Metal = analytic/optimizing, Wood = patient, Earth = entrenched. Hand selection + arrangement honors the personality. | discovery [ASSUMPTION] confirmed during gate · referenced from purupuru-game `progression.ts` + world-purupuru `state.svelte.ts` (Session 75 Gumi alignment, per `14-card-game-in-compass-brief.md:30`) | Matches existing canon · agents-as-players doctrine ("A Fire Puruhani plays recklessly. An Earth Puruhani hoards.") |
+| **D7** · Cycle shape | Single multi-sprint cycle (5–8 sprints) on `feat/honeycomb-battle` branch. Full Loa workflow gates: PRD → SDD → sprint-plan → per-sprint `/implement → /review-sprint → /audit-sprint`. Do not merge to `main` until cycle COMPLETED marker on all sprints. | discovery Q3 (cycle size) answer · operator: "Single multi-sprint cycle (Recommended)" | Predecessor cycle is shipped; this branch isolates the migration from hackathon-live main · operator confirmed working on a branch is correct |
+| **D8** · Cycle scope · Surface + clash + AI | Includes all 11 world-purupuru `(immersive)/battle/` components, the full game flow, and a working solo-vs-AI battle to completion. Excludes Three.js viewport (D5), friend duels, on-chain. | discovery Q1 (scope breadth) answer · operator chose "Surface + clash + AI opponent" | "We can play solo and then we can fold in the actual user part of it, inviting your friends after." Friend duels become a successor cycle. |
+| **D9** · S0 calibration spike (flatline-r1) | Before committing to the 8-sprint plan, spike ONE complex component — BattleField with drag-reorder OR BattleHand — in S0. Outcome calibrates: (a) Svelte→React translation cost per component, (b) realistic LOC budget. If spike exceeds 2 working days OR LOC projection >7,500 in compass, recalibrate plan before S1 starts. | flatline SKP-001 (850) + SKP-005 (700) | "Svelte 5 runes ($state, $derived, $effect) have fine-grained reactivity with implicit dependency tracking. React 19 requires explicit useMemo/useEffect... some Svelte idioms (two-way binding, store auto-subscribe, $effect cleanup semantics) have NO clean React equivalent." LOC budget for substrate cycle was wrong; this cycle is 5× larger. |
+| **D10** · Asset extraction deferred to S6 (flatline-r1) | Asset repo extraction moves from S1 → S6 (visual binding sprint). S1-S5 work against existing compass `public/art/` duplication. Cross-repo world-purupuru sync (originally AC-9) demoted from blocking to stretch goal. At S6, extract repo + wire compass sync + verify integrity; world-purupuru migration becomes a follow-up cycle. | flatline SKP-002 (820) + IMP-003 + SKP-007 (650) | Asset repo as S1-blocking creates hard cross-repo dependency during hackathon-live. SvelteKit/Next-shared assets are a real coordination cost. Defer until after component shells prove the surface works against local copies. Reduces blast radius of asset-pipeline failure. |
+| **D11** · AI opponent algorithm = parameterized policy (flatline-r1) | Resolves Q-SDD-1 at PRD altitude. AI implementation: hand-coded per-element decision policies with element-specific coefficients (NOT decision tree per-se · NOT LLM-backed). Preserves seed determinism per §6.4. Replayable offline. No network dependency. AC-5 replaced with falsifiable behavioral fingerprint per element. | flatline IMP-001 (HIGH 0.9 conf) + SKP-003 (750) | "LLM-backed AI breaks seed determinism (FR-24, AC-12)" · "AC-5... is trivially gameable (add random noise) without delivering the actual goal: distinguishable, fun, element-true play." Behavioral fingerprint is operator-acceptance-friendly. |
 
 ## 1 · Problem
 
 ### 1.1 · Surface symptom
 
-Compass shipped a substrate-simplification cycle (commit `f4ce25e` · 2026-05-10) that ECS-ified domain code under the four-folder pattern (`domain/ports/live/mock`). Two surfaces remain hand-rolled (`lib/activity/index.ts:42-48` · `lib/sim/population.system.ts:69`) using a `subscribe(cb)` pattern. The substrate doctrine names this exact pattern as a SIGNAL TO ADOPT into Effect's `PubSub` + `Stream` primitives.
+The substrate-agentic cycle shipped yesterday (2026-05-12) successfully — Honeycomb (effect-substrate) doctrine is adopted in compass, four-folder discipline is in place, the runtime has a single Effect.provide site. Mid-session, the operator surfaced a scope expansion: the v1 `/battle` surface I scaffolded was just a phase machine (idle → select → arrange → preview → committed) with a kaironic side-panel **interfering with the game flow**, *not* the actual card game.
 
-If we migrate without alignment, the envelope shape compass invents will diverge from the rest of the loa ecosystem.
+Per operator (this session):
 
-### 1.2 · Root problem (verified counts)
+> "I see it pulled, but I think the actual game itself was on the battle route of the other app. I feel like we should port that over, and the Kaironic time sliders should not be interfering with the actual game."
 
-Three loa repos provide what compass needs · all verified 2026-05-12:
+The shipped scaffold proves the substrate; it does not provide the *game experience* that already exists in `world-purupuru`. The operator wants a playable, visible Wuxing card game in compass — and a clean component boundary between the game surface and operator-tuning tools.
 
-| Need | Provided by | Verified state |
-|---|---|---|
-| Cross-construct envelope shape | `construct-rooms-substrate` · `data/trajectory-schemas/construct-handoff.schema.json` (5 enum: Signal/Verdict/Artifact/Intent/Operator-Model) + `room-activation-packet.schema.json` | Operator-machine path · NOT npm-published · vendored as JSON for compass production deploy (D5) |
-| Typed schemas for agent identity, lifecycle, capabilities, audit | `loa-hounfour@7.0.0` · **92 .schema.json files** (14 dist .d.ts exports) including `agent-identity` · `agent-lifecycle-state` · `agent-descriptor` · `agent-capacity-reservation` · `audit-trail-entry` · `capability-scoped-trust` · `bridge-invariant` · `domain-event` · `lifecycle-transition-payload` · `conformance-vector` | TypeBox schemas · NOT compatible with compass's `effect/Schema` · hand-port the candidate set (D1) |
-| Verify⊥judge fence · governed memory · signed assertions · recall receipts | `loa-straylight` · Phase 23a continuity-under-authorization | **Schema-contract DRAFT only · runtime BLOCKED on hounfour v8.6 delta #8 (estate-transition.schema not yet authored)** · zero npm release · S3 is doc-only (D2) |
+### 1.2 · Root problem
 
-Authoring a parallel `construct-translation-layer` pack would duplicate all three. The operator's stated constraint — "we don't want to end up creating more modules than we need to" — names this risk explicitly.
+Compass and world-purupuru are split repos. The card-game experience is in world-purupuru (SvelteKit). Compass shipped substrate but not surface. The bridge requires:
 
-### 1.3 · Strategic problem
+1. **Surface migration** — 11 SvelteKit components translated to React (NOT linked; SvelteKit ≠ Next.js).
+2. **Substrate expansion** — Honeycomb grows to host clash resolution + AI opponent (currently substrate covers only the phase machine).
+3. **Asset deduplication** — both repos currently carry separate copies of card art, fonts, materials. The operator wants this consolidated into a third party (a new `purupuru-assets` repo) that both pull from. Operator decree:
 
-Compass is one of three purupuru-family repos · **`compass` (Next.js · this hackathon submission) · `world-purupuru` (SvelteKit · Spiral engine · canonical world) · `purupuru-game` (SvelteKit · 18-card battle prototype)**. They speak different stacks but should share substrate vocabulary. If compass conforms to canonical schemas + envelopes, the adoption pattern compounds. Sprawl, Mibera, Pru worlds get the playbook for free. If compass diverges, every subsequent world chooses between upstream canonical and compass-specific drift.
+> "There should be NO or very little duplication of efforts especially around assets/state logic."
+
+4. **Surface/tooling separation** — the kaironic dev panel was placed in the game flow in the v1 scaffold; it needs to live behind a hotkey, invisible during play.
+
+### 1.3 · Strategic context
+
+The operator's mental model (saved to memory as [[purupuru-world-org-shape]]): world-purupuru is the **Rosenzu meta-world**; compass, purupuru-game, purupuru are **zone-experiences within that world**. The card game is one such experience. The Honeycomb substrate is the connective tissue across zones. The asset library extraction is a step toward the operator's longer arc: *"world repo should have been a monorepo that contains all of our apps. For the sake of the hackathon, we wanted it separate, so let's work with me on this."* Extracting assets to a shared repo is the cheapest near-term move toward that monorepo end-state.
 
 ## 2 · Goals
 
 ### 2.1 · Primary goals
 
-- **G1** · Compass conforms to `construct-rooms-substrate` handoff envelope at every cross-bounded-context emission · grep-verifiable · 100% of `world-event.ts` discriminated-union variants tagged with one of 5 typed-stream values (IMP-014)
-- **G2** · Compass hand-ports a named candidate set (~5 schemas) of `loa-hounfour@7.0.0` types as Effect Schemas (D1) · structural conformance verified via runtime AJV against upstream JSON Schema
-- **G3** *(reframed)* · Compass's verify⊥judge fence is documented as a 9-step force-chain mapping (per straylight doctrine) AND enforced as a compile-time TypeScript brand-type fence · ZERO straylight runtime imports until Phase 23b unblocks
-- **G4** *(reframed)* · Compass gains a **Next.js substrate + agent-navigable system layers** for the world experience (observatory · ceremony · awareness · weather · activity · sim) such that the operator can iterate any system and the agent can navigate the structure via grep alone. Card game integration is a SEPARATE downstream cycle
-- **G5a** *(revised post-sprint-review SP-002/SP-003)* · Substrate-conformance LOC delta (S0+S1+S2+S3+S6 · scoped to `lib/` and `packages/peripheral-events/`) ≤ **+500 net** (includes hand-port floor +400 + envelope shell +200 + fence +50 - legacy removal -80 - other shrinkage). Honest accounting after sprint review caught the math wasn't closing. **Target: -100 LOC of NON-hand-port code** (net ALL substrate-refactor work that isn't hand-ports themselves should shrink by 100). Measured per-category at S6 close.
-- **G5b** *(split)* · World-substrate LOC budget (S4 · `lib/world/`) ≤ **+600** · operator pair-point if exceeded
-- **G5c** · Cycle net LOC ≤ **+1200** including world substrate · soft-fail requiring justification
+- **G1 · Visible playable solo** — operator (or any user) can open `/battle` in compass, see the Enter-The-Tide screen, walk through ElementQuiz (first-time-only flow), play a full Wuxing match against a per-element AI opponent, see the ResultScreen, and start over. End-to-end loop closes. *(traces to discovery Q2 done-bar + Q1 scope)*
+- **G2 · Surface parity with world-purupuru** — all 11 components from `world-purupuru/sites/world/src/lib/battle/` and `(immersive)/battle/+page.svelte` are present in compass as React components: EntryScreen, ElementQuiz, BattleField, BattleHand, CardPetal, OpponentZone, TurnClock, ArenaSpeakers, HelpCarousel, Tutorial, ResultScreen. Visual parity ships in 2D (D5). *(traces to user message + brief §1.7-11)*
+- **G3 · Honeycomb grown** — clash resolution + AI opponent live under `lib/honeycomb/` as new typed services (`clash.port.ts/live.ts`, `opponent.port.ts/live.ts`). All wired through the existing single `lib/runtime/runtime.ts` provide site. The substrate doctrine the operator named "Honeycomb" yesterday remains the single architectural pattern. *(D1)*
+- **G4 · Asset library extracted** — a new repo `project-purupuru/purupuru-assets` is created, populated with the visual asset set from world-purupuru, and both compass and world-purupuru pull via a per-version sync (NOT submodule, NOT runtime CDN). *(D2)*
+- **G5 · Dev/game separation** — kaironic + future tweakpane / DialKit / shader-inspector surfaces are reachable via backtick (`` ` ``) hotkey, NOT visible during default play. Dev components live under `app/battle/_inspect/`, game components under `app/battle/_scene/`. *(D3 · [[dev-tuning-separation]])*
+- **G6 · Full audit-passing slice** — every sprint clears `/implement → /review-sprint → /audit-sprint`. The cycle COMPLETED marker requires green on all gates. *(discovery Q2 done-bar · operator: "Full audit-passing slice (Loa quality bar)")*
 
 ### 2.2 · Secondary goals
 
-- **G6** · Multi-world adoption playbook drafted at `grimoires/loa/specs/per-world-adoption-playbook.md` · 1-page checklist · Pru/Sprawl/Mibera each get 1 paragraph naming what adoption would mean · references real file:line per target (otherwise the paragraph is theater · IMP-S5)
-- **G7** · `construct-effect-substrate` doctrine pack updated with the integration story · status promoted from `candidate` → `validated · 1-project · adopting hounfour as canonical schema source`
-- **G8** *(restructured · IMP-009)* · Tracking issues opened on `loa-hounfour` + `loa-straylight` + `construct-rooms-substrate` (3/3) within 24h of S0 close. Eileen/Jani sign-off captured if received within 7 days; absence of NACK = passive accept; cycle ships independently
+- **G7 · Whisper determinism** — the Persona/Futaba caretaker whisper picks become seed-deterministic (currently they use `Math.random` for index selection — flagged in `14-card-game-in-compass-brief.md` §7 hand-off note).
+- **G8 · Test parity** — purupuru-game's 204 tests inform a comparable suite in compass. Not 1:1 fixture-shared (the data shapes differ), but every invariant in `purupuru-game/prototype/INVARIANTS.md` has a corresponding compass test.
+- **G9 · Documentation trail** — a UI/UX migration note at `grimoires/loa/notes/world-purupuru-component-map.md` listing each ported component with `(svelte source path → react destination path · semantic deltas)` so anyone reading next cycle understands what was translated.
+- **G10 · Asset CLI groundwork** — design (do not implement) the surface for a future asset-library CLI that lets agents query/extract assets by tag. Operator-flagged as nice-to-have but documents the long arc.
 
 ### 2.3 · Non-goals (explicit cuts)
 
-- ❌ NO new `construct-translation-layer` pack (CI lint enforces · `find . -path '*/construct-translation-layer*'` returns empty)
-- ❌ NO new `lib/adapters/` folder (D5)
-- ❌ NO card game design or implementation (D3 · `purupuru-game` already ships this)
-- ❌ NO straylight runtime imports (D2 · zero `assert()` / `recall()` calls)
-- ❌ NO TypeBox in compass dependencies (D1 · effect/Schema only)
-- ❌ NO puppet theater MVP (deferred · cycle N+2 candidate)
-- ❌ NO daemon NFT contract (puruhani materialization stays at "follows hounfour shape; ERC-6551 mint-on-demand · later cycle")
-- ❌ NO multi-chain envelope abstraction (Solana stays Solana for compass · hounfour types are chain-agnostic)
-- ❌ NO straylight implementation fork
-- ❌ NO Solana state changes for new systems (D4 · in-memory only this cycle)
-- ❌ NO active multi-world build (Pru/Sprawl/Mibera get the playbook only)
-- ❌ NO LLM-bound judgment in any new system (preserves verify⊥judge fence)
+- ❌ **NO** Three.js / R3F viewport this cycle (D5 · next cycle)
+- ❌ **NO** friend-duel / asynchronous PvP networking (queued for after solo lands)
+- ❌ **NO** real Five Oracles (TREMOR · CORONA · BREATH). The daily-element function stays mocked.
+- ❌ **NO** daemon NFT / Puruhani TBA mint integration. Wallet stays mocked.
+- ❌ **NO** on-chain combat moves. Battle state is in-memory only.
+- ❌ **NO** mobile-first polish pass. Compass is desktop-first; mobile is a successor cycle.
+- ❌ **NO** asset CLI implementation (only design surface · G10)
+- ❌ **NO** soul-stage agent autonomy ("your Puruhani plays while you sleep")
+- ❌ **NO** re-doing the substrate. Honeycomb stays as the architectural pattern — this cycle EXTENDS it, doesn't reinvent.
+- ❌ **NO** changes to the Solana anchor program, the quiz Blink, or the observatory route. Those stay as shipped by predecessor cycles.
 
-## 3 · Success metrics
+## 3 · Acceptance metrics
 
-### 3.1 · Quantitative gates (binary pass/fail · all measurable)
+Every metric is independently verifiable. SDD will name the test fixture and review-sprint check for each.
 
-| ID | Metric | Target | How measured |
-|---|---|---|---|
-| Q1 | Conformance LOC delta | ≤ +500 net (revised per SP-002/SP-003 · target -100 for non-hand-port substrate refactor only) | `git diff --stat f4ce25e...HEAD -- lib/ packages/peripheral-events/ ':!lib/world/' \| tail -1` AND `git diff --stat f4ce25e...HEAD -- lib/ packages/peripheral-events/ ':!lib/world/' ':!*.hounfour-port.ts' ':!*hounfour-*.schema.json' \| tail -1` |
-| Q2 | World-substrate LOC budget | ≤ +600 | `git diff --stat f4ce25e...HEAD -- lib/world/ \| tail -1` |
-| Q3 | Hand-ported hounfour schemas | ≥ 5 distinct (named in §5.1.1) | `grep -lE "hounfour-port" lib/domain/*.ts \| wc -l` |
-| Q4 | Envelope conformance | 100% of `world-event.ts` variants tagged with `output_type` ∈ {Signal, Verdict, Artifact, Intent, Operator-Model} | `count(union variants) == grep -c 'output_type:' packages/peripheral-events/src/world-event.ts` |
-| Q5 | Tests baseline | 24/24 → S4 close ≥ N (N defined at S0 from world-substrate task list) | `pnpm test` |
-| Q6 | Verify⊥judge compile-time fence | `tsc --noEmit lib/test/judge-fence.spec-types.ts` emits expected type-error per `expect-type` (IMP-008) | CI step |
-| Q7 | S0→S1 promotion gate | (a) ≥80% compass domain types map to a hounfour schema with ≤2-field delta · (b) zero blockers requiring hounfour breaking change · (c) straylight Phase 23a status verified | NOTES.md decision record (IMP-006) |
-| Q8 | Tracking issues filed | 3/3 (one per upstream repo · each cites compass file:line + reproducible fixture · NOT just count of issues per IMP-009 quality bar) | `gh issue list --search "compass adoption tracker [substrate-agentic-2026-05-12]"` |
-| Q9 | Sprint commits atomic | Each substrate adoption is one commit, independently revertable | `git log --oneline f4ce25e..HEAD` review |
-| Q10 | Drift-detection CI rule | Quarterly job compares hand-ported Effect Schemas to upstream JSON Schema structurally; emits diff report | `.github/workflows/hounfour-drift.yml` exists post-S2 |
-
-### 3.2 · Qualitative gates (operator pair-point checks)
-
-| Gate | Test |
-|---|---|
-| Reframe held | No file in `lib/` defines a parallel translation primitive that hounfour or rooms-substrate already provides |
-| Card game stays out | `find compass/lib -name '*card*' -o -name '*battle*' -o -name '*deck*'` returns empty |
-| Adopt-don't-invent honored | Every PR title in cycle includes `[adopt:<substrate>]` tag (PRAISE-001) |
-| Multi-world cross-applies | Adoption playbook (G6) reads as a checklist a contractor could execute against world-purupuru / world-sprawl / world-mibera |
-| Operator iteration test | After S4 close, operator can rename/move/refactor a system in `lib/world/` in one commit without cascading test failures (IMP-007 rollback) |
-| Agent navigation test | A fresh agent (no context) can answer "what does the awareness system do, and what ports does it expose?" in ≤3 grep calls (D3 north star) |
-
-## 4 · Users / stakeholders
-
-(Unchanged from v1 except §4.4)
-
-### 4.1 · Operator (zksoju · primary builder)
-
-- Wants Next.js substrate + system clarity that lets him iterate compass's world experience fast
-- Wants compass to be a worked example, not a one-off
-- Wants the cycle to honor "we don't want to end up creating more modules than we need to"
-- Pair-points: after S0 (audit + S0→S1 gate · Q7), S2 (hounfour hand-port reviewed), S3 (force-chain doc reviewed), S4 (world substrate reviewed for navigation clarity), S6 (doctrine ratification)
-
-### 4.2 · Eileen (`construct-rooms-substrate` + `loa-straylight` author)
-
-- Owns the verify⊥judge framework's canonical implementation
-- Will signal acceptance of compass-as-consumer via straylight issue thread (G8)
-- Reference: `~/vault/wiki/entities/eileen-dnft-conversation.md`
-
-### 4.3 · Jani (`loa-hounfour` author)
-
-- Owns the schema substrate · 92 .schema.json files
-- Will signal acceptance of compass conformance via hounfour PR comments (G8)
-
-### 4.4 · Gumi (purupuru lore + art · `world-purupuru` + `purupuru-game` collaborator)
-
-- Card game design happens at `purupuru-game` · NOT this cycle
-- Compass world experience (observatory · ceremony) gets her review when world substrate (S4) ships polish-ready scaffolding
-
-### 4.5 · Future world pilot (`world-sprawl` / `world-mibera` / `world-purupuru` curator)
-
-- Will execute the adoption playbook (G6) to bring their world onto canonical substrate
-- Should not need to learn loa internals to follow the checklist
-
-## 5 · Functional requirements (sprint-mapped · revised per D1-D6)
-
-### 5.1 · S0 — Conformance audit (no code change · operator pair-point gate)
-
-**FR-S0-1** · Map every compass domain type in `peripheral-events/src/world-event.ts`, `lib/sim/types.ts`, `lib/weather/types.ts`, `lib/activity/types.ts` to a hounfour schema OR mark "no upstream equivalent." Output: `grimoires/loa/context/12-hounfour-conformance-map.md`.
-
-**FR-S0-2** · Identify compass behaviors that are straylight-shaped (cross-session persistence · signed memory · governed recall). Append to map · mark each as "doc-only this cycle" or "defer to N+2."
-
-**FR-S0-3** *(time-boxed · IMP-013)* · For every blocker, file an issue against the upstream repo. If upstream issue is open >72h without comment, operator decides defer/fork/shim unilaterally; record in NOTES.md.
-
-**FR-S0-4** · Operator pair-point at S0 close. Decide: which schemas adopt now, which wait, which file upstream.
-
-**FR-S0-5** *(NEW · IMP-006)* · S0→S1 promotion gate (Q7). Cycle proceeds to S1 ONLY if all 3 sub-conditions pass. Otherwise pivots to S0.5 (negotiation cycle with upstream).
-
-#### 5.1.1 · Candidate hounfour schemas (working set · refined in S0)
-
-These are the hand-port candidates · S0 audit confirms or contests:
-
-| Schema | Adopt at | Rationale |
+| ID | Metric | Verification |
 |---|---|---|
-| `agent-identity` | S2 | Puruhani identity binding |
-| `agent-lifecycle-state` | S2 | Dormant/stirring/breathing/soul lifecycle |
-| `agent-descriptor` | S2 | Persona + voice file binding |
-| `audit-trail-entry` | S2 | Cross-context event provenance |
-| `capability-scoped-trust` | S3 | Verify⊥judge boundary contract |
-| `bridge-invariant` | S3 | Force-chain step gating |
-| `domain-event` | S1 | Envelope payload type |
-| `lifecycle-transition-payload` | S2 | Stage-transition events |
+| AC-1 | `/battle` renders the Enter-The-Tide screen by default (no wallet required) | `curl -sf http://localhost:3000/battle` returns HTML containing the EntryScreen-specific copy; manual visual check |
+| AC-2 | First-time visit triggers ElementQuiz; subsequent visits skip directly to EntryScreen | E2E test via Playwright + localStorage state inspection |
+| AC-3 | Operator can complete a full solo match: Enter → arrange 5 → lock-in → watch clashes → see ResultScreen → restart | E2E test asserting all five phase transitions fire BattleEvent emissions in order |
+| AC-4 *(r1 strengthened)* | ALL clash resolution invariants from `~/Documents/GitHub/purupuru-game/prototype/INVARIANTS.md` are present as tests and pass: lineup rules (count=5, max-1-transcendence) · pack rules (no transcendence from packs) · burn rules (complete-set-required, removed-on-burn, resonance-level-up) · battle rules (clashes=min, someone-dies, numbers-tiebreaker, R3-immune-to-tiebreaker, Metal-precise-doubles-largest, all-conditions-operative, Forge-auto-counter, Void-mirror, Garden-grace) · difficulty rules (clamps, daily-reset) · type-power hierarchy (transcendence>jani>caretaker_b>caretaker_a) | Per-invariant test enumerated in SDD §test-plan |
+| AC-5 *(r1 reformulated · behavioral fingerprint)* | AI opponent personality is element-distinct AND falsifiable per element. Fire AI: ≥70% of openings include front-row aggression (pos-1 jani OR pos-1 same-element setup-strike). Earth AI: average lineup variance below population mean (entrenched, repeating shapes). Wood AI: ≥60% of arrangements use caretaker→jani late-row sequences (patient build). Metal AI: optimizes single-largest-clash position (Precise condition synergy) in ≥80% of arrangements. Water AI: re-arranges between rounds at ≥2× the frequency of any other element AI. | Test fixture: 50 matches per element-AI vs deterministic player lineup + seed sweep; per-element fingerprint metrics extracted and asserted |
+| AC-6 | Kaironic dev panel is invisible on default render; backtick toggles visible state | E2E test: load page, screenshot, assert no panel pixels; press backtick, screenshot, assert panel pixels present |
+| AC-7 | Asset library at `project-purupuru/purupuru-assets` is populated with full art set | Repo exists, `package.json` (or asset manifest) lists ≥18 cards × 4 rarity tiers + 5 element-effects + frame art + 5 puruhani sprites + 5 jani sprites |
+| AC-8 | Compass `public/art/` is synced from the asset repo, with `scripts/sync-assets.sh` recreating the current state from the asset repo's current release tag | Run sync against a clean `public/art/`; diff matches what was committed |
+| AC-9 | World-purupuru is also updated to pull from the asset repo (cross-repo coordination) | Operator-confirmed via world-purupuru git log; no asset-file duplication between the two repos for the migrated set |
+| AC-10 | `lib/honeycomb/clash.{port,live,mock}.ts` and `lib/honeycomb/opponent.{port,live,mock}.ts` exist · wired into AppLayer at `lib/runtime/runtime.ts` · 0 type errors · test files green | `pnpm tsc --noEmit` + `pnpm vitest run lib/honeycomb` |
+| AC-11 | Per-sprint COMPLETED markers exist | `grimoires/loa/cycles/card-game-in-compass-2026-05-12/sprint-*-COMPLETED.md` per sprint |
+| AC-12 | Whisper index selection is seed-deterministic | Replay test: same seed + same phase transition → same whisper line (no `Math.random` calls in whisper pick path) |
+| AC-13 | Component map note exists at `grimoires/loa/notes/world-purupuru-component-map.md` | File exists with 11 component entries; each entry has source path, dest path, semantic-delta one-liner |
+| AC-14 *(r1 recalibrated post-flatline)* | Net LOC budget (excluding asset migration counted separately): ≤ **+7,500** in compass repo (was +3,500 · raised per SKP-005 + S0-spike calibration in D9) · ≤ +400 in world-purupuru repo (deferred to follow-up cycle per D10) · new asset repo: separate accounting · per-sprint sub-budgets named in SDD | Manual LOC tally at each sprint close · cycle-total at S6 close |
+| AC-15 *(r1 new · perf via Lighthouse)* | Lighthouse run on /battle route in CI returns Performance ≥80, LCP <2.5s, INP <200ms, CLS <0.1 | CI step or Playwright + Lighthouse, asserted at /audit-sprint |
+| AC-16 *(r1 new · a11y via axe-core)* | Playwright + axe-core run on /battle returns 0 WCAG 2.1 AA violations across all phases (Entry, Quiz, BattleField, Result) | CI step, asserted at /audit-sprint |
+| AC-17 *(r1 new · playability checklist)* | Test plan `grimoires/loa/tests/playability-checklist.md` enumerates ≥12 play-loop checks and all pass: no console errors during full match · animations complete without jank · error boundary catches catastrophic state · mid-match refresh handled (resume or restart) · all 5 element-AIs played to completion at least once · rapid-input doesn't desync state · ResultScreen renders for win/lose/draw · ElementQuiz persists in localStorage · Tutorial fires for first-time + re-triggerable from settings · HelpCarousel dismissible + persists dismissed state · screen-reader announces phase transitions · keyboard-only completion of full match flow | Manual + automated Playwright run · gated at /audit-sprint of final sprint |
 
-S0 audit may add or remove from this set with operator pair-point. Final list locks at S0→S1 gate.
+## 4 · Users & stakeholders
 
-### 5.2 · S1 — Adopt rooms-substrate handoff envelope (envelope shell first per D6)
+**Primary user (this cycle)**: the operator (zksoju). Cycle-bounded; player audience expands post-cycle.
 
-**FR-S1-1** · Vendor `construct-handoff.schema.json` + `room-activation-packet.schema.json` as JSON files in `compass/lib/domain/schemas/` (D5 · production-deployable).
+**Secondary stakeholders**:
+- **Gumi** — lore + art authority. Caretaker whispers (already ported), card visual fidelity (this cycle), asset library tagging conventions (G10 design surface). Should be informed at S1 (asset repo setup) and S5 (tutorial component) — non-blocking, async per `world-purupuru/CLAUDE.md` collaboration protocol.
+- **Zerker** — Score API + Compass observatory parallel lane (per substrate-cycle PRD §0.7). No direct dependency in this cycle; their observatory route stays untouched.
+- **Lily** — APAC GTM. Pre-launch awareness; no scope intersection this cycle.
+- **Eileen** — daemon-NFT-as-spine doctrine author. Not in scope this cycle (D8 excludes daemon integration); reference only.
+- **Future players** — surfaces designed to be onboarding-friendly (ElementQuiz, Tutorial, HelpCarousel) even though this cycle's user is the operator. Tutorial polish is in AC; ElementQuiz / HelpCarousel correctness is in AC.
 
-**FR-S1-2** *(IMP-014 coverage gate)* · Annotate `world-event.ts` discriminated union with `output_type` ∈ {Signal, Verdict, Artifact, Intent, Operator-Model}. CI rule: count of union variants must equal count of `output_type:` annotations.
+## 5 · Functional requirements
 
-**FR-S1-3** · Migrate hand-rolled `subscribe(cb)` (`lib/activity/index.ts:42-48` · `lib/sim/population.system.ts:69`) to Effect's `PubSub` + `Stream` riding the canonical envelope.
+### 5.1 · Component migration (11 surfaces · 1:1 source mapping)
 
-**FR-S1-4** · Single `Effect.provide` site for the new envelope (substrate doctrine invariant). Enforced via grep rule.
+For each component, the SDD will spec the React translation. PRD records FR per surface. Source path is from `world-purupuru/sites/world/src/lib/battle/` (or `(immersive)/battle/` for the page-level routing).
 
-**FR-S1-5** *(D6)* · Envelope `verdict` field typed as `Type.Unknown()` placeholder. S2 narrows to hand-ported hounfour union.
-
-### 5.3 · S2 — Hand-port hounfour schemas
-
-**FR-S2-1** *(D1)* · Hand-port the 5+ candidate schemas from §5.1.1 as Effect Schemas in `lib/domain/`. Suffix `*.hounfour-port.ts` for grep-discoverability.
-
-**FR-S2-2** · Each hand-ported schema ships with: (a) `*.mock.ts` factory · (b) runtime AJV validator that parses the upstream JSON Schema as a structural conformance check at module load · (c) inline doc comment with `Source: hounfour@<sha>:schemas/<file>.schema.json`.
-
-**FR-S2-3** · S1's `verdict: Type.Unknown()` placeholder narrows to a discriminated union of the hand-ported types.
-
-**FR-S2-4** · Operator pair-point: review hand-ports for Effect-Schema idiom-fit before sealing.
-
-### 5.4 · S3 — Doc-only force-chain mapping + compile-time fence (D2)
-
-**FR-S3-1** · Read straylight Phase 23a `docs/specs/recall-wedge-schema-contract.md`. Document the 9-step force chain (memory → belief → instruction → plan → permission → action → commitment → permanence) as it applies to compass's puruhani lifecycle. Output: `grimoires/loa/context/13-force-chain-mapping.md`.
-
-**FR-S3-2** · Each force-chain step gets a one-line answer: "Where does this gate live in compass?" Some answers may be "no compass surface yet · placeholder."
-
-**FR-S3-3** *(D2 · IMP-008)* · Implement compile-time verify⊥judge fence as a TypeScript brand-type:
-```typescript
-// lib/domain/verify-fence.ts (no straylight import)
-declare const VerifiedBrand: unique symbol
-export type VerifiedEvent<T> = T & { readonly [VerifiedBrand]: true }
-
-export const verify = <T>(e: T): Effect.Effect<VerifiedEvent<T>, ...> => ...
-export const judge = <T>(e: VerifiedEvent<T>) => ... // refuses unbranded T
-```
-Ship `lib/test/judge-fence.spec-types.ts` containing both passing AND failing type assertions verified by `expect-type` or `tstyche` (Q6 / NFR-SEC-1).
-
-**FR-S3-4** · Open issue on `loa-straylight` · subject "compass adoption tracker [substrate-agentic-2026-05-12]" · cite `lib/domain/verify-fence.ts:1` and ask: "Is this brand pattern compatible with Phase 23b signed-assertion API as currently drafted?"
-
-### 5.5 · S4 — Next.js substrate + agent-navigable system layers for the WORLD experience (D3 · MAJOR REFRAME)
-
-**Customer**: operator's iteration speed + agent's navigation clarity. NOT a card game.
-
-**FR-S4-1** · Audit existing `lib/{sim,weather,activity}/` for: (a) which systems have ports, which are direct imports · (b) which systems mix concerns (UI + state + IO) · (c) which need test substrate (`*.mock.ts`).
-
-**FR-S4-2** · Define `lib/world/` as the umbrella for system layers that compose the world experience:
-- `lib/world/world.system.ts` — composes weather + activity + sim into one observable world state Effect Layer
-- `lib/world/awareness.port.ts` + `lib/world/awareness.live.ts` + `lib/world/awareness.mock.ts` — the awareness layer as a typed surface
-- `lib/world/observatory.port.ts` + `*.live.ts` + `*.mock.ts` — observatory as a typed surface (read of world state)
-- `lib/world/ceremony.port.ts` + `*.live.ts` + `*.mock.ts` — ceremony as a typed surface (write into world state)
-
-**FR-S4-3** · Each system port ships with one Next.js component example showing how the operator wires it (`app/_components/<system>-example.tsx`) — so the operator can copy-paste the pattern into actual app routes.
-
-**FR-S4-4** · `lib/world/SKILL.md` describes the world substrate for an agent: (a) what each system exposes · (b) which port to import for which use case · (c) which systems depend on which others. Agent navigation test (Q operator-vibe-check): a fresh agent can answer "what does awareness do?" via 3 grep calls.
-
-**FR-S4-5** *(D4)* · No persistence beyond what compass already has. New systems are pure Effect Layers; no Solana writes; no new KV keys.
-
-**FR-S4-6** · Operator pair-point at S4 close: "Can I move/rename a system in 1 commit without cascading test failures?" YES = ship; NO = re-think.
-
-### 5.6 · S5 — Multi-world readiness (light touch · evidence-grounded per IMP-S5)
-
-**FR-S5-1** · `grimoires/loa/specs/per-world-adoption-playbook.md` · 1-page checklist.
-
-**FR-S5-2** · Stub `world-purupuru` / `world-sprawl` / `world-mibera` (1 paragraph each) under the playbook. Each paragraph MUST cite ONE actual file:line in the target world that demonstrates the shape compass adopted (or the absence). Otherwise it's documentation theater.
-
-### 5.7 · S6 — Distill upstream
-
-**FR-S6-1** · Update `construct-effect-substrate` (existing pack) with the integration story.
-
-**FR-S6-2** · Pack status: `candidate` → `validated · 1-project · adopting hounfour as canonical schema source · hand-port pattern documented`.
-
-**FR-S6-3** · Operator pair-point ratifies before publishing.
-
-## 6 · Non-functional requirements
-
-### 6.1 · Security
-
-- **NFR-SEC-1** · Verify⊥judge compile-time fence is mandatory (Q6 · IMP-008). `judge` cannot consume unbranded events.
-- **NFR-SEC-2** · No private keys committed.
-- **NFR-SEC-3** *(updated · IMP-019)* · Schema-bound validation at parse boundaries via `Schema.decodeUnknown` (Effect Schema). NOT TypeBox `Type.Check` (compass does not depend on TypeBox per D1).
-- **NFR-SEC-4** · OWASP Top 10 review at each PR.
-- **NFR-SEC-5** · Force-chain mapping (FR-S3-1) MUST hold for any future puruhani state transition. Skipping a step = security defect.
-
-### 6.2 · Performance
-
-- **NFR-PERF-1** *(deferred per IMP-013)* · World system layer composition does not regress current weather/sonifier pipeline latency. Vibe-check operator gate. Numerical p95 deferred until benchmark harness exists (not in this cycle).
-- **NFR-PERF-2** · Envelope validation overhead is bounded · measured at S1 close via spot-check (not p95 with no infra).
-
-### 6.3 · Compatibility
-
-- **NFR-COMPAT-1** · MIN_SUPPORTED hounfour: v6.0.0 (per SCHEMA-CHANGELOG). Compass pins to SHA at S0 close (§10.5).
-- **NFR-COMPAT-2** · Compass owns hand-ported types after S2 (D1). Upstream version bumps trigger drift-detection report (Q10), not auto-merge.
-- **NFR-COMPAT-3** · Solana adapter layer remains in `lib/live/solana.live.ts` (D5). Hounfour-typed envelopes are chain-agnostic.
-
-### 6.4 · Maintainability
-
-- **NFR-MAINT-1** · Suffix discipline: `*.port.ts` · `*.live.ts` · `*.mock.ts` · `*.system.ts` · `*.schema.ts` · `*.hounfour-port.ts` · `*.spec-types.ts`.
-- **NFR-MAINT-2** · Every package (`lib/world/` for S4) keeps a SKILL.md current.
-- **NFR-MAINT-3** · NOTES.md decision log captures every substrate-adoption choice.
-
-### 6.5 · Rollback (NEW · IMP-007)
-
-- **NFR-ROLLBACK-1** · Each sprint ships behind a feature branch off `feat/substrate-agentic-adoption`.
-- **NFR-ROLLBACK-2** · Test failures > 5 simultaneous trigger automatic pause + operator pair-point.
-- **NFR-ROLLBACK-3** · Each sprint commit is atomic and independently revertable. No entangled cross-sprint commits.
-- **NFR-ROLLBACK-4** · S2 hand-port commits are reversible by `git revert` of one `adopt-hounfour-<schema>` commit per schema · until S3 lands.
-
-## 7 · Risks
-
-| ID | Risk | L | I | Mitigation |
+| FR ID | Component | Source (world-purupuru) | Compass destination | Required behavior (PRD altitude) |
 |---|---|---|---|---|
-| R-1 | Hounfour candidate schemas don't fit compass needs · adoption stalls | M | H | S0 audit surfaces BEFORE code · time-boxed upstream issue (FR-S0-3) |
-| R-2 | Straylight Phase 23a contract changes mid-cycle | M | M | S3 is doc-only (D2); no runtime coupling to invalidate |
-| R-3 | Eileen/Jani pair-point delayed | H | L | G8 ships independently · 7-day silent-no protocol |
-| R-4 | World substrate (S4) bloats · LOC budget G5b exceeded | M | M | Operator pair-point if >+600; cut scope to top-3 systems |
-| R-5 | LOC delta goes positive on conformance side | M | M | G5a is split from G5b; conformance side measured separately · should not have card-game contamination |
-| R-6 | Vendoring vs hard-importing hounfour: drift detection fails | M | M | Drift-detection CI rule (Q10) · quarterly comparison · NOT auto-merge |
-| R-7 | Card game accidentally gets implemented in compass | L | H | CI lint blocks `find compass/lib -name '*card*' -o -name '*battle*'` non-empty |
-| R-8 | Cycle scope creeps to puppet theater | L | H | CI lint blocks `puppet-*.ts` files · §2.3 explicit cut |
-| R-9 | Straylight Phase 23b lands mid-cycle and supersedes the brand-type fence | L | M | D2 brand-type is forward-compatible · swap implementation when 23b stabilizes |
-| R-10 | Multi-world playbook (S5) becomes premature standardization | L | M | S5 evidence requirement (FR-S5-2 · file:line per world) · or playbook stays as draft |
-| R-11 *(NEW)* | Effect-Schema idiom drift (S2 hand-ports diverge from canonical Effect-Schema patterns) | M | L | Operator pair-point S2 close · review for idiom-fit |
-| R-12 *(NEW)* | Hounfour ships v8.0.0 mid-cycle · breaking change | L | H | NFR-COMPAT-1 pins SHA at S0 · NFR-COMPAT-2 prohibits auto-merge · drift report at S6 distill |
+| FR-1 | **EntryScreen** | `lib/battle/EntryScreen.svelte` | `app/battle/_scene/EntryScreen.tsx` | Atmospheric splash · Tsuheji map background · "Enter the Tide" CTA button · routes to ElementQuiz (first time) OR direct match (returning) (D4) |
+| FR-2 | **ElementQuiz** | `lib/battle/ElementQuiz.svelte` | `app/battle/_scene/ElementQuiz.tsx` | First-time-only flow · 5 atmospheric questions to determine player's home element · result persists in `localStorage.compass.element` · flows into match |
+| FR-3 | **BattleField** | `lib/battle/BattleField.svelte` | `app/battle/_scene/BattleField.tsx` | The arena · territory centers per element (from existing `wuxing.ts` TERRITORY_CENTERS or new constants) · visual zone where clashes resolve · 2D for this cycle (D5) |
+| FR-4 | **BattleHand** | `lib/battle/BattleHand.svelte` | `app/battle/_scene/BattleHand.tsx` | Player's 5-card lineup tray · drag-to-reorder · already partially shipped as `LineupTray.tsx`; this FR is the port-and-evolve to BattleHand semantics |
+| FR-5 | **CardPetal** | `lib/battle/CardPetal.svelte` | `app/battle/_scene/CardPetal.tsx` | Individual card view · holographic-tilt on hover · element-driven art layers · uses asset library (D2) for art |
+| FR-6 | **OpponentZone** | `lib/battle/OpponentZone.svelte` | `app/battle/_scene/OpponentZone.tsx` | Opponent's lineup (face-down until clash) · element indicator · AI personality cue (subtle) |
+| FR-7 | **TurnClock** | `lib/battle/TurnClock.svelte` | `app/battle/_scene/TurnClock.tsx` | Visual indicator of clash beat · driven by Honeycomb timing-budget weighted by kaironic weights (already in `lib/honeycomb/curves.ts`) |
+| FR-8 | **ArenaSpeakers** | `lib/battle/ArenaSpeakers.svelte` | `app/battle/_scene/ArenaSpeakers.tsx` | Caretaker voice surface · already partially shipped as `WhisperBubble.tsx`; this FR is the port-and-evolve to the world-purupuru spatial-speakers shape |
+| FR-9 | **HelpCarousel** | `lib/battle/HelpCarousel.svelte` | `app/battle/_scene/HelpCarousel.tsx` | Onboarding help · swipeable hint panels for first-time visitors · skippable |
+| FR-10 | **Tutorial** | `lib/battle/Tutorial.svelte` | `app/battle/_scene/Tutorial.tsx` | Tactical tutorial overlay · teaches Shēng chain + Setup Strike + clash resolution through showing, not telling · plays once, skippable, replayable from settings |
+| FR-11 | **ResultScreen** | `lib/battle/ResultScreen.svelte` | `app/battle/_scene/ResultScreen.tsx` | End-of-match · "The tide favored X" copy (NOT "Victory"/"Defeat" per game-design canon) · breakdown of winning clashes · CTA to restart |
 
-## 8 · Dependencies
+### 5.2 · Honeycomb substrate growth (3 new ports)
 
-### 8.1 · Upstream
+| FR ID | Service | Files | Required behavior |
+|---|---|---|---|
+| FR-12 | **Clash** | `lib/honeycomb/clash.{port,live,mock}.ts` + `__tests__/clash.test.ts` | Pure clash resolution per `purupuru-game/prototype/src/lib/game/battle.ts` semantics. Round-based attrition · clashes simultaneous · 敗 stamp · numbers-advantage tiebreaker · conditions applied (Wood Growing · Fire Volatile · Earth Steady · Metal Precise · Water Tidal). Replayable from seed. |
+| FR-13 | **Opponent** | `lib/honeycomb/opponent.{port,live,mock}.ts` + `__tests__/opponent.test.ts` | Per-element AI: hand-selection algorithm + arrangement algorithm bound by element archetype (D6). Reads from Battle service's collection state; emits `OpponentCommand` events. |
+| FR-14 | **Match** | `lib/honeycomb/match.{port,live,mock}.ts` + extension of `battle.live.ts` | Orchestrator above Battle phase machine — drives match lifecycle (Entry → Quiz check → Match → Result). Tracks per-match state (rounds played, eliminations, winner). New phases added to `BattlePhase`: `clashing` · `disintegrating` · `result`. |
 
-- **`loa-hounfour@7.0.0`** · 92 schemas · 14 dist exports · MIN_SUPPORTED 6.0.0 · TypeBox · authoritative source of agent/capability types · SHA pinned at S0 (§10.5)
-- **`construct-rooms-substrate`** · canonical envelope schemas · vendored as JSON in compass for production
-- **`loa-straylight`** Phase 23a · doc-only reference · no runtime dependency
+### 5.3 · Asset library extraction (new repo · deferred to S6 per D10)
 
-### 8.2 · Internal compass state
+| FR ID | Requirement | Verification |
+|---|---|---|
+| FR-15 | New repo `project-purupuru/purupuru-assets` created with: `public/art/cards/*` · `public/art/element-effects/*` · `public/art/puruhani/*` · `public/art/jani/*` · `public/art/bears/*` · `public/art/patterns/*` · `public/data/materials/*` · `public/fonts/*` · `public/brand/*` · **created at S6, not S1** | Repo exists; AC-7 manifest check |
+| FR-16 | `scripts/sync-assets.sh` in compass pulls tagged asset release (per-tag tarball with sha256 manifest) into `public/art/`, `public/data/materials/`, `public/fonts/`, `public/brand/`. Compass declares pinned version in `.assets-version` file at repo root. Sync verifies sha256 before extraction. | AC-8 sync recreates committed state |
+| FR-17 *(r1 demoted · stretch goal)* | World-purupuru sync wiring is a **stretch goal** this cycle (was AC-9 blocking · demoted per D10 + SKP-007). If S6 completes early, attempt; otherwise schedule as follow-up cycle. | Stretch: operator-confirmed in world-purupuru git log; non-blocking |
+| FR-18 | `purupuru-assets/README.md` documents the version-tag-and-release flow and the long-arc design for the future asset CLI (G10 · agent-friendly query surface) | README exists; covers tagging convention and CLI design surface |
+| FR-19 | Asset naming/labeling improvement is **out of scope this cycle** (operator flagged as low-priority future work) | Operator decree: "Not super high priority, though." |
+| FR-19.5 *(r1 new · sync rollback contract)* | If `scripts/sync-assets.sh` fails or produces a corrupt download (sha256 mismatch), the script preserves the existing committed local copy of `public/art/`, `public/data/materials/`, `public/fonts/`, `public/brand/`. CI verifies that running sync against a clean checkout produces a directory diff of zero against the committed state. | CI step + manual test |
+| FR-19.6 *(r1 new · asset-update protocol with Gumi)* | Before S6, operator captures asset-update protocol with Gumi in `purupuru-assets/CONTRIBUTING.md`: who proposes, who reviews, version-bump cadence, release-tag flow. Non-blocking documentation. | File exists with protocol described |
 
-- Current `compass/lib/` four-folder discipline (commit `f4ce25e`)
-- 24 passing tests baseline (Q5)
-- Solana Anchor + Metaplex Token Metadata stack (untouched this cycle)
+### 5.4 · Dev panel relocation (operator-stated rework)
 
-### 8.3 · Tools
+| FR ID | Requirement | Verification |
+|---|---|---|
+| FR-20 | The existing `KaironicPanel.tsx` moves from `app/battle/_scene/` to `app/battle/_inspect/KaironicPanel.tsx` | AC-6 hidden-by-default check |
+| FR-21 | A new `app/battle/_inspect/DevConsole.tsx` orchestrates the toggle: backtick (`` ` ``) keypress toggles visibility · floating overlay (not in document flow) · contains KaironicPanel + future tweakpane / DialKit mounts | AC-6 toggle check |
+| FR-22 | The `BattleScene.tsx` no longer references KaironicPanel directly · DevConsole mounts itself globally on the page · removable from production builds via env flag | Grep `BattleScene.tsx` for KaironicPanel imports — must be zero |
+| FR-22.5 *(r1 new · `?dev=1` fallback FR)* | DevConsole supports `?dev=1` URL query param as a fallback toggle (in addition to backtick hotkey). Page-level docs name both invocation paths. Accessible when backtick conflicts (AZERTY keyboards, browser extensions, VS Code devtools captures). | URL with `?dev=1` shows DevConsole on initial render; without the param requires hotkey |
+| FR-23 | The CombosPanel survives (it's a game-surface element, not a dev tool) but relocates from the side panel to inline with the BattleField (per game-design canon: "you feel who's winning by the animated flow of element energy") | Component placed within BattleField sub-tree, not a side column |
 
-- Loa framework v1.39+
-- 3 model providers READY (opus + gpt-5.3-codex + gemini-2.5-pro) · flatline currently degraded (#759) · 2-agent fallback in use
+### 5.5 · Whisper determinism
 
-## 9 · Out-of-scope (explicit · canonical)
+| FR ID | Requirement |
+|---|---|
+| FR-24 | `whispers.ts` `whisper()` function index selection MUST be deterministic from the input `seed` argument. The current implementation hashes `seed % bank.length`, but `battle.live.ts` calls it with `Math.floor(Math.random() * 1_000_000)` as seed — that bypasses determinism. Fix: pass a deterministic counter derived from the phase-transition number + current battle seed (AC-12). |
 
-Per IMP-015: this list is derived from §2.3. If conflict, §2.3 wins.
+## 6 · Technical & non-functional
 
-- Puppet theater MVP
-- Three.js renderer for daemon visualization
-- Multi-chain envelope abstraction
-- ERC-6551 TBA materialization
-- Straylight implementation fork
-- Card game UI · animations · art · sound (handled in `purupuru-game`)
-- Card game design (handled in `purupuru-game`)
-- Multi-world active pilots
-- LLM-in-system-layers
-- Cross-construct messaging beyond rooms-substrate
-- Anchor program changes
-- Onboarding flow changes
-- Gamified UI flourishes for existing observatory/ceremony pages
+### 6.1 · Stack (no new dependencies expected · D5 defers Three.js)
+
+Inherited from compass (unchanged this cycle):
+- Next.js 16.2.6 (App Router · Turbopack)
+- React 19.2.4
+- TypeScript 5
+- Tailwind 4 (via `@tailwindcss/postcss` · OKLCH token system in `app/globals.css`)
+- Effect 3.10.0 (Honeycomb substrate)
+- motion 12.38.0 (framer-motion renamed)
+- lucide-react (icon set)
+- pnpm 10.x
+
+**No new dependencies** are added this cycle. Tweakpane / DialKit are queued for a follow-up cycle (G10 design surface only). Three.js / R3F deferred (D5).
+
+### 6.2 · Substrate constraints (inherited from Honeycomb doctrine)
+
+- Single Effect.provide site stays at `lib/runtime/runtime.ts` (lint check per substrate-cycle PRD §5)
+- Four-folder discipline (`domain/ports/live/mock` or per-system `{name}.{port,live,mock}.ts`) honored for new ports (FR-12, FR-13, FR-14)
+- All cross-system communication via `Stream` from `PubSub` (the pattern shipped in the predecessor cycle) — no `subscribe(cb)` hand-rolled callbacks
+
+### 6.3 · Performance
+
+- Initial `/battle` route paint < 1.5s on local dev server (Turbopack) · 3s on Vercel preview deploy
+- Lineup rearrangement (drag → drop → recomputed combos render) < 100ms on a modern laptop
+- Clash sequence animation honors `DEFAULT_TIMING_BUDGETS` from `lib/honeycomb/curves.ts` weighted by kaironic weights · cumulative round time ≤ 6 seconds for 5-card lineups
+- No memory leaks from the Effect Stream subscriptions · `Fiber.interrupt` on unmount (pattern already established in `lib/runtime/battle.client.ts`)
+
+### 6.4 · Determinism / replayability
+
+Per Gemini's "Seed is King" framing (already adopted in `lib/honeycomb/seed.ts`):
+- Same seed + same player input sequence → same match outcome, frame-for-frame (within animation-timing variance)
+- AC-12 (whisper determinism) closes the last `Math.random` leak
+- The asset library's content addressing (per-tag tarball) provides supply-side determinism: a specific match seed + specific asset-release tag fully reproduces the visual experience
+
+### 6.5 · Security · accessibility · i18n
+
+- No new auth surface (D4 · wallet stays mocked)
+- ARIA labels on all interactive controls (button, drag-handle, card-selection)
+- Keyboard navigation: Tab through CollectionGrid, Space to select, Enter to proceed to arrange, Arrow keys to reorder lineup in arrange phase
+- High-contrast mode: OKLCH tokens already split between vivid/dim/pastel/tint — verify high-contrast media query routes to vivid+dim
+- i18n: copy is English-only this cycle (operator's working language); structure all user-facing strings through a `t()` helper or const map so future i18n is a swap, not a refactor
+
+## 7 · Scope
+
+### 7.1 · In (this cycle)
+
+- 11 React components (FR-1 through FR-11)
+- 3 new Honeycomb services (FR-12, FR-13, FR-14)
+- Whisper determinism fix (FR-24)
+- New asset repo + sync script (FR-15 through FR-18)
+- Dev panel relocation (FR-20 through FR-22)
+- Combos panel inlining (FR-23)
+- Component-map documentation (G9 / AC-13)
+- Full audit-passing slice on `feat/honeycomb-battle` branch (G6 / AC-11)
+
+### 7.2 · Out (explicit · also see §2.3 non-goals)
+
+See §2.3 for the full list. Top exclusions:
+- Three.js viewport (D5)
+- Friend-duel networking
+- Real Five Oracles
+- Daemon NFT mint
+- On-chain combat moves
+- Mobile-first polish
+- Asset CLI implementation (only design surface)
+- Asset naming/labeling improvements (operator-deferred)
+- New auth surface
+
+### 7.3 · Cross-cycle interactions
+
+- **Predecessor**: Honeycomb substrate (substrate-agentic-translation-adoption-2026-05-12 · archived). This cycle EXTENDS it; does not modify the substrate's existing surface (weather, sonifier, awareness, observatory, invocation, population, battle phase machine).
+- **Successor (proposed)**: `card-game-3d-202X` — R3F viewport + shaders + spatial battlefield. Reads from the same Honeycomb services this cycle ships.
+- **Sibling (out of scope but related)**: `friend-duel-async-202X` — turns the AI opponent layer into a friend's Puruhani agent. Requires daemon NFT scope.
+
+## 8 · Risks & dependencies
+
+| ID | Risk | Likelihood | Mitigation |
+|---|---|---|---|
+| R1 *(r1 strengthened)* | SvelteKit 5 → React translation friction (Svelte runes · `$state`, `$derived`, `$effect` semantics ≠ React `useState`, `useMemo`, `useEffect`) · ~30-50% of components may need behavior re-derivation, not mechanical translation · some Svelte idioms (two-way binding, store auto-subscribe, $effect cleanup semantics) have NO clean React equivalent | High | **D9 · S0 spike** is the calibration vehicle: one complex component spiked first; if LOC or time bust the projection, recalibrate before S1 starts. SDD will catalog Svelte → React translation patterns from the spike. Existing `lib/runtime/battle.client.ts` is the prior-art reference for the Effect-to-React idiom. |
+| R2 *(r1 mitigated by D10)* | Asset migration cross-repo coordination · originally rated High, now Medium because D10 defers asset extraction to S6 (component shells work with local copies through S5) | Medium | D10 sequencing change · FR-19.5 rollback contract (sha256 verify + preserve-on-failure) · FR-19.6 Gumi update protocol drafted before S6 · world-purupuru cross-repo sync demoted to stretch (FR-17) |
+| R3 | Behavioral parity with world-purupuru `state.svelte.ts` v4 (Setup Strike, Caretaker A Shield, Caretaker B Adapt, AI personality) | Medium | The state-v4 deltas are documented in `14-card-game-in-compass-brief.md` · the Honeycomb clash/opponent ports (FR-12, FR-13) must list each delta in their port.ts comments as PRD-traced invariants |
+| R4 | Test coverage gap — purupuru-game has 204 tests; compass's port has 5 | Medium | G8 / AC-4 requires invariant-level parity. SDD names which invariants are load-bearing |
+| R5 | "Enter the Tide" copy / map / aesthetic — operator's mental model is fuzzy ("'A pro pro the game'" = "Purupuru: the game"). Risk of building the wrong splash | Medium | EntryScreen sprint (S5 or wherever) pairs with operator at start (5-min UI review of world-purupuru's EntryScreen as reference) |
+| R6 | AI opponent realism — bound by element personality but still needs to be "fun to lose to." A patient Wood AI that always wins is no fun | Medium | AI sprint includes a balance pass (operator self-test 3 matches per element) before /audit-sprint |
+| R7 | Honeycomb substrate stability — adding 3 new ports could fragment the AppLayer | Low | The pattern is established; the substrate cycle PRD §5 + the construct-effect-substrate doctrine pack scaffold-system.sh both enforce the four-folder discipline |
+| R8 | Hackathon-live main branch — if main needs a hotfix during this cycle, the feature branch may need to rebase | Low | Operator already decreed branch-based work (D7) · rebase is the standard recovery |
+| R9 | Dev panel toggle conflicts with browser shortcuts (backtick · sometimes used by browser extensions) | Low | Accept lossy on power-user keybinding conflicts · provide a fallback `?dev=1` query param as a discoverable secondary toggle |
+| R10 | Asset repo permissions — needs to be created under `project-purupuru` org with both compass and world-purupuru workflows able to fetch releases | Low | Operator owns org; **S6** starts (was S1) with `gh repo create` + permission setup as the first checkpoint |
+| R11 *(r1 new · BattlePhase consumers)* | The new phases `clashing`/`disintegrating`/`result` added to BattlePhase enum (FR-14) may silently break existing consumers in predecessor cycle code (sonifier, weather, awareness, observatory) if they have exhaustive switch statements | Low | Audit all `BattlePhase` consumers before S1 (S2 in new order). Add TypeScript `never`-assert exhaustiveness pattern in each consumer so future additions surface compile errors. Verify in /review-sprint of S2. |
+| R12 *(r1 new · 24 audit gates timeline)* | 8 sprints × 3 gates (/implement → /review-sprint → /audit-sprint) = 24 gate passes for operator-only execution · hackathon-live main may need hotfixes pulling attention · no fallback if a sprint hard-fails audit | Medium | **D9 S0 spike** validates feasibility before commitment. SDD names per-sprint timebox. **De-scope ladder** named in §9: if S6 (visual binding) is failing, Tutorial (FR-10) and HelpCarousel (FR-9) drop while still hitting G1. Operator may invoke `/run sprint-plan` once shape is locked to reduce per-sprint friction. |
+
+## 9 · Sprint dependency graph (r1 · reordered post-flatline · S0 spike first · assets at S6)
+
+```
+S0 · spike + cycle kickoff (operator pair-point · D9)
+  │  Spike: BattleField w/ drag-reorder OR BattleHand
+  │  Outcome: Svelte→React translation patterns · LOC calibration
+  │  GATE: if spike >2 days OR LOC projection >7,500 in compass,
+  │        RECALIBRATE before S1 starts (could split into 2 cycles)
+  │
+  ▼
+S1 · Honeycomb growth · clash + opponent + match ports
+  │  (was S2 · purupuru-game pure logic ported as Effect-typed services)
+  │  Includes BattlePhase consumer audit (R11) + never-assert pattern
+  ▼
+S2 · BattleField + BattleHand (port + relocate CombosPanel inline)
+  │  (was S3)
+  ├─────────────────────────┐
+  ▼                         ▼
+S3 · EntryScreen + Quiz   S4 · OpponentZone + TurnClock + ArenaSpeakers
+  │                         │
+  └──────────┬──────────────┘
+             ▼
+S5 · CardPetal + visual parity pass (uses local public/art/ copies)
+  │
+  ▼
+S6 · Asset library extraction (was S1) + ResultScreen + HelpCarousel + Tutorial
+  │  - Create purupuru-assets repo + first tag
+  │  - Wire compass sync (FR-16) + rollback contract (FR-19.5)
+  │  - world-purupuru sync = stretch goal (FR-17 demoted)
+  │  - Gumi protocol drafted (FR-19.6)
+  ▼
+S7 · Dev panel relocation (FR-20–22.5) + whisper determinism (FR-24)
+     + Lighthouse + axe + playability checklist + final audit pass
+     (de-scope landing: if running over budget, Tutorial + HelpCarousel are first drops)
+```
+
+S3-S4 split is parallelizable post-S2. Each sprint independently passes `/implement → /review-sprint → /audit-sprint`.
+
+**De-scope ladder** (R12 mitigation · if cycle running over budget):
+1. First to drop · `HelpCarousel` (FR-9) · operator dismisses help is acceptable for solo play
+2. Second · `Tutorial` (FR-10) · purupuru-game's tutorial covers the learning path
+3. Third · world-purupuru asset sync (FR-17 · already stretch) — keep duplicated
+4. Last-resort · `ArenaSpeakers` spatial port (FR-8) — keep existing `WhisperBubble` shape
+
+G1 (visible playable solo) holds even at the bottom of the ladder. AC-1, AC-3, AC-4, AC-5, AC-6, AC-10, AC-11 hold throughout.
 
 ## 10 · References
 
-- **Input brief**: `grimoires/loa/specs/simstim-brief-substrate-agentic-2026-05-12.md`
-- **Patched aspiration docs**: `grimoires/loa/context/07..11-*.md` (reference only · superseded)
-- **PRD review** (this revision driver): `grimoires/loa/a2a/flatline/prd-review-2026-05-12.md`
-- **Substrate cycle predecessor**: `grimoires/loa/specs/enhance-substrate-ecs-2026-05-11.md` + commit `f4ce25e`
-- **PRD v1 backup**: `grimoires/loa/prd.v1.pre-flatline-patches.md`
-- **Canonical envelope**: `~/Documents/GitHub/construct-rooms-substrate/data/trajectory-schemas/`
-- **Schema substrate**: `~/Documents/GitHub/loa-hounfour/` (`@0xhoneyjar/loa-hounfour@7.0.0` · npm publish status verified at S0)
-- **Governance substrate**: `https://github.com/0xHoneyJar/loa-straylight` Phase 23a
-- **Card game canonical home**: `~/Documents/GitHub/purupuru-game/` (SvelteKit · 18 cards · WORKING prototype)
-- **World canonical home**: `~/Documents/GitHub/world-purupuru/` (Spiral engine)
-- **Vault doctrine**: `~/vault/wiki/concepts/multi-axis-daemon-architecture.md` · `continuous-metadata-as-daemon-substrate.md` · `mibera-as-npc.md` · `puruhani-as-spine.md` · `eileen-dnft-conversation.md` · `freeside-as-layered-station.md`
-- **Operator decree** (KEEPER pre-flight 2026-05-12): "we don't want to end up creating more modules than we need to" · "lay the foundations to focus on building the purupuru card game NOT some random observational agent surface"
-- **Operator decree** (post-flatline 2026-05-12): "the game is technically already done, and it just needs to be refined, polished" · "I just want to create the underlying layer so I can start to actually dig in and work with NextJs and the different components"
+- **Input brief**: `grimoires/loa/context/14-card-game-in-compass-brief.md` (status: candidate → promote to active at SDD start)
+- **Predecessor PRD (archived)**: `grimoires/loa/archive/substrate-agentic-translation-adoption-2026-05-12/prd.md`
+- **Predecessor SDD (archived)**: `grimoires/loa/archive/substrate-agentic-translation-adoption-2026-05-12/sdd.md`
+- **Game-design canonical**: `~/Documents/GitHub/purupuru-game/grimoires/loa/game-design.md` (Gumi's GDD · invariants in `~/Documents/GitHub/purupuru-game/prototype/INVARIANTS.md`)
+- **State-machine reference (source)**: `~/Documents/GitHub/purupuru-game/prototype/src/lib/game/` (pure TS · 204 tests)
+- **UI/UX reference (source)**: `~/Documents/GitHub/world-purupuru/sites/world/src/lib/{battle,game,scenes}/` (SvelteKit 5 · NOT importable from compass)
+- **Honeycomb pack**: `~/Documents/GitHub/construct-effect-substrate/` (doctrine + `scripts/scaffold-system.sh`)
+- **Flatline review artifact (r1)**: `grimoires/loa/a2a/flatline/card-game-prd-opus-manual-2026-05-12.json` · Opus review + skeptic captured via direct model-adapter calls because flatline-orchestrator scoring engine broke on 1.157.0 (issue #759 + cost-map gap) · framework regressions reported via /feedback this session
+- **Memory anchors**:
+  - [[honeycomb-substrate]] · operator-coined name for effect-substrate
+  - [[purupuru-world-org-shape]] · world-as-Rosenzu-meta · apps-as-zones · shared substrate
+  - [[dev-tuning-separation]] · dev panels behind hotkey/query, never in game flow
+- **Operator decrees (this discovery session)**:
+  - "the actual game itself was on the battle route of the other app" (scope redirect)
+  - "the Kaironic time sliders should not be interfering with the actual game" ([[dev-tuning-separation]])
+  - "No or very little duplication of efforts especially around assets/state logic" (D2)
+  - "I don't really want to do a git submodule, but just maybe a repo to point towards for assets" (D2)
+  - "Some sort of 'enter the tide' type of screen" (D4)
+  - "Full audit-passing slice (Loa quality bar)" (G6)
+  - "Grow Honeycomb" (D1)
+  - "Single multi-sprint cycle (Recommended)" (D7)
+  - "Surface + clash + AI opponent" (D8)
+  - "Backtick is okay" (D3)
 
-## 10.5 · Upstream provenance pin manifest (NEW · IMP-012 · resolved at S0 close)
+## 11 · Open questions for SDD phase
 
-| Substrate | Pin | Resolved at |
-|---|---|---|
-| `loa-hounfour` | git SHA: `<TBD-S0>` (tag v7.0.0 OR HEAD-of-main with operator confirmation) | S0 close |
-| `construct-rooms-substrate` | git SHA: `<TBD-S0>` (operator-machine clone HEAD) | S0 close |
-| `loa-straylight` | git SHA: `<TBD-S0>` (Phase 23a draft commit) | S0 close |
+The SDD interview should resolve these. They are PRD-altitude questions where the operator left a deliberate gap.
 
-All conformance work resolves against these SHAs. Mid-cycle upstream changes do NOT auto-rebase. Pin moves only at S6 distill or operator decree.
+1. ~~**Q-SDD-1**: AI opponent algorithm shape~~ · **RESOLVED in D11** (flatline-r1) · parameterized policy with element-specific coefficients · LLM-backed REJECTED for determinism preservation.
+2. **Q-SDD-2**: BattleField spatial layout · world-purupuru's `TERRITORY_CENTERS` constants suggest a top-down arena view. Compass's `lib/honeycomb/wuxing.ts` doesn't have those yet. SDD: own these constants in `lib/honeycomb/wuxing.ts` (lift) or as a new `lib/honeycomb/battlefield-geometry.ts` (separation)?
+3. **Q-SDD-3**: Asset repo naming convention · `purupuru-assets` (org-aligned) or `purupuru-art` (more specific) or `purupuru-public` (matches `public/` source dir)? Operator decision.
+4. **Q-SDD-4**: Asset release versioning · semver (v1.0.0 · v1.1.0) or date-based (v2026.05.13)? Lock it before S1 publishes the first release.
+5. **Q-SDD-5**: ElementQuiz question content · port verbatim from world-purupuru's component, or have Gumi author fresh? If fresh, who's blocking on whom?
+6. ~~**Q-SDD-6**: Test parity standard~~ · **RESOLVED via AC-4 update** (flatline-r1) · ALL specific invariants from `~/Documents/GitHub/purupuru-game/prototype/INVARIANTS.md` enumerated and required (not ≥6 floor). Fresh tests in compass against the same invariants (not fixture-shared since data shapes differ). SDD enumerates test plan per invariant.
+7. **Q-SDD-7**: Dev panel content beyond kaironic · what other inspectors mount under `_inspect/`? Substrate state inspector? Combo debug? Seed reset / replay panel? List in SDD §5 so S8 is scoped.
+8. **Q-SDD-8**: HelpCarousel + Tutorial overlap · Help is hints (always-available), Tutorial is teach-by-doing (one-time). World-purupuru ships both. Does compass ship both, or merge into one progressive-disclosure surface?
 
-## 11 · Open questions for SDD phase (reduced)
-
-Most v1 questions resolved by D1-D6 in §0.5. Remaining:
-
-1. **Single Effect.provide site location** · `app/layout.tsx` (current host) OR new `lib/runtime/world.runtime.ts`? SDD §5 decision.
-2. **Drift-detection CI rule shape** (Q10) · structural diff via JSON Schema parse? SHA-based? SDD names tooling.
-3. **Sprint-2 hand-port idiom guide** · do we follow effect-school's "Schema.Class" pattern, or simpler `Schema.Struct({...})`? SDD recommends · operator ratifies.
-4. **Compass-as-fixture-vs-tutorial** *(IMP-016)* · does compass become a downstream CI gate for hounfour (so hounfour breaking changes show as compass test failures BEFORE hounfour merges)? Operator decision at S6.
-
-## 12 · Acceptance summary (aligned to §2 goals · IMP-022)
+## 12 · Acceptance summary (aligned to §2 goals)
 
 This PRD is accepted when:
 
-- All 6 sprint scopes are grounded in concrete file lists (handled in Sprint Plan)
-- D1-D6 are preserved load-bearing through SDD
-- Eileen + Jani receive tracking issues (G8 · 7-day passive-accept protocol)
-- The reframe ("adopt, don't invent") is captured in NOTES.md
-- Gumi is informed compass world substrate ships polish-ready scaffolding by S4 close (her domain is `purupuru-game` · NOT compass)
-- G1 · G2 · G3 (reframed) · G4 (reframed) · G5a · G5b · G5c are each independently verifiable per §3.1 metrics
+- All decisions D1–D8 are preserved load-bearing through SDD
+- G1–G6 (primary) each have an SDD section and a sprint-plan task
+- G7–G10 (secondary) have at least one sprint task or SDD note
+- The 8 Q-SDD-* open questions are resolved during the SDD interview
+- Operator confirms cycle scope before sprint-plan begins
 
-## 13 · Sprint dependency graph (NEW · IMP missing-section)
+---
 
-```
-S0 (audit · no code)
-  │ S0→S1 promotion gate (Q7)
-  ▼
-S1 (envelope shell · verdict: unknown)
-  │ envelope shape locked
-  ▼
-S2 (hand-port hounfour · narrow verdict union)
-  │ types stable
-  ├──────────────┐
-  ▼              ▼
-S3 (doc-only)  S4 (world substrate · uses S1 envelope · uses S2 types)
-  │              │
-  └──────┬───────┘
-         ▼
-       S5 (multi-world playbook · light touch)
-         │
-         ▼
-       S6 (distill upstream · doctrine update)
-```
-
-S3 and S4 are independent after S2. S5 + S6 are sequential.
-
-## 14 · Fallback / scope-degradation tree (NEW · IMP missing-section)
-
-If at S0:
-- **Hounfour blocking issue** → S0.5 negotiation cycle · cycle pauses
-- **Straylight Phase 23a unstable** → S3 downgrades to "1-paragraph mention in NOTES.md · zero deliverables"
-- **Rooms substrate unavailable for vendoring** → S1 vendors operator's hand-typed envelope schema · file upstream issue
-
-If at S2:
-- **Hand-port count <5 viable** → cut to N viable (operator confirms) · adjust Q3
-- **Hand-port idiom drift** → S2 close pair-point reworks before S3 starts
-
-If at S4:
-- **G5b LOC budget +600 exceeded by 50%** → cut to top-3 systems (world.system, awareness, observatory · drop ceremony to N+1)
-- **Operator iteration test fails** → re-design system layout · do NOT ship S4 until test passes
-
-If at S6:
-- **construct-effect-substrate doctrine ratification stalls** → ship cycle as `candidate · 1-project-validated` · operator promotes later
+> **Sources**: `14-card-game-in-compass-brief.md` (full file · operator-authored context) · discovery interview (this session · 2 question batches · 8 answers) · operator messages (3 in-session decrees) · [[honeycomb-substrate]] memory · [[purupuru-world-org-shape]] memory · [[dev-tuning-separation]] memory · code reality at `lib/honeycomb/*` and `app/battle/*` (shipped previous turn · commit `775acd5d`) · world-purupuru code paths verified at `~/Documents/GitHub/world-purupuru/sites/world/src/lib/battle/` · purupuru-game game-design doc at `~/Documents/GitHub/purupuru-game/`
