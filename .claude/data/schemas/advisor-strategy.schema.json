@@ -59,7 +59,7 @@
           "properties": {
             "anthropic": {"type": "string", "pattern": "^[a-z0-9-]+$"},
             "openai":    {"type": "string", "pattern": "^[a-z0-9.-]+$"},
-            "google":    {"type": "string", "pattern": "^[a-z0-9-]+$"}
+            "google":    {"type": "string", "pattern": "^[a-z0-9.-]+$"}
           }
         },
         "executor": {
@@ -68,7 +68,7 @@
           "properties": {
             "anthropic": {"type": "string", "pattern": "^[a-z0-9-]+$"},
             "openai":    {"type": "string", "pattern": "^[a-z0-9.-]+$"},
-            "google":    {"type": "string", "pattern": "^[a-z0-9-]+$"}
+            "google":    {"type": "string", "pattern": "^[a-z0-9.-]+$"}
           }
         }
       }
