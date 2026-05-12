@@ -26,7 +26,7 @@ import { type Card, CARD_DEFINITIONS, createCard } from "./cards";
 import { detectCombos, getComboSummary } from "./combos";
 import { CONDITIONS, type BattleCondition } from "./conditions";
 import { DEFAULT_KAIRONIC_WEIGHTS, type KaironicWeights } from "./curves";
-import { rngFromSeed } from "./seed";
+import { hashStringToInt, rngFromSeed } from "./seed";
 import { whisper } from "./whispers";
 import { ELEMENT_ORDER, type Element, getDailyElement } from "./wuxing";
 
@@ -49,6 +49,7 @@ function initialSnapshot(seed: string): BattleSnapshot {
     comboSummary: { count: 0, totalBonus: 0 },
     kaironic: DEFAULT_KAIRONIC_WEIGHTS,
     lastWhisper: null,
+    whisperCounter: 0,
   };
 }
 
@@ -88,9 +89,15 @@ export const BattleLive: Layer.Layer<Battle> = Layer.scoped(
       Effect.gen(function* () {
         const snap = yield* Ref.get(stateRef);
         const playerElement = snap.weather;
-        const seedNum = Math.floor(Math.random() * 1_000_000);
+        // FR-24 / AC-12: deterministic whisper sequence from (seed, counter, mood).
+        // Same match seed + same phase-transition order → same whisper lines.
+        const seedNum = hashStringToInt(`${snap.seed}|${snap.whisperCounter}|${mood}`);
         const line = whisper(playerElement, mood, seedNum);
-        yield* Ref.update(stateRef, (s) => ({ ...s, lastWhisper: line }));
+        yield* Ref.update(stateRef, (s) => ({
+          ...s,
+          lastWhisper: line,
+          whisperCounter: s.whisperCounter + 1,
+        }));
         yield* publish({ _tag: "whisper-emitted", line, element: playerElement });
       });
 

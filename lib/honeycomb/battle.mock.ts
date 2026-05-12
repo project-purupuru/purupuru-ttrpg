@@ -41,6 +41,7 @@ function defaultMockSnapshot(seed: string): BattleSnapshot {
     comboSummary: { count: 0, totalBonus: 0 },
     kaironic: DEFAULT_KAIRONIC_WEIGHTS,
     lastWhisper: null,
+    whisperCounter: 0,
   };
 }
 

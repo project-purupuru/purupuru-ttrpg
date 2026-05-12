@@ -47,7 +47,7 @@ export function rngFromSeed(seed: string | number): Rng {
   return { next, nextInt, pick, shuffle, snapshot };
 }
 
-function hashStringToInt(s: string): number {
+export function hashStringToInt(s: string): number {
   let h = 2166136261 >>> 0;
   for (let i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(i);

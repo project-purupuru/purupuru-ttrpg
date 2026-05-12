@@ -44,6 +44,13 @@ export interface BattleSnapshot {
 
   /** Latest whisper line emitted; the view subscribes to BattleEvent for the stream. */
   readonly lastWhisper: string | null;
+
+  /**
+   * Monotonic whisper counter. Increments on every whisper emission so
+   * replay reproduces the exact sequence of whispers from the same seed.
+   * Closes FR-24 / AC-12 — see lib/honeycomb/battle.live.ts:emitWhisper.
+   */
+  readonly whisperCounter: number;
 }
 
 export type BattleEvent =
