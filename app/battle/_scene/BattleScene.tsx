@@ -1,32 +1,42 @@
 "use client";
 
 /**
- * BattleScene — the v1 surface for the Honeycomb battle substrate.
+ * BattleScene — Match-orchestrator surface (v2 · S2 rewrite).
  *
- * Phase-driven layout:
- *   - idle      → splash with begin button + seed input
- *   - select    → CollectionGrid (pick 5)
- *   - arrange   → LineupTray (drag to reorder) + CombosPanel
- *   - preview   → same as arrange, with lock-in CTA pulsing
- *   - committed → frozen lineup, "the tide favors X" cinematic
+ * Routes on MatchPhase to render the appropriate screen:
+ *   - idle           → EntryScreen splash
+ *   - entry          → EntryScreen with begin CTA
+ *   - quiz           → ElementQuiz (first-time only)
+ *   - select         → CollectionGrid + BattleHand preview
+ *   - arrange        → BattleField + BattleHand drag mode
+ *   - committed      → BattleField locked
+ *   - clashing       → BattleField with clash VFX
+ *   - disintegrating → BattleField with 敗 stamps
+ *   - between-rounds → BattleField rearrange mode
+ *   - result         → ResultScreen
  *
- * 2D-first: HTML/CSS + motion. Three.js viewport bolts on in v2 once feel
- * is locked.
+ * Reads from useMatch() · dispatches via matchCommand · WhisperBubble
+ * subscribes to the Match service (legacy WhisperBubble works via Battle;
+ * S4 migrates to Match-derived ArenaSpeakers).
+ *
+ * Dev tooling (KaironicPanel · DevConsole) moved to app/battle/_inspect/
+ * per S7 plan + flatline-r1 [[dev-tuning-separation]].
  */
 
 import { motion, AnimatePresence } from "motion/react";
-import { useBattle, battleCommand } from "@/lib/runtime/battle.client";
-import { ELEMENT_META, type Element } from "@/lib/honeycomb/wuxing";
+import { useMatch, matchCommand } from "@/lib/runtime/match.client";
+import { ELEMENT_META } from "@/lib/honeycomb/wuxing";
+import { BattleField } from "./BattleField";
 import { CollectionGrid } from "./CollectionGrid";
-import { LineupTray } from "./LineupTray";
-import { CombosPanel } from "./CombosPanel";
 import { WhisperBubble } from "./WhisperBubble";
-import { KaironicPanel } from "./KaironicPanel";
 import { PhaseHud } from "./PhaseHud";
 import { ELEMENT_TINT_FROM } from "./_element-classes";
 
+const EASE = [0.32, 0.72, 0.32, 1] as const;
+const DURATION = 0.42;
+
 export function BattleScene() {
-  const snap = useBattle();
+  const snap = useMatch();
 
   if (!snap) {
     return (
@@ -43,12 +53,14 @@ export function BattleScene() {
       data-opponent={snap.opponentElement}
       data-phase={snap.phase}
     >
-      {/* ambient weather wash */}
-      <WeatherWash element={snap.weather} />
+      <div
+        aria-hidden
+        className={`pointer-events-none fixed inset-0 bg-gradient-to-b ${ELEMENT_TINT_FROM[snap.weather]} to-puru-cloud-base opacity-60`}
+      />
 
       <div className="relative mx-auto max-w-6xl px-6 py-8 flex flex-col gap-6">
         <PhaseHud
-          phase={snap.phase}
+          phase={mapMatchPhase(snap.phase)}
           seed={snap.seed}
           weather={snap.weather}
           opponentElement={snap.opponentElement}
@@ -57,124 +69,243 @@ export function BattleScene() {
 
         <AnimatePresence mode="wait">
           {snap.phase === "idle" && (
-            <motion.section
-              key="idle"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.42, ease: [0.32, 0.72, 0.32, 1] }}
-              className="grid place-items-center min-h-[60dvh]"
-            >
-              <div className="flex flex-col items-center gap-4 text-center max-w-md">
-                <h1 className="font-puru-display text-3xl text-puru-ink-rich">
-                  The tide favors {ELEMENT_META[snap.weather].name.toLowerCase()} today.
-                </h1>
-                <p className="font-puru-body text-puru-ink-soft text-sm leading-puru-relaxed">
-                  {ELEMENT_META[snap.opponentElement].caretaker} brings the imbalance. Five cards.
-                  Five clashes. Order matters.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => battleCommand.beginMatch()}
-                  className="mt-2 px-6 py-3 rounded-full bg-puru-honey-base text-puru-ink-rich font-puru-display text-base shadow-puru-tile hover:shadow-puru-tile-hover active:translate-y-[1px] transition-all duration-200"
-                >
-                  Step into the arena
-                </button>
-                <SeedRow seed={snap.seed} />
-              </div>
-            </motion.section>
+            <PhaseShell key="idle">
+              <EntrySplash
+                opponentElement={snap.opponentElement}
+                weather={snap.weather}
+                seed={snap.seed}
+              />
+            </PhaseShell>
+          )}
+
+          {snap.phase === "entry" && (
+            <PhaseShell key="entry">
+              <EntrySplash
+                opponentElement={snap.opponentElement}
+                weather={snap.weather}
+                seed={snap.seed}
+                showQuizCTA={!snap.playerElement}
+              />
+            </PhaseShell>
+          )}
+
+          {snap.phase === "quiz" && (
+            <PhaseShell key="quiz">
+              <QuizPlaceholder />
+            </PhaseShell>
           )}
 
           {snap.phase === "select" && (
-            <motion.section
-              key="select"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.42, ease: [0.32, 0.72, 0.32, 1] }}
-              className="flex flex-col gap-4"
-            >
-              <CollectionGrid
-                collection={snap.collection}
-                selectedIndices={snap.selectedIndices}
-                weather={snap.weather}
-              />
-              <div className="flex items-center justify-between gap-4">
-                <p className="text-sm text-puru-ink-soft font-puru-body">
-                  {snap.selectedIndices.length}/5 picked.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => battleCommand.proceedToArrange()}
-                  disabled={snap.selectedIndices.length !== 5}
-                  className="px-5 py-2 rounded-full bg-puru-honey-base text-puru-ink-rich font-puru-display text-sm shadow-puru-tile disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-puru-tile-hover transition-all"
-                >
-                  Arrange the line
-                </button>
-              </div>
-            </motion.section>
+            <PhaseShell key="select">
+              <SelectPhase snap={snap} />
+            </PhaseShell>
           )}
 
-          {(snap.phase === "arrange" || snap.phase === "preview" || snap.phase === "committed") && (
-            <motion.section
-              key="arrange"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.42, ease: [0.32, 0.72, 0.32, 1] }}
-              className="grid gap-6 lg:grid-cols-[1fr_320px]"
-            >
-              <div className="flex flex-col gap-4">
-                <LineupTray lineup={snap.lineup} phase={snap.phase} weather={snap.weather} />
-                <div className="flex items-center justify-between gap-4 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => battleCommand.resetMatch()}
-                    className="text-sm text-puru-ink-dim hover:text-puru-ink-base transition-colors"
-                  >
-                    Reset
-                  </button>
-                  {snap.phase === "arrange" && (
-                    <button
-                      type="button"
-                      onClick={() => battleCommand.lockIn()}
-                      className="px-5 py-2 rounded-full bg-puru-honey-base text-puru-ink-rich font-puru-display text-sm shadow-puru-tile hover:shadow-puru-tile-hover transition-all"
-                    >
-                      Lock in
-                    </button>
-                  )}
-                  {snap.phase === "committed" && (
-                    <p className="text-sm font-puru-display text-puru-ink-rich">The line is set.</p>
-                  )}
-                </div>
-              </div>
-              <div className="flex flex-col gap-4">
-                <CombosPanel combos={snap.combos} summary={snap.comboSummary} />
-                <KaironicPanel weights={snap.kaironic} />
-              </div>
-            </motion.section>
+          {(snap.phase === "arrange" ||
+            snap.phase === "committed" ||
+            snap.phase === "clashing" ||
+            snap.phase === "disintegrating" ||
+            snap.phase === "between-rounds") && (
+            <PhaseShell key="arena">
+              <ArenaPhase />
+            </PhaseShell>
+          )}
+
+          {snap.phase === "result" && (
+            <PhaseShell key="result">
+              <ResultPlaceholder winner={snap.winner} weather={snap.weather} />
+            </PhaseShell>
           )}
         </AnimatePresence>
 
-        <WhisperBubble line={snap.lastWhisper} element={snap.weather} />
+        <WhisperBubble line={null} element={snap.weather} />
       </div>
     </main>
   );
 }
 
-function WeatherWash({ element }: { element: Element }) {
+function PhaseShell({ children, ...props }: React.PropsWithChildren) {
   return (
-    <div
-      aria-hidden
-      className={`pointer-events-none fixed inset-0 bg-gradient-to-b ${ELEMENT_TINT_FROM[element]} to-puru-cloud-base opacity-60`}
-    />
+    <motion.section
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: DURATION, ease: EASE }}
+      {...props}
+    >
+      {children}
+    </motion.section>
   );
 }
 
-function SeedRow({ seed }: { seed: string }) {
+function EntrySplash({
+  opponentElement,
+  weather,
+  seed,
+  showQuizCTA = false,
+}: {
+  readonly opponentElement: import("@/lib/honeycomb/wuxing").Element;
+  readonly weather: import("@/lib/honeycomb/wuxing").Element;
+  readonly seed: string;
+  readonly showQuizCTA?: boolean;
+}) {
   return (
-    <p className="text-2xs font-puru-mono text-puru-ink-ghost mt-3">
-      seed · <span className="text-puru-ink-dim">{seed}</span>
-    </p>
+    <div className="grid place-items-center min-h-[60dvh]">
+      <div className="flex flex-col items-center gap-4 text-center max-w-md">
+        <h1 className="font-puru-display text-3xl text-puru-ink-rich">
+          The tide favors {ELEMENT_META[weather].name.toLowerCase()} today.
+        </h1>
+        <p className="font-puru-body text-puru-ink-soft text-sm leading-puru-relaxed">
+          {ELEMENT_META[opponentElement].caretaker} brings the imbalance. Five cards. Five clashes.
+          Order matters.
+        </p>
+        <button
+          type="button"
+          onClick={() => matchCommand.beginMatch()}
+          className="mt-2 px-6 py-3 rounded-full bg-puru-honey-base text-puru-ink-rich font-puru-display text-base shadow-puru-tile hover:shadow-puru-tile-hover active:translate-y-[1px] transition-all duration-200"
+        >
+          Enter the Tide
+        </button>
+        {showQuizCTA && (
+          <p className="text-2xs font-puru-mono text-puru-ink-ghost mt-2">
+            first time → element quiz · returning → straight to match
+          </p>
+        )}
+        <p className="text-2xs font-puru-mono text-puru-ink-ghost mt-3">
+          seed · <span className="text-puru-ink-dim">{seed}</span>
+        </p>
+      </div>
+    </div>
   );
+}
+
+function QuizPlaceholder() {
+  return (
+    <div className="grid place-items-center min-h-[60dvh]">
+      <div className="flex flex-col items-center gap-4 text-center max-w-md">
+        <h2 className="font-puru-display text-2xl text-puru-ink-rich">Element Quiz</h2>
+        <p className="font-puru-body text-puru-ink-soft text-sm">
+          (S3 deliverable · port verbatim from world-purupuru. For now, pick your home element
+          directly.)
+        </p>
+        <div className="flex gap-2">
+          {(["wood", "fire", "earth", "metal", "water"] as const).map((el) => (
+            <button
+              key={el}
+              type="button"
+              onClick={() => matchCommand.chooseElement(el)}
+              className="px-3 py-2 rounded-full bg-puru-cloud-bright shadow-puru-tile text-sm font-puru-display text-puru-ink-rich hover:shadow-puru-tile-hover"
+            >
+              {ELEMENT_META[el].kanji} {ELEMENT_META[el].name}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SelectPhase({
+  snap,
+}: {
+  readonly snap: import("@/lib/honeycomb/match.port").MatchSnapshot;
+}) {
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Use the legacy CollectionGrid component pattern. Selection is currently
+          driven by Battle service; lock-in below dispatches Match command. */}
+      <CollectionGrid collection={snap.collection} selectedIndices={[]} weather={snap.weather} />
+      <div className="flex items-center justify-between gap-4">
+        <p className="text-sm text-puru-ink-soft font-puru-body">
+          Select 5 cards · (S3 wires Match selection)
+        </p>
+        <button
+          type="button"
+          onClick={() => matchCommand.lockIn()}
+          className="px-5 py-2 rounded-full bg-puru-honey-base text-puru-ink-rich font-puru-display text-sm shadow-puru-tile hover:shadow-puru-tile-hover transition-all"
+        >
+          Lock in
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ArenaPhase() {
+  return (
+    <div className="grid gap-4">
+      <BattleField />
+      <div className="flex items-center justify-between gap-4 pt-2">
+        <button
+          type="button"
+          onClick={() => matchCommand.resetMatch()}
+          className="text-sm text-puru-ink-dim hover:text-puru-ink-base transition-colors"
+        >
+          Reset
+        </button>
+        <button
+          type="button"
+          onClick={() => matchCommand.advanceClash()}
+          className="px-5 py-2 rounded-full bg-puru-honey-base text-puru-ink-rich font-puru-display text-sm shadow-puru-tile hover:shadow-puru-tile-hover transition-all"
+        >
+          Advance clash
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ResultPlaceholder({
+  winner,
+  weather,
+}: {
+  readonly winner: "p1" | "p2" | "draw" | null;
+  readonly weather: import("@/lib/honeycomb/wuxing").Element;
+}) {
+  const message =
+    winner === "p1"
+      ? `The tide favored ${ELEMENT_META[weather].name.toLowerCase()}.`
+      : winner === "p2"
+        ? "The opposing tide carried the day."
+        : "Even tides.";
+  return (
+    <div className="grid place-items-center min-h-[60dvh]">
+      <div className="flex flex-col items-center gap-4 text-center max-w-md">
+        <h1 className="font-puru-display text-3xl text-puru-ink-rich">{message}</h1>
+        <p className="font-puru-body text-puru-ink-soft text-sm">
+          (S6 deliverable: ResultScreen with clash breakdown. For now, restart below.)
+        </p>
+        <button
+          type="button"
+          onClick={() => matchCommand.beginMatch()}
+          className="mt-2 px-6 py-3 rounded-full bg-puru-honey-base text-puru-ink-rich font-puru-display text-base shadow-puru-tile hover:shadow-puru-tile-hover transition-all"
+        >
+          Again
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Map MatchPhase → BattlePhase for legacy PhaseHud display. */
+function mapMatchPhase(
+  phase: import("@/lib/honeycomb/match.port").MatchPhase,
+): import("@/lib/honeycomb/battle.port").BattlePhase {
+  switch (phase) {
+    case "idle":
+    case "entry":
+    case "quiz":
+      return "idle";
+    case "select":
+      return "select";
+    case "arrange":
+    case "between-rounds":
+      return "arrange";
+    case "committed":
+    case "clashing":
+    case "disintegrating":
+      return "committed";
+    case "result":
+      return "committed";
+  }
 }
