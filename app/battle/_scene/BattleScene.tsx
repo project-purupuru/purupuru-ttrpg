@@ -1,268 +1,168 @@
 "use client";
 
 /**
- * BattleScene — Match-orchestrator surface (v2 · S2 rewrite).
+ * BattleScene — 1:1 fidelity port of world-purupuru's lib/scenes/BattleScene.svelte.
  *
- * Routes on MatchPhase to render the appropriate screen:
- *   - idle           → EntryScreen splash
- *   - entry          → EntryScreen with begin CTA
- *   - quiz           → ElementQuiz (first-time only)
- *   - select         → CollectionGrid + BattleHand preview
- *   - arrange        → BattleField + BattleHand drag mode
- *   - committed      → BattleField locked
- *   - clashing       → BattleField with clash VFX
- *   - disintegrating → BattleField with 敗 stamps
- *   - between-rounds → BattleField rearrange mode
- *   - result         → ResultScreen
+ * Routes on MatchPhase to render screens with matching DOM/classes/data-attrs
+ * from world-purupuru's battle/ Svelte components. All CSS lives in
+ * app/battle/_styles/battle.css and applies via class names directly.
  *
- * Reads from useMatch() · dispatches via matchCommand · WhisperBubble
- * subscribes to the Match service (legacy WhisperBubble works via Battle;
- * S4 migrates to Match-derived ArenaSpeakers).
- *
- * Dev tooling (KaironicPanel · DevConsole) moved to app/battle/_inspect/
- * per S7 plan + flatline-r1 [[dev-tuning-separation]].
+ * Dev tooling (KaironicPanel · DevConsole) lives in app/battle/_inspect/.
  */
 
-import { motion, AnimatePresence } from "motion/react";
-import { useMatch, matchCommand } from "@/lib/runtime/match.client";
-import { ELEMENT_META } from "@/lib/honeycomb/wuxing";
+import { useMatch } from "@/lib/runtime/match.client";
+import type { Element } from "@/lib/honeycomb/wuxing";
+import { whisper as deriveWhisper, type WhisperMood } from "@/lib/honeycomb/whispers";
 import { ArenaSpeakers } from "./ArenaSpeakers";
 import { BattleField } from "./BattleField";
-import { CollectionGrid } from "./CollectionGrid";
+import { BattleHand } from "./BattleHand";
 import { ElementQuiz } from "./ElementQuiz";
 import { EntryScreen } from "./EntryScreen";
 import { Guide } from "./Guide";
-import { PhaseHud } from "./PhaseHud";
+import { OpponentZone } from "./OpponentZone";
 import { ResultScreen } from "./ResultScreen";
 import { TurnClock } from "./TurnClock";
-import { ELEMENT_TINT_FROM } from "./_element-classes";
 
-const EASE = [0.32, 0.72, 0.32, 1] as const;
-const DURATION = 0.42;
+import "../_styles/battle.css";
 
 export function BattleScene() {
   const snap = useMatch();
 
   if (!snap) {
     return (
-      <main className="min-h-dvh grid place-items-center bg-puru-cloud-base">
-        <p className="text-puru-ink-soft font-puru-body text-sm">honeycomb warming…</p>
-      </main>
+      <div className="battle-scene" data-scene="battle">
+        <p className="loading-pill">honeycomb warming…</p>
+      </div>
     );
   }
 
-  return (
-    <main
-      className="min-h-dvh bg-puru-cloud-base text-puru-ink-base relative overflow-hidden"
-      data-weather={snap.weather}
-      data-opponent={snap.opponentElement}
-      data-phase={snap.phase}
-    >
-      <div
-        aria-hidden
-        className={`pointer-events-none fixed inset-0 bg-gradient-to-b ${ELEMENT_TINT_FROM[snap.weather]} to-puru-cloud-base opacity-60`}
-      />
-
-      <div className="relative mx-auto max-w-6xl px-6 py-8 flex flex-col gap-6">
-        <PhaseHud
-          phase={mapMatchPhase(snap.phase)}
-          seed={snap.seed}
-          weather={snap.weather}
-          opponentElement={snap.opponentElement}
-          condition={snap.condition}
-        />
-
-        <AnimatePresence mode="wait">
-          {snap.phase === "idle" && (
-            <PhaseShell key="idle">
-              <EntryScreen
-                opponentElement={snap.opponentElement}
-                weather={snap.weather}
-                playerElement={snap.playerElement}
-                seed={snap.seed}
-              />
-            </PhaseShell>
-          )}
-
-          {/* entry phase: first-time → inline quiz; returning → choose-element handoff */}
-          {snap.phase === "entry" && snap.playerElement === null && (
-            <PhaseShell key="entry-quiz">
-              <ElementQuiz />
-            </PhaseShell>
-          )}
-
-          {snap.phase === "entry" && snap.playerElement !== null && (
-            <PhaseShell key="entry-returning">
-              <ReturningSplash element={snap.playerElement} />
-            </PhaseShell>
-          )}
-
-          {snap.phase === "quiz" && (
-            <PhaseShell key="quiz">
-              <ElementQuiz />
-            </PhaseShell>
-          )}
-
-          {snap.phase === "select" && (
-            <PhaseShell key="select">
-              <SelectPhase snap={snap} />
-            </PhaseShell>
-          )}
-
-          {(snap.phase === "arrange" ||
-            snap.phase === "committed" ||
-            snap.phase === "clashing" ||
-            snap.phase === "disintegrating" ||
-            snap.phase === "between-rounds") && (
-            <PhaseShell key="arena">
-              <ArenaPhase />
-            </PhaseShell>
-          )}
-
-          {snap.phase === "result" && (
-            <PhaseShell key="result">
-              <ResultScreen
-                winner={snap.winner}
-                weather={snap.weather}
-                opponentElement={snap.opponentElement}
-                rounds={snap.rounds}
-              />
-            </PhaseShell>
-          )}
-        </AnimatePresence>
-
-        {/* ArenaSpeakers reads from Match.lastWhisper (currently null until S1a's
-            Battle service emits via Match orchestration · S4 wires the bridge). */}
-        <ArenaSpeakers line={null} element={snap.playerElement ?? snap.weather} />
-
-        {/* TurnClock surfaces during clashing/disintegrating/between-rounds */}
-        {(snap.phase === "clashing" ||
-          snap.phase === "disintegrating" ||
-          snap.phase === "between-rounds") && (
-          <div className="fixed top-20 right-6 z-30">
-            <TurnClock phase={snap.phase} round={snap.currentRound} weather={snap.weather} />
-          </div>
-        )}
-
-        {/* Guide: tutorial overlay first match · hint affordance after */}
-        <Guide />
-      </div>
-    </main>
+  // Map MatchPhase → world-purupuru's BattleScene visibility logic.
+  const showQuiz = snap.phase === "entry" && snap.playerElement === null;
+  const showEntry = snap.phase === "idle" || (snap.phase === "entry" && snap.playerElement !== null);
+  const inArena = ["select", "arrange", "committed", "clashing", "disintegrating", "between-rounds"].includes(
+    snap.phase,
   );
-}
+  const showResult = snap.phase === "result";
 
-function PhaseShell({ children, ...props }: React.PropsWithChildren) {
-  return (
-    <motion.section
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      transition={{ duration: DURATION, ease: EASE }}
-      {...props}
-    >
-      {children}
-    </motion.section>
-  );
-}
+  // Derive world-purupuru-style props from Match snapshot.
+  // energies: per-element 0..1 derived from collection composition + lineup.
+  const energies = deriveEnergies(snap);
+  const turnElement = snap.weather;
+  const tide = 50; // neutral · TODO derive from clash deltas when wired
+  const animState: "idle" | "golden-hold" | "hitstop" =
+    snap.phase === "clashing" ? "hitstop" : snap.phase === "disintegrating" ? "golden-hold" : "idle";
+  const arenaPhase =
+    snap.phase === "arrange" || snap.phase === "between-rounds"
+      ? "rearrange"
+      : snap.phase === "clashing" || snap.phase === "disintegrating"
+        ? "clashing"
+        : snap.phase === "result"
+          ? "result"
+          : "locked";
 
-function SelectPhase({
-  snap,
-}: {
-  readonly snap: import("@/lib/honeycomb/match.port").MatchSnapshot;
-}) {
   return (
-    <div className="flex flex-col gap-4">
-      {/* Use the legacy CollectionGrid component pattern. Selection is currently
-          driven by Battle service; lock-in below dispatches Match command. */}
-      <CollectionGrid collection={snap.collection} selectedIndices={[]} weather={snap.weather} />
-      <div className="flex items-center justify-between gap-4">
-        <p className="text-sm text-puru-ink-soft font-puru-body">
-          Select 5 cards · (S3 wires Match selection)
-        </p>
-        <button
-          type="button"
-          onClick={() => matchCommand.lockIn()}
-          className="px-5 py-2 rounded-full bg-puru-honey-base text-puru-ink-rich font-puru-display text-sm shadow-puru-tile hover:shadow-puru-tile-hover transition-all"
-        >
-          Lock in
-        </button>
-      </div>
+    <div className="battle-scene" data-scene="battle" aria-label="The Tide">
+      {showQuiz && (
+        <div className="quiz-wrapper">
+          <ElementQuiz />
+        </div>
+      )}
+
+      {showEntry && (
+        <div className="entry-wrapper">
+          <EntryScreen
+            weather={snap.weather}
+            quizElement={snap.playerElement}
+            seed={snap.seed}
+          />
+        </div>
+      )}
+
+      {inArena && (
+        <div className="battle-wrapper mounted">
+          <BattleField
+            energies={energies}
+            turnElement={turnElement}
+            tide={tide}
+            animState={animState}
+            phase={mapToFieldPhase(snap.phase)}
+            weather={snap.weather}
+            backdrop
+            arenaPhase={arenaPhase}
+          />
+
+          <OpponentZone
+            lineup={snap.p2Lineup}
+            arenaPhase={arenaPhase}
+            opponentElement={snap.opponentElement}
+          />
+
+          <ArenaSpeakers
+            playerElement={snap.playerElement ?? snap.weather}
+            opponentElement={snap.opponentElement}
+            phase={snap.phase}
+            whisper={currentWhisper(snap)}
+          />
+
+          <BattleHand
+            cards={snap.p1Lineup}
+            phase={snap.phase}
+            turnElement={turnElement}
+          />
+        </div>
+      )}
+
+      {showResult && (
+        <div className="result-wrapper">
+          <ResultScreen
+            winner={snap.winner}
+            weather={snap.weather}
+            opponentElement={snap.opponentElement}
+            playerElement={snap.playerElement}
+            rounds={snap.rounds}
+          />
+        </div>
+      )}
+
+      {/* TurnClock floats above the arena */}
+      {inArena && <TurnClock turnElement={turnElement} weather={snap.weather} />}
+
+      {/* Guide overlay (tutorial / hints) */}
+      <Guide />
     </div>
   );
 }
 
-function ArenaPhase() {
-  return (
-    <div className="grid gap-4">
-      <BattleField />
-      <div className="flex items-center justify-between gap-4 pt-2">
-        <button
-          type="button"
-          onClick={() => matchCommand.resetMatch()}
-          className="text-sm text-puru-ink-dim hover:text-puru-ink-base transition-colors"
-        >
-          Reset
-        </button>
-        <button
-          type="button"
-          onClick={() => matchCommand.advanceClash()}
-          className="px-5 py-2 rounded-full bg-puru-honey-base text-puru-ink-rich font-puru-display text-sm shadow-puru-tile hover:shadow-puru-tile-hover transition-all"
-        >
-          Advance clash
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function ReturningSplash({
-  element,
-}: {
-  readonly element: import("@/lib/honeycomb/wuxing").Element;
-}) {
-  return (
-    <div className="grid place-items-center min-h-[60dvh]">
-      <div className="flex flex-col items-center gap-4 text-center max-w-md">
-        <p className="font-puru-display text-sm text-puru-ink-soft uppercase tracking-wide">
-          welcome back
-        </p>
-        <h2 className="font-puru-display text-3xl text-puru-ink-rich">
-          {ELEMENT_META[element].kanji} {ELEMENT_META[element].name}
-        </h2>
-        <p className="font-puru-body text-puru-ink-soft text-sm">
-          {ELEMENT_META[element].caretaker} is ready.
-        </p>
-        <button
-          type="button"
-          onClick={() => matchCommand.chooseElement(element)}
-          className="mt-2 px-6 py-3 rounded-full bg-puru-honey-base text-puru-ink-rich font-puru-display text-base shadow-puru-tile hover:shadow-puru-tile-hover transition-all"
-        >
-          Step into the arena
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/** Map MatchPhase → BattlePhase for legacy PhaseHud display. */
-function mapMatchPhase(
-  phase: import("@/lib/honeycomb/match.port").MatchPhase,
-): import("@/lib/honeycomb/battle.port").BattlePhase {
-  switch (phase) {
-    case "idle":
-    case "entry":
-    case "quiz":
-      return "idle";
-    case "select":
-      return "select";
-    case "arrange":
-    case "between-rounds":
-      return "arrange";
-    case "committed":
-    case "clashing":
-    case "disintegrating":
-      return "committed";
-    case "result":
-      return "committed";
+/** Derive per-element energy 0..1 from p1Lineup composition. Stand-in until
+ * Match service exposes actual energies tied to card-play history. */
+function deriveEnergies(snap: import("@/lib/honeycomb/match.port").MatchSnapshot): Record<Element, number> {
+  const base: Record<Element, number> = { wood: 0, fire: 0, earth: 0, metal: 0, water: 0 };
+  for (const c of snap.p1Lineup) base[c.element] += 0.2;
+  // Combo-active elements get a boost
+  for (const combo of snap.p1Combos) {
+    for (const pos of combo.positions) {
+      const card = snap.p1Lineup[pos];
+      if (card) base[card.element] = Math.min(1, base[card.element] + 0.1);
+    }
   }
+  return base;
+}
+
+function currentWhisper(snap: import("@/lib/honeycomb/match.port").MatchSnapshot): string | null {
+  const last = snap.rounds.at(-1);
+  if (!last) return null;
+  const lastClash = last.clashes.at(-1);
+  if (!lastClash) return null;
+  const playerEl = snap.playerElement ?? snap.weather;
+  const mood: WhisperMood =
+    lastClash.loser === "draw" ? "draw" : lastClash.loser === "p2" ? "win" : "lose";
+  return deriveWhisper(playerEl, mood, last.round);
+}
+
+function mapToFieldPhase(
+  phase: import("@/lib/honeycomb/match.port").MatchPhase,
+): "selection" | "playing" | "result" {
+  if (phase === "result") return "result";
+  if (phase === "select" || phase === "arrange" || phase === "between-rounds") return "selection";
+  return "playing";
 }

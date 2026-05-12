@@ -1,59 +1,100 @@
 "use client";
 
 /**
- * ArenaSpeakers — caretaker voice surface. FR-8.
+ * ArenaSpeakers — 1:1 port of world-purupuru ArenaSpeakers.svelte.
+ * Player caretaker anchored bottom-left; opponent ambient top-right.
+ * CSS: app/battle/_styles/ArenaSpeakers.css
  *
- * Evolves WhisperBubble (kept for /kit + legacy /battle reads from Battle).
- * Renders the player's caretaker speaking at one edge of the battlefield.
- * Opponent caretaker is voiceless (Persona/Futaba navigator pattern).
+ * CARETAKER_FULL paths from world-purupuru's CDN are mirrored locally
+ * under /thumbs/caretakers/ (synced from world-purupuru/static/thumbs).
  */
 
 import { AnimatePresence, motion } from "motion/react";
 import { ELEMENT_META, type Element } from "@/lib/honeycomb/wuxing";
-import { ELEMENT_TINT_BG } from "./_element-classes";
+import type { MatchPhase } from "@/lib/honeycomb/match.port";
+
+const CARETAKER_THUMB: Record<Element, string> = {
+  wood: "/thumbs/caretakers/caretaker-kaori-pose.webp",
+  fire: "/thumbs/caretakers/caretaker-akane-puruhani-chibi.webp",
+  earth: "/thumbs/caretakers/caretaker-nemu-earth.webp",
+  metal: "/thumbs/caretakers/caretaker-ren-with-puruhani.webp",
+  water: "/thumbs/caretakers/caretaker-ruan-cute-pose.webp",
+};
 
 interface ArenaSpeakersProps {
-  readonly line: string | null;
-  readonly element: Element;
-  /** Edge to render on. Defaults to left (player) · 'right' could be used for opponent reveals (currently voiceless per canon). */
-  readonly edge?: "left" | "right";
+  readonly playerElement: Element;
+  readonly opponentElement: Element;
+  readonly whisper: string | null;
+  readonly phase: MatchPhase;
+  readonly playerWins?: number;
+  readonly opponentWins?: number;
+  readonly activeClashPhase?: "approach" | "impact" | "settle" | null;
 }
 
-export function ArenaSpeakers({ line, element, edge = "left" }: ArenaSpeakersProps) {
-  const positionClass = edge === "left" ? "left-4" : "right-4";
+export function ArenaSpeakers({
+  playerElement,
+  opponentElement,
+  whisper,
+  phase,
+  playerWins = 0,
+  opponentWins = 0,
+  activeClashPhase = null,
+}: ArenaSpeakersProps) {
+  const isEntry = phase === "entry" || phase === "idle" || phase === "quiz";
+  const isArrange = phase === "arrange" || phase === "committed" || phase === "between-rounds";
+  const isClashing = phase === "clashing";
+  const isDisintegrating = phase === "disintegrating";
+  const isResult = phase === "result";
+  const playerWon = isResult && playerWins > opponentWins;
+  const opponentWon = isResult && opponentWins > playerWins;
+
+  if (isEntry) return null;
+
+  const wrapperCls = [
+    "arena-speakers",
+    isArrange && "arena-speakers--idle",
+    isResult && "arena-speakers--result",
+    playerWon && "arena-speakers--player-won",
+    opponentWon && "arena-speakers--opponent-won",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
-    <div className={`fixed bottom-32 ${positionClass} z-40 max-w-sm pointer-events-none`}>
-      <AnimatePresence mode="wait">
-        {line && (
-          <motion.div
-            key={line}
-            initial={{ opacity: 0, x: edge === "left" ? -20 : 20, scale: 0.96 }}
-            animate={{ opacity: 1, x: 0, scale: 1 }}
-            exit={{ opacity: 0, x: edge === "left" ? -10 : 10, scale: 0.96 }}
-            transition={{ duration: 0.42, ease: [0.32, 0.72, 0.32, 1] }}
-            className={`relative rounded-3xl px-4 py-3 ${ELEMENT_TINT_BG[element]} text-puru-ink-rich shadow-puru-tile`}
-          >
-            {/* Caretaker portrait placeholder (S5 wires real asset · purupuru-fire.png etc) */}
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-puru-cloud-bright shadow-puru-tile grid place-items-center flex-shrink-0">
-                <span className="font-puru-display text-xl">{ELEMENT_META[element].kanji}</span>
-              </div>
-              <div className="flex flex-col gap-0.5">
-                <span className="font-puru-display text-2xs uppercase tracking-wide text-puru-ink-soft">
-                  {ELEMENT_META[element].caretaker}
-                </span>
-                <p className="font-puru-body text-sm leading-puru-normal">{line}</p>
-              </div>
-            </div>
-            {/* Tail */}
-            <div
-              aria-hidden
-              className={`absolute -bottom-1.5 ${edge === "left" ? "left-8" : "right-8"} w-3 h-3 rotate-45 ${ELEMENT_TINT_BG[element]}`}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+    <div className={wrapperCls}>
+      <div
+        className={`speaker speaker--player${whisper && (isClashing || isDisintegrating) ? " speaking" : ""}`}
+      >
+        <AnimatePresence>
+          {whisper && (isClashing || isDisintegrating) && (
+            <motion.p
+              className="speaker-bubble speaker-bubble--player"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              {whisper}
+            </motion.p>
+          )}
+        </AnimatePresence>
+        <img
+          className="speaker-face speaker-face--player"
+          src={CARETAKER_THUMB[playerElement]}
+          alt={ELEMENT_META[playerElement].caretaker}
+          data-element={playerElement}
+        />
+      </div>
+      <div
+        className={`speaker speaker--opponent${activeClashPhase === "impact" ? " reacting" : ""}`}
+      >
+        <img
+          className="speaker-face speaker-face--opponent"
+          src={CARETAKER_THUMB[opponentElement]}
+          alt={ELEMENT_META[opponentElement].caretaker}
+          data-element={opponentElement}
+        />
+      </div>
     </div>
   );
 }

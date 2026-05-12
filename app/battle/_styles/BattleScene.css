@@ -1,0 +1,50 @@
+	.battle-scene {
+		position: relative;
+		width: 100%;
+		height: 100%;
+		min-height: 100svh;
+		background: var(--puru-cloud-dim);
+		overflow: hidden;
+	}
+
+	.quiz-wrapper {
+		position: absolute;
+		inset: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.quiz-wrapper.exiting {
+		pointer-events: none;
+	}
+
+	.battle-wrapper {
+		width: 100%;
+		height: 100%;
+		opacity: 0;
+		transition: opacity var(--duration-slow) var(--ease-puru-settle);
+	}
+
+	.battle-wrapper.mounted {
+		opacity: 1;
+	}
+
+	.help-btn {
+		position: fixed;
+		bottom: var(--space-md);
+		right: var(--space-md);
+		width: 36px;
+		height: 36px;
+		border-radius: 50%;
+		background: var(--puru-cloud-bright);
+		border: 1px solid var(--puru-surface-border);
+		font-family: var(--font-mono);
+		font-size: var(--text-sm);
+		color: var(--puru-ink-soft);
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 100;
+	}

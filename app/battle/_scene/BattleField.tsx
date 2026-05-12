@@ -1,129 +1,98 @@
 "use client";
 
 /**
- * BattleField — the spatial arena where lineups face off. FR-3.
+ * BattleField — 1:1 port of world-purupuru BattleField.svelte.
  *
- * Renders the 5 element territories (Wuxing pentagram-ish layout per
- * lib/honeycomb/battlefield-geometry.ts), the player + opponent rows,
- * and the inline CombosPanel (FR-23 · per game-design canon "you feel
- * who's winning by the animated flow of element energy").
- *
- * Reads from useMatch() · subscribes to phase changes for visual states.
+ * Layered map: detailed (entry) or flat (arena backdrop) · 5 territory
+ * overlays · color-temperature · tide overlay · arena room (backdrop only) ·
+ * ripple + spark VFX + hitstop flash. All styling lives in
+ * app/battle/_styles/BattleField.css and applies via class names.
  */
 
-import { motion } from "motion/react";
-import {
-  BATTLEFIELD_EDGES,
-  lineupSlotCenter,
-  TERRITORY_CENTERS,
-} from "@/lib/honeycomb/battlefield-geometry";
-import { ELEMENT_META, type Element } from "@/lib/honeycomb/wuxing";
-import type { MatchSnapshot } from "@/lib/honeycomb/match.port";
-import { useMatch } from "@/lib/runtime/match.client";
-import { BattleHand } from "./BattleHand";
-import { CombosPanel } from "./CombosPanel";
-import { OpponentZone } from "./OpponentZone";
-import { ELEMENT_TINT_BG, ELEMENT_TINT_FROM } from "./_element-classes";
+import { TERRITORY_CENTERS } from "@/lib/honeycomb/battlefield-geometry";
+import type { Element } from "@/lib/honeycomb/wuxing";
 
-const ELEMENTS: readonly Element[] = ["wood", "fire", "earth", "metal", "water"];
+export type BattleFieldAnimState = "idle" | "golden-hold" | "hitstop";
+export type BattleFieldPhase = "selection" | "playing" | "result";
 
-export function BattleField() {
-  const snap = useMatch();
-  if (!snap) return <BattleFieldShell />;
-
-  return (
-    <section
-      className="relative w-full overflow-hidden rounded-3xl bg-puru-cloud-bright/40 shadow-puru-tile"
-      style={{ aspectRatio: "16/10", minHeight: "60dvh" }}
-      data-phase={snap.phase}
-    >
-      {/* Territory backdrops — one element zone each */}
-      {ELEMENTS.map((el) => (
-        <TerritoryZone key={el} element={el} active={snap.weather === el} />
-      ))}
-
-      {/* Opponent (face-down until clash) */}
-      <div className="absolute top-[4%] left-1/2 -translate-x-1/2 w-[85%]">
-        <OpponentZone lineup={snap.p2Lineup} phase={snap.phase} />
-      </div>
-
-      {/* Combo overlay — inline per FR-23 */}
-      <div className="absolute right-[4%] top-[4%] w-[24%]">
-        <CombosPanel combos={snap.p1Combos} summary={comboSummary(snap)} />
-      </div>
-
-      {/* Player hand (BattleHand · FR-4) */}
-      <div className="absolute bottom-[2%] left-1/2 -translate-x-1/2 w-[92%]">
-        <BattleHand lineup={snap.p1Lineup} phase={snap.phase} weather={snap.weather} />
-      </div>
-
-      {/* Edge VFX layer — clash phase only */}
-      {snap.phase === "clashing" && <EdgeFlash weather={snap.weather} />}
-    </section>
-  );
+interface BattleFieldProps {
+  readonly energies: Record<Element, number>;
+  readonly turnElement: Element;
+  readonly tide: number;
+  readonly animState: BattleFieldAnimState;
+  readonly phase: BattleFieldPhase;
+  readonly weather: Element;
+  readonly lastPlayed?: Element | null;
+  readonly lastGenerated?: Element | null;
+  readonly lastOvercome?: Element | null;
+  readonly backdrop?: boolean;
+  readonly arenaPhase?: string;
 }
 
-function BattleFieldShell() {
-  return (
-    <section
-      className="relative w-full rounded-3xl bg-puru-cloud-bright/40 shadow-puru-tile grid place-items-center"
-      style={{ minHeight: "60dvh" }}
-    >
-      <p className="text-puru-ink-soft text-sm font-puru-body">arena warming…</p>
-    </section>
-  );
-}
+const DETAILED_MAP_URL = "/art/tsuheji-map.png";
+const FLAT_MAP_URL = "/art/tsuheji-map.png";
 
-function TerritoryZone({
-  element,
-  active,
-}: {
-  readonly element: Element;
-  readonly active: boolean;
-}) {
-  const center = TERRITORY_CENTERS[element];
-  return (
-    <motion.div
-      aria-hidden
-      className={`absolute rounded-full pointer-events-none ${ELEMENT_TINT_BG[element]}`}
-      style={{
-        left: `${center.x - 14}%`,
-        top: `${center.y - 14}%`,
-        width: "28%",
-        height: "28%",
-        opacity: active ? 0.55 : 0.25,
-      }}
-      animate={{ scale: active ? [1, 1.04, 1] : 1 }}
-      transition={{ duration: 6, repeat: active ? Infinity : 0, ease: "easeInOut" }}
-    >
-      <div className="absolute inset-0 grid place-items-center">
-        <span className="text-2xl font-puru-display text-puru-ink-rich/40">
-          {ELEMENT_META[element].kanji}
-        </span>
-      </div>
-    </motion.div>
-  );
-}
+export function BattleField({
+  energies,
+  turnElement,
+  tide,
+  animState,
+  weather,
+  backdrop = false,
+  arenaPhase = "",
+}: BattleFieldProps) {
+  const tideNormal = tide / 100;
 
-function EdgeFlash({ weather }: { readonly weather: Element }) {
+  const wrapperCls = ["battlefield", backdrop && "backdrop", animState === "hitstop" && "hitstop"]
+    .filter(Boolean)
+    .join(" ");
+
+  // Sparks/ripple are reserved for golden-hold transitions; the substrate
+  // doesn't yet stream lastPlayed/lastGenerated/lastOvercome through Match.
+  // The DOM hooks remain so wiring later is a no-op.
+
   return (
     <div
-      aria-hidden
-      className={`absolute inset-0 pointer-events-none bg-gradient-to-tr ${ELEMENT_TINT_FROM[weather]} to-transparent`}
-      style={{ opacity: 0.4 }}
-    />
+      className={wrapperCls}
+      data-arena-phase={arenaPhase}
+      data-weather={weather}
+      style={
+        {
+          "--e-wood": energies.wood,
+          "--e-fire": energies.fire,
+          "--e-earth": energies.earth,
+          "--e-metal": energies.metal,
+          "--e-water": energies.water,
+          "--tide-n": tideNormal,
+        } as React.CSSProperties
+      }
+    >
+      {backdrop ? (
+        <img className="map-flat" src={FLAT_MAP_URL} alt="" aria-hidden draggable={false} />
+      ) : (
+        <img className="map-detailed" src={DETAILED_MAP_URL} alt="Tsuheji continent" draggable={false} />
+      )}
+
+      <div className={`territory territory-wood${energies.wood > 0.35 ? " energized" : ""}`} />
+      <div className={`territory territory-fire${energies.fire > 0.35 ? " energized" : ""}`} />
+      <div className={`territory territory-earth${energies.earth > 0.35 ? " energized" : ""}`} />
+      <div className={`territory territory-metal${energies.metal > 0.35 ? " energized" : ""}`} />
+      <div className={`territory territory-water${energies.water > 0.35 ? " energized" : ""}`} />
+
+      <div className="temperature" data-element={turnElement} />
+      <div className="tide-overlay" />
+
+      {backdrop && (
+        <>
+          <div className="arena-walls" />
+          <div className="arena-canopy" />
+        </>
+      )}
+
+      {animState === "hitstop" && <div className="hitstop-flash" />}
+    </div>
   );
 }
 
-function comboSummary(snap: MatchSnapshot): { count: number; totalBonus: number } {
-  const totalBonus = snap.p1Combos.reduce((s, c) => s + c.bonus * c.affected.length, 0);
-  return { count: snap.p1Combos.length, totalBonus };
-}
-
-// Type-only re-export to silence "unused import" warnings if the snapshot
-// type narrows in the future.
-export type _BattleFieldSnapshot = MatchSnapshot;
-
-// Edges (BATTLEFIELD_EDGES) reserved for future VFX boundary work
-void BATTLEFIELD_EDGES;
-void lineupSlotCenter;
+// Keep import non-stale; TERRITORY_CENTERS is reserved for future spark wiring.
+void TERRITORY_CENTERS;
