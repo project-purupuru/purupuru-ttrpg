@@ -64,7 +64,11 @@ async function main() {
 
   for (const file of portFiles) {
     const content = readFileSync(join("lib/domain", file), "utf-8");
-    const sourceMatch = content.match(/Source: hounfour@([a-f0-9]+):schemas\/(\S+\.schema\.json)/);
+    // BB-PR-001 fix: capture the FULL upstream path including `schemas/` prefix,
+    // not just the filename. Source header format is
+    // `Source: hounfour@<sha>:schemas/<name>.schema.json` and fetchUpstream
+    // builds `https://api.github.com/.../contents/<path>` directly.
+    const sourceMatch = content.match(/Source: hounfour@([a-f0-9]+):(schemas\/\S+\.schema\.json)/);
     if (!sourceMatch) {
       failures.push({ schema: file, reason: "no Source: header" });
       continue;

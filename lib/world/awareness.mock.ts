@@ -20,7 +20,7 @@ export const AwarenessMock = (seed: AwarenessState = defaultSeed) =>
       const ref = yield* Ref.make<AwarenessState>(seed);
       return Awareness.of({
         current: Ref.get(ref),
-        changes: Stream.empty as unknown as Stream.Stream<AwarenessChange>,
+        changes: Stream.empty as Stream.Stream<AwarenessChange>,
       });
     }),
   );

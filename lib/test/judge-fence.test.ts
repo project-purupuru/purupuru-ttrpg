@@ -11,22 +11,26 @@
 import { describe, it, expect } from "vitest";
 import { expectTypeOf } from "expect-type";
 import { Effect, Schema as S } from "effect";
-import { verify, judge, type Verified } from "../domain/verify-fence";
+import { verify, judge, type Verified, VerifyError, JudgeError } from "../domain/verify-fence";
 
 const TestSchema = S.Struct({ id: S.String });
 type Test = S.Schema.Type<typeof TestSchema>;
 
 describe("verify⊥judge fence · compile-time", () => {
-  it("judge accepts Verified<Test> · returns Effect", () => {
+  it("judge returns the inner judgmentFn's Effect with JudgeError channel", () => {
+    // Tightened per BB-PR-004: toEqualTypeOf catches brand erosion.
+    // judge<T,R>(Verified<T>, fn) returns Effect.Effect<R, JudgeError, never>
     const verified = {} as Verified<Test>;
     const result = judge(verified, (e) => Effect.succeed(e.id));
-    expectTypeOf(result).toMatchTypeOf<Effect.Effect<unknown, unknown, never>>();
+    expectTypeOf(result).toEqualTypeOf<Effect.Effect<string, JudgeError, never>>();
     expect(result).toBeDefined();
   });
 
-  it("verify returns Effect<Verified<T>, VerifyError>", () => {
+  it("verify returns Effect<Verified<T>, VerifyError, never>", () => {
+    // Tightened per BB-PR-004: toEqualTypeOf — if Verified brand erodes
+    // (e.g., a refactor accidentally returns raw T), this assertion fails.
     const eff = verify(TestSchema, { id: "x" });
-    expectTypeOf(eff).toMatchTypeOf<Effect.Effect<Verified<Test>, unknown, never>>();
+    expectTypeOf(eff).toEqualTypeOf<Effect.Effect<Verified<Test>, VerifyError, never>>();
   });
 
   it("judge MUST reject raw Test at the type level (the fence)", () => {

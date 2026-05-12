@@ -12,7 +12,7 @@ export const InvocationMock = () =>
       const buffer = yield* Ref.make<InvocationCommand[]>([]);
       return Invocation.of({
         invoke: (cmd) => Ref.update(buffer, (b) => [...b, cmd]),
-        commands: Stream.empty as unknown as Stream.Stream<InvocationCommand>,
+        commands: Stream.empty as Stream.Stream<InvocationCommand>,
       });
     }),
   );

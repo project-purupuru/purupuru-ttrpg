@@ -50,7 +50,8 @@ export const AwarenessLive = Layer.effect(
       }),
       // Placeholder: change-stream surface exists for downstream composability;
       // future cycles wire population/weather deltas through.
-      changes: Stream.empty as unknown as Stream.Stream<AwarenessChange>,
+      // Stream.empty<never> structurally fits Stream.Stream<AwarenessChange> via never-bottom.
+      changes: Stream.empty as Stream.Stream<AwarenessChange>,
     });
   }),
 );
