@@ -28,6 +28,8 @@ import { useMatch, matchCommand } from "@/lib/runtime/match.client";
 import { ELEMENT_META } from "@/lib/honeycomb/wuxing";
 import { BattleField } from "./BattleField";
 import { CollectionGrid } from "./CollectionGrid";
+import { ElementQuiz } from "./ElementQuiz";
+import { EntryScreen } from "./EntryScreen";
 import { WhisperBubble } from "./WhisperBubble";
 import { PhaseHud } from "./PhaseHud";
 import { ELEMENT_TINT_FROM } from "./_element-classes";
@@ -68,30 +70,20 @@ export function BattleScene() {
         />
 
         <AnimatePresence mode="wait">
-          {snap.phase === "idle" && (
-            <PhaseShell key="idle">
-              <EntrySplash
-                opponentElement={snap.opponentElement}
-                weather={snap.weather}
-                seed={snap.seed}
-              />
-            </PhaseShell>
-          )}
-
-          {snap.phase === "entry" && (
+          {(snap.phase === "idle" || snap.phase === "entry") && (
             <PhaseShell key="entry">
-              <EntrySplash
+              <EntryScreen
                 opponentElement={snap.opponentElement}
                 weather={snap.weather}
+                playerElement={snap.playerElement}
                 seed={snap.seed}
-                showQuizCTA={!snap.playerElement}
               />
             </PhaseShell>
           )}
 
           {snap.phase === "quiz" && (
             <PhaseShell key="quiz">
-              <QuizPlaceholder />
+              <ElementQuiz />
             </PhaseShell>
           )}
 
@@ -135,73 +127,6 @@ function PhaseShell({ children, ...props }: React.PropsWithChildren) {
     >
       {children}
     </motion.section>
-  );
-}
-
-function EntrySplash({
-  opponentElement,
-  weather,
-  seed,
-  showQuizCTA = false,
-}: {
-  readonly opponentElement: import("@/lib/honeycomb/wuxing").Element;
-  readonly weather: import("@/lib/honeycomb/wuxing").Element;
-  readonly seed: string;
-  readonly showQuizCTA?: boolean;
-}) {
-  return (
-    <div className="grid place-items-center min-h-[60dvh]">
-      <div className="flex flex-col items-center gap-4 text-center max-w-md">
-        <h1 className="font-puru-display text-3xl text-puru-ink-rich">
-          The tide favors {ELEMENT_META[weather].name.toLowerCase()} today.
-        </h1>
-        <p className="font-puru-body text-puru-ink-soft text-sm leading-puru-relaxed">
-          {ELEMENT_META[opponentElement].caretaker} brings the imbalance. Five cards. Five clashes.
-          Order matters.
-        </p>
-        <button
-          type="button"
-          onClick={() => matchCommand.beginMatch()}
-          className="mt-2 px-6 py-3 rounded-full bg-puru-honey-base text-puru-ink-rich font-puru-display text-base shadow-puru-tile hover:shadow-puru-tile-hover active:translate-y-[1px] transition-all duration-200"
-        >
-          Enter the Tide
-        </button>
-        {showQuizCTA && (
-          <p className="text-2xs font-puru-mono text-puru-ink-ghost mt-2">
-            first time → element quiz · returning → straight to match
-          </p>
-        )}
-        <p className="text-2xs font-puru-mono text-puru-ink-ghost mt-3">
-          seed · <span className="text-puru-ink-dim">{seed}</span>
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function QuizPlaceholder() {
-  return (
-    <div className="grid place-items-center min-h-[60dvh]">
-      <div className="flex flex-col items-center gap-4 text-center max-w-md">
-        <h2 className="font-puru-display text-2xl text-puru-ink-rich">Element Quiz</h2>
-        <p className="font-puru-body text-puru-ink-soft text-sm">
-          (S3 deliverable · port verbatim from world-purupuru. For now, pick your home element
-          directly.)
-        </p>
-        <div className="flex gap-2">
-          {(["wood", "fire", "earth", "metal", "water"] as const).map((el) => (
-            <button
-              key={el}
-              type="button"
-              onClick={() => matchCommand.chooseElement(el)}
-              className="px-3 py-2 rounded-full bg-puru-cloud-bright shadow-puru-tile text-sm font-puru-display text-puru-ink-rich hover:shadow-puru-tile-hover"
-            >
-              {ELEMENT_META[el].kanji} {ELEMENT_META[el].name}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
   );
 }
 
