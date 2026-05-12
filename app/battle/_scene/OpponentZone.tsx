@@ -93,6 +93,11 @@ export function OpponentZone({
                       sources={cardArtFor(card)}
                       alt={`${ELEMENT_META[card.element].caretaker} · ${card.cardType}`}
                     />
+                    <span
+                      className="card-foil"
+                      style={{ "--foil-delay": `${i * 0.6 + 3}s` } as React.CSSProperties}
+                      aria-hidden
+                    />
                     <span className="card-kanji">{ELEMENT_META[card.element].kanji}</span>
                   </>
                 )}

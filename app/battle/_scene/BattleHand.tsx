@@ -185,6 +185,12 @@ export function BattleHand({
                       sources={cardArtFor(card)}
                       alt={`${ELEMENT_META[card.element].caretaker} · ${setLabel(card.cardType)}`}
                     />
+                    {/* CSS-shader iridescent foil — composable VFX. */}
+                    <span
+                      className="card-foil"
+                      style={{ "--foil-delay": `${i * 0.6}s` } as React.CSSProperties}
+                      aria-hidden
+                    />
                     <span className="card-set-overlay">{setLabel(card.cardType)}</span>
                     {card.element === turnElement && (
                       <span className="turn-match" aria-label="Matches this turn's element">

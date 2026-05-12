@@ -16,6 +16,7 @@ import type { Element } from "@/lib/honeycomb/wuxing";
 import { ArenaSpeakers } from "./ArenaSpeakers";
 import { BattleField } from "./BattleField";
 import { BattleHand } from "./BattleHand";
+import { ClashVfx } from "./ClashVfx";
 import { ComboDiscoveryToast } from "./ComboDiscoveryToast";
 import { ElementQuiz } from "./ElementQuiz";
 import { EntryScreen } from "./EntryScreen";
@@ -133,8 +134,16 @@ export function BattleScene() {
               shielded={new Set(snap.shieldedP2)}
             />
 
-            {/* Clash zone — the visual middle. Cards converge here. */}
-            <div className="clash-zone" aria-hidden />
+            {/* Clash zone — the visual middle. Cards converge here, and
+                per-element clash VFX fires at impact (composable VFX
+                vocabulary, lib/vfx/clash-particles.ts). */}
+            <div className="clash-zone" aria-hidden>
+              <ClashVfx
+                element={snap.lastPlayed}
+                visibleClashIdx={snap.visibleClashIdx}
+                activeClashPhase={snap.activeClashPhase}
+              />
+            </div>
 
             <div className="player-zone">
               <BattleHand
