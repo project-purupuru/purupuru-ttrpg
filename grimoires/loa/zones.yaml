@@ -31,6 +31,8 @@ zones:
       - ".claude/commands/**"
       - "tools/**"
       - "grimoires/loa/runbooks/**"
+      - "grimoires/loa/proposals/**"   # framework RFCs (RFC-060 etc.) — referenced from README
+      - "grimoires/loa/reports/**"     # framework reports (benchmark, etc.) — referenced from README
       - "grimoires/loa/.gitignore"
 
   project:
@@ -44,7 +46,6 @@ zones:
       - "grimoires/loa/a2a/**"
       - "grimoires/loa/visions/**"
       - "grimoires/loa/memory/**"
-      - "grimoires/loa/proposals/**"
       - "grimoires/loa/legacy/**"
       - "grimoires/loa/context/**"
       - "grimoires/loa/archive/**"
