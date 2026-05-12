@@ -31,7 +31,9 @@ import { BattleField } from "./BattleField";
 import { CollectionGrid } from "./CollectionGrid";
 import { ElementQuiz } from "./ElementQuiz";
 import { EntryScreen } from "./EntryScreen";
+import { Guide } from "./Guide";
 import { PhaseHud } from "./PhaseHud";
+import { ResultScreen } from "./ResultScreen";
 import { TurnClock } from "./TurnClock";
 import { ELEMENT_TINT_FROM } from "./_element-classes";
 
@@ -106,7 +108,12 @@ export function BattleScene() {
 
           {snap.phase === "result" && (
             <PhaseShell key="result">
-              <ResultPlaceholder winner={snap.winner} weather={snap.weather} />
+              <ResultScreen
+                winner={snap.winner}
+                weather={snap.weather}
+                opponentElement={snap.opponentElement}
+                rounds={snap.rounds}
+              />
             </PhaseShell>
           )}
         </AnimatePresence>
@@ -123,6 +130,9 @@ export function BattleScene() {
             <TurnClock phase={snap.phase} round={snap.currentRound} weather={snap.weather} />
           </div>
         )}
+
+        {/* Guide: tutorial overlay first match · hint affordance after */}
+        <Guide />
       </div>
     </main>
   );
@@ -186,38 +196,6 @@ function ArenaPhase() {
           className="px-5 py-2 rounded-full bg-puru-honey-base text-puru-ink-rich font-puru-display text-sm shadow-puru-tile hover:shadow-puru-tile-hover transition-all"
         >
           Advance clash
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function ResultPlaceholder({
-  winner,
-  weather,
-}: {
-  readonly winner: "p1" | "p2" | "draw" | null;
-  readonly weather: import("@/lib/honeycomb/wuxing").Element;
-}) {
-  const message =
-    winner === "p1"
-      ? `The tide favored ${ELEMENT_META[weather].name.toLowerCase()}.`
-      : winner === "p2"
-        ? "The opposing tide carried the day."
-        : "Even tides.";
-  return (
-    <div className="grid place-items-center min-h-[60dvh]">
-      <div className="flex flex-col items-center gap-4 text-center max-w-md">
-        <h1 className="font-puru-display text-3xl text-puru-ink-rich">{message}</h1>
-        <p className="font-puru-body text-puru-ink-soft text-sm">
-          (S6 deliverable: ResultScreen with clash breakdown. For now, restart below.)
-        </p>
-        <button
-          type="button"
-          onClick={() => matchCommand.beginMatch()}
-          className="mt-2 px-6 py-3 rounded-full bg-puru-honey-base text-puru-ink-rich font-puru-display text-base shadow-puru-tile hover:shadow-puru-tile-hover transition-all"
-        >
-          Again
         </button>
       </div>
     </div>
