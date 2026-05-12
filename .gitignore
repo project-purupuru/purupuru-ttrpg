@@ -256,3 +256,7 @@ grimoires/loa/ledger.json.bak*
 #   grimoires/loa/runbooks/           (framework-shipped runbooks)
 #   grimoires/loa/known-failures.md   (shared zone)
 #   grimoires/loa/ledger.json         (project sprint ledger)
+
+# Asset library sync artifacts (S0 T0.5 onward)
+.assets-backup-*/
+public/art-test/
