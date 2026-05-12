@@ -1,8 +1,6 @@
 ---
-status: post-sprint-review-r1-patched
+status: draft
 type: sprint-plan
-review: 2-agent skeptic adversarial · 3 BLOCKERS + 7 HIGH + 2 MEDIUM all addressed
-revision: post-sp-r1 · SP-001..012 reconciled · G5a budget revised per operator decision · legacy migration moved into S1
 cycle: substrate-agentic-translation-adoption-2026-05-12
 mode: arch + adopt
 prd: grimoires/loa/prd.md
@@ -13,14 +11,14 @@ operator: zksoju
 
 # Sprint Plan · Substrate-Agentic Translation Layer · Compass Adoption
 
-7 sprints (S0-S6) · feature-branch parent `feat/substrate-agentic-adoption` · per-sprint sub-branches `feat/sa-sN-<slug>` · operator pair-points at S0 close · S1 close (pattern-lock) · S2 entry · S2 close · S3 close · S4 close · S6 close (per SP-006 fix).
+7 sprints (S0-S6) · feature-branch parent `feat/substrate-agentic-adoption` · per-sprint sub-branches `feat/sa-sN-<slug>` · operator pair-points at S0 close · S2 entry · S2 close · S3 close · S4 close · S6 close.
 
 **Critical path** (per SDD §13 dep graph): `S0 → S1 → S2 → (S3 ‖ S4) → S5 → S6`.
 
-**LOC budget** (PRD §3.1 · revised per SP-002/SP-003):
-- Conformance LOC delta (S0+S1+S2+S3+S6 · scoped to `lib/ packages/peripheral-events/` excluding `lib/world/`): ≤ **+500 net** (honest accounting · hand-port floor +400 + envelope shell +200 + fence +50 - legacy removal -80 - other shrinkage). Sub-target: non-hand-port refactor work ≤ **-100 LOC** (the substrate-shrinkage discipline survives at the sub-target level).
+**LOC budget** (PRD §3.1):
+- Conformance LOC delta (S0+S1+S2+S3+S6 · scoped to `lib/ packages/peripheral-events/` excluding `lib/world/`): ≤ **0 net** · target -100
 - World substrate LOC budget (S4 · `lib/world/`): ≤ **+600**
-- Cycle net LOC: ≤ **+1200**
+- Cycle net LOC: ≤ **+400**
 
 ---
 
@@ -40,21 +38,16 @@ operator: zksoju
 | **S0-T3** | Map compass behaviors → straylight surfaces | Append to S0-T2 doc · each behavior tagged "doc-only this cycle" or "defer N+2" |
 | **S0-T4** | Verify Phase 23a status with Eileen | Read straylight Phase 23a `docs/handoffs/phase-23a-mvp-schema-contract-draft.md` at resolved SHA · note any change since 2026-05-12 verification |
 | **S0-T5** | Open 3 tracking issues | One issue per upstream repo: `loa-hounfour` · `loa-straylight` · `construct-rooms-substrate` · titled `compass adoption tracker [substrate-agentic-2026-05-12]` · cite at least one compass file:line per issue (PRD G8 quality bar) |
-| **S0-T6** | File schema-blocker upstream issues if any | For each blocker found in S0-T2/T3, file an issue with reproducible fixture · 72h timeout protocol per PRD FR-S0-3 (S0 close blocked until either upstream resolution OR 72h elapsed AND operator NOTES.md decision recorded · per SP-011) |
+| **S0-T6** | File schema-blocker upstream issues if any | For each blocker found in S0-T2/T3, file an issue with reproducible fixture · 72h timeout protocol per PRD FR-S0-3 |
 | **S0-T7** | Verify hounfour npm publish status | `npm view @0xhoneyjar/loa-hounfour version` matches local 7.0.0 OR document install path (file:link / git+url) |
 | **S0-T8** | Verify Next.js 16 ESM JSON imports | Quick spike: `import schema from './tmp/test.schema.json' with { type: "json" }` builds clean in dev + production · confirm `tsconfig.resolveJsonModule: true` |
-| **S0-T9** | Verify multi-world repo paths exist (per SP-008) | Confirm `~/Documents/GitHub/world-purupuru/` + `world-sprawl/` + `world-mibera/` exist with referenceable substrate-shape code · if absent, downgrade S5-T3/T4 to "no compass-substrate-shape exists yet · annotation-only" |
-| **S0-T10** | Document rooms-substrate drift posture (per SP-010) | rooms-substrate is operator-machine-only · NO public GitHub repo · drift detection (SDD §9.1) only covers hounfour · envelope schemas refresh manually at annual operator pair-point · capture this in NOTES.md |
-| **S0-T11** | Operator pair-point: S0→S1 promotion gate | NOTES.md decision record · check Q7 sub-conditions (a)(b)(c) PASS or FAIL · if FAIL, pivot to S0.5 negotiation cycle |
+| **S0-T9** | Operator pair-point: S0→S1 promotion gate | NOTES.md decision record · check Q7 sub-conditions (a)(b)(c) PASS or FAIL · if FAIL, pivot to S0.5 negotiation cycle |
 
 ### Sprint exit criteria
 
-- All 11 tasks closed
+- All 9 tasks closed
 - Q7 promotion gate documented PASS in NOTES.md
 - §10.5 SHA-pin manifest filled in
-- Multi-world repo paths verified (per SP-008)
-- Rooms-substrate drift posture captured (per SP-010)
-- For S0-T6 blockers: either upstream resolution OR 72h elapsed AND NOTES.md decision (per SP-011)
 - Operator approves move to S1
 
 ---
@@ -62,9 +55,9 @@ operator: zksoju
 ## S1 · Envelope shell + lift activity/population + pattern-lock
 
 **Branch**: `feat/sa-s1-envelope-shell`
-**LOC budget**: ≤ +200 net (envelope shell + new lift files +280 - legacy removal -80 = net +200)
-**Duration estimate**: 4-5 days (added migration + removal tasks per SP-003 fix)
-**Exit gate**: pattern-lock template documented · all tests green · `pnpm test` ≥ 24 · grep zero legacy subscribe(cb) callers · legacy code DELETED (not deprecated)
+**LOC budget**: ≤ +200 net (counted toward G5a · partially offset by S2 legacy removal)
+**Duration estimate**: 3-4 days
+**Exit gate**: pattern-lock template documented · all tests green · `pnpm test` ≥ 24
 
 ### Tasks
 
@@ -75,25 +68,20 @@ operator: zksoju
 | **S1-T3** | Author `lib/domain/validate-envelope.ts` | AJV runtime validator per SDD §4.3 · throws `EnvelopeValidationError` on parse failure |
 | **S1-T4** | Annotate world-event.ts with output_type | Every `_tag: S.Literal` variant in `packages/peripheral-events/src/world-event.ts` gets matching `output_type` per SDD §4.4 |
 | **S1-T5** | Author envelope-coverage CI script | `scripts/check-envelope-coverage.sh` per SDD §4.4 · regex-based · zero deps · `.github/workflows/envelope-coverage.yml` invokes |
-| **S1-T6** | Lift activityStream to Effect Layer | NEW: `lib/activity/activity.port.ts` · `activity.live.ts` (wraps existing `activityStream`) · `activity.mock.ts` · `__tests__/activity.test.ts` |
-| **S1-T6.5** | Migrate ALL `app/` callers from `activityStream.subscribe(cb)` to `Activity` port (per SP-003 · operator decision) | `grep -rE "activityStream\.subscribe\|from.*activity'\)" app/` returns ZERO hits · all consumers use `runtime.runFork(Effect.gen(...))` pattern with `Activity` Service Tag |
-| **S1-T6.9** | DELETE legacy `subscribe(cb)` from `lib/activity/index.ts` | After S1-T6.5 grep zero · remove lines 42-48 + cleanup · -40 LOC · atomic commit `[adopt:rooms-substrate] remove-legacy-activity-subscribe` |
-| **S1-T7** | Lift populationStore to Effect Layer | NEW: `lib/sim/population.port.ts` · `population.live.ts` · `population.mock.ts` · `__tests__/population.test.ts` |
-| **S1-T7.5** | Migrate ALL `app/` callers from `populationStore.subscribe(cb)` to `Population` port (per SP-003) | `grep -rE "populationStore\.subscribe\|from.*population'\)" app/` returns ZERO hits |
-| **S1-T7.9** | DELETE legacy `subscribe(cb)` from `lib/sim/population.system.ts` | After S1-T7.5 grep zero · remove line 165+ subscribe block · -40 LOC · atomic commit `[adopt:rooms-substrate] remove-legacy-population-subscribe` |
+| **S1-T6** | Lift activityStream to Effect Layer | NEW: `lib/activity/activity.port.ts` · `activity.live.ts` (wraps existing `activityStream`) · `activity.mock.ts` · `__tests__/activity.test.ts` · existing `lib/activity/index.ts` keeps legacy `subscribe(cb)` re-exports with deprecation comment |
+| **S1-T7** | Lift populationStore to Effect Layer | NEW: `lib/sim/population.port.ts` · `population.live.ts` · `population.mock.ts` · `__tests__/population.test.ts` · existing `lib/sim/population.system.ts` keeps legacy with deprecation comment |
 | **S1-T8** | Extend AppLayer in `lib/runtime/runtime.ts` | Add `ActivityLive` + `PopulationLive` to existing `Layer.mergeAll(...)` · NO new file in `lib/runtime/` |
 | **S1-T9** | Author single-runtime CI script | `scripts/check-single-runtime.sh` per SDD §5.3 · `grep -c "ManagedRuntime.make"` lib/+app/ MUST equal 1 · `.github/workflows/single-runtime.yml` invokes |
-| **S1-T10** | Document lift-pattern template | `grimoires/loa/specs/lift-pattern-template.md` per SDD §5.4 · 4-file canonical trio + Layer integration step + example component pattern + naming conventions · **APPLIED MECHANICALLY BY S4** (per SP-007 clarification: S2 hand-ports follow separate SDD §3.4 procedure · NOT this template) |
+| **S1-T10** | Document lift-pattern template | `grimoires/loa/specs/lift-pattern-template.md` per SDD §5.4 · 4-file canonical trio + Layer integration step + example component pattern + naming conventions · S4 applies mechanically |
 | **S1-T11** | Test substrate green | `pnpm test` returns ≥ 24 + new test files green |
 | **S1-T12** | Operator pair-point: pattern-lock review | Operator confirms S1 lift pattern is template-worthy before S2 / S4 apply it |
 
 ### Sprint exit criteria
 
-- All 16 tasks closed (12 original + S1-T6.5 + S1-T6.9 + S1-T7.5 + S1-T7.9 added per SP-003)
+- 12 tasks closed
 - All CI checks green (envelope-coverage · single-runtime · existing tests)
 - `pnpm test` ≥ 24 passing tests
 - S1 commit history is atomic (1 commit per logical change · NFR-ROLLBACK-3)
-- Legacy `subscribe(cb)` DELETED from both lib/activity/index.ts AND lib/sim/population.system.ts (NOT deferred to S2)
 - Operator approves pattern-lock template
 
 ---
@@ -101,7 +89,7 @@ operator: zksoju
 ## S2 · Hand-port hounfour schemas
 
 **Branch**: `feat/sa-s2-hand-port-hounfour`
-**LOC budget**: ≤ +400 LOC (5-8 schemas × ~80 LOC per port-set) + ~30 LOC for verdict narrowing + drift script ~150 LOC = +580 ceiling. Counted toward G5a (revised target +500 net per SP-002 fix). NOTE: -80 legacy offset NOT counted here (already removed in S1).
+**LOC budget**: ≤ +N for hand-ports + ~30 LOC for envelope verdict narrowing · -80 LOC if legacy `subscribe(cb)` removed · net target ≤ 0
 **Duration estimate**: 2-3 days
 **Exit gate**: All hand-ports pass drift test · operator pair-point on idiom-fit
 
@@ -116,21 +104,19 @@ operator: zksoju
 | **S2-T5** | Hand-port `audit-trail-entry` | Same procedure (uses `Schema.Class` per SDD §8.2) |
 | **S2-T6** | Hand-port `domain-event` | Same procedure · this is the source for verdict union |
 | **S2-T7** | Hand-port `lifecycle-transition-payload` | Same procedure |
-| **S2-T8** | Author `scripts/hounfour-drift.ts` + add deps | Per SDD §9.1 · GITHUB_TOKEN auth · 404=red · diff-vs-main · **per SP-004**: `pnpm install @octokit/rest json-schema-diff --save-dev` · package.json devDependencies updated · `pnpm install` clean |
-| **S2-T9** | Author `pnpm hounfour:drift` script entry | **per SP-012**: package.json `scripts.hounfour:drift` registered (e.g. `"hounfour:drift": "tsx scripts/hounfour-drift.ts"`) · `pnpm hounfour:drift` runs without ENOENT · manual invocation only this sprint · cron CI deferred to S6 |
+| **S2-T8** | Author `scripts/hounfour-drift.ts` | Per SDD §9.1 · GITHUB_TOKEN auth · 404=red · diff-vs-main |
+| **S2-T9** | Author `pnpm hounfour:drift` script | Manual invocation only this sprint · cron CI deferred to S6 |
 | **S2-T10** | Narrow envelope verdict union | `lib/domain/handoff.schema.ts` · `verdict: S.Union(<hand-ported types>)` · per S2-T1 result use direct narrowing OR additive `typed_verdict` field |
-| **S2-T11** | Operator pair-point: idiom-fit review | Operator reviews each `.hounfour-port.ts` for Effect-Schema idiom · approves before sprint close |
+| **S2-T11** | Remove legacy `subscribe(cb)` | If callers in `app/` have migrated, delete legacy code from `lib/activity/index.ts:42-48` + `lib/sim/population.system.ts:69` (-80 LOC offset) · OPERATOR DECISION at S2 close · may defer |
+| **S2-T12** | Operator pair-point: idiom-fit review | Operator reviews each `.hounfour-port.ts` for Effect-Schema idiom · approves before sprint close |
 
 ### Sprint exit criteria
 
 - All hand-port tasks closed (count locked at S0-T2)
 - All drift tests green (pinned SHAs match vendored copies)
 - `pnpm hounfour:drift` runs clean against current main
-- @octokit/rest + json-schema-diff installed (per SP-004)
-- package.json scripts.hounfour:drift entry registered (per SP-012)
 - Verdict narrowing landed without breaking callers
 - Operator approves idiom-fit
-- (Legacy subscribe(cb) removal NOT a S2 task anymore · was moved to S1 per SP-003)
 
 ---
 
@@ -184,7 +170,7 @@ operator: zksoju
 | **S4-T8** | Author 3 example components | `app/_components/awareness-example.tsx` · `observatory-example.tsx` · `invocation-example.tsx` · operator can copy-paste pattern |
 | **S4-T9** | Author `scripts/check-world-discipline.sh` | D4 enforcement · grep blocks `@solana` imports + `kvSet`/`kv.put` writes in `lib/world/` |
 | **S4-T10** | Author `scripts/check-state-ownership.sh` | BB-006 · §7.7 · grep enforces no system writes to a Ref/PubSub it doesn't declare ownership of in SKILL.md |
-| **S4-T11** | Author `scripts/check-system-name-uniqueness.sh` | BB-009 · system names of `*.live.ts` files in `lib/world/` appear exactly once in runtime.ts AppLayer mergeAll args · **per SP-009**: `world.system.ts` orchestrator EXCLUDED from check (it's a composition module · NOT a Layer Tag) · script uses explicit allowlist |
+| **S4-T11** | Author `scripts/check-system-name-uniqueness.sh` | BB-009 · system names appear exactly once in runtime.ts AppLayer mergeAll args |
 | **S4-T12** | Add `find compass/lib -name '*card*' -o -name '*battle*'` CI rule | Q card-game-stays-out gate · per PRD §3.2 |
 | **S4-T13** | Operator iteration test | Operator runs `git mv lib/world/awareness.* lib/world/a-rename.*` + updates runtime.ts import · `pnpm test` stays green in 1 commit · per FR-S4-6 |
 | **S4-T14** | Agent navigation test | Fresh-context agent dispatched · asked "what does awareness expose and what ports does it have" · answers in ≤3 grep calls per Q operator-vibe-check |
@@ -213,8 +199,8 @@ operator: zksoju
 |---|---|---|
 | **S5-T1** | Author `grimoires/loa/specs/per-world-adoption-playbook.md` | 1-page checklist · enumerated steps to adopt the substrate in a new world |
 | **S5-T2** | Stub `world-purupuru` paragraph | 1 paragraph · cites at least one file:line in `~/Documents/GitHub/world-purupuru/` that demonstrates shape compass adopted (or absence thereof) |
-| **S5-T3** | Stub `world-sprawl` paragraph | Same evidence requirement IF S0-T9 verified repo exists · ELSE annotation-only "no compass-substrate-shape exists yet · adoption candidate when world-sprawl ships" (per SP-008) |
-| **S5-T4** | Stub `world-mibera` paragraph | Same evidence requirement IF S0-T9 verified repo exists · ELSE annotation-only "no compass-substrate-shape exists yet · adoption candidate when world-mibera ships" (per SP-008) |
+| **S5-T3** | Stub `world-sprawl` paragraph | Same evidence requirement |
+| **S5-T4** | Stub `world-mibera` paragraph | Same evidence requirement |
 | **S5-T5** | Cross-link from `lib/world/SKILL.md` | Add reference to playbook so future agents find it |
 
 ### Sprint exit criteria
