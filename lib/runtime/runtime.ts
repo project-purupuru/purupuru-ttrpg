@@ -10,6 +10,7 @@ import { ObservatoryLive } from "@/lib/world/observatory.live";
 import { InvocationLive } from "@/lib/world/invocation.live";
 // Honeycomb battle (card-game-in-compass · feat/honeycomb-battle):
 import { BattleLive } from "@/lib/honeycomb/battle.live";
+import { ClashLive } from "@/lib/honeycomb/clash.live";
 
 // THE single Effect.provide site for the app. Lint check: a grep for
 // `ManagedRuntime.make` in lib/ or app/ should return exactly one match
@@ -27,6 +28,7 @@ const PrimitivesLayer = Layer.mergeAll(
   PopulationLive,
   InvocationLive,
   BattleLive,
+  ClashLive,
 );
 const AwarenessOnPrimitives = Layer.provide(AwarenessLive, PrimitivesLayer);
 const ObservatoryOnAwareness = Layer.provide(ObservatoryLive, AwarenessOnPrimitives);
