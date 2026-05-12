@@ -6,6 +6,9 @@
  */
 
 import Image from "next/image";
+import { useEffect, useState } from "react";
+import { type CompanionState, loadCompanion } from "@/lib/honeycomb/companion";
+import { type DailyMeta, getDailyMeta, getDailyShift } from "@/lib/honeycomb/daily-meta";
 import { ELEMENT_META, ELEMENT_ORDER, type Element } from "@/lib/honeycomb/wuxing";
 import { matchCommand } from "@/lib/runtime/match.client";
 
@@ -27,6 +30,17 @@ export function EntryScreen({
   seed,
 }: EntryScreenProps) {
   const onPlay = () => matchCommand.beginMatch();
+
+  // Companion + daily meta only resolve on the client (localStorage + Date)
+  // so we hydrate them in an effect to avoid SSR mismatch.
+  const [meta, setMeta] = useState<DailyMeta | null>(null);
+  const [shiftedOvernight, setShiftedOvernight] = useState(false);
+  const [companion, setCompanion] = useState<CompanionState | null>(null);
+  useEffect(() => {
+    setMeta(getDailyMeta());
+    setShiftedOvernight(getDailyShift().any);
+    setCompanion(loadCompanion());
+  }, []);
 
   const btnGlow = quizElement
     ? `var(--puru-${quizElement}-vivid)`
@@ -65,6 +79,28 @@ export function EntryScreen({
           </div>
           <span className="entry-subtitle">the game</span>
         </div>
+      )}
+
+      {/* Today's tide — daily meta strip. Hydrated client-side. */}
+      {meta && (
+        <div
+          className="entry-tide"
+          data-shifted={shiftedOvernight ? "" : undefined}
+          aria-live="polite"
+        >
+          <span className="entry-tide-label">
+            {shiftedOvernight ? "the tide turned overnight" : "today's tide"}
+          </span>
+          <span className="entry-tide-meta">{meta.label}</span>
+        </div>
+      )}
+
+      {/* Returning-player identity — companion deepest element + record. */}
+      {companion && companion.totalMatches > 0 && companion.deepestElement && (
+        <p className="entry-companion">
+          {ELEMENT_META[companion.deepestElement].caretaker} has been with you for{" "}
+          {companion.totalMatches} {companion.totalMatches === 1 ? "battle" : "battles"}.
+        </p>
       )}
 
       <div className="entry-actions">

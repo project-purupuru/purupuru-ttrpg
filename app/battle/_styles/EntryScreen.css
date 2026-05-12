@@ -126,6 +126,57 @@
     letter-spacing: 0.02em;
   }
 
+  /* Today's tide — daily meta strip just above the action button.
+     `data-shifted` adds a soft honey halo on days when the world rotated. */
+  .entry-tide {
+    position: relative;
+    margin: 0 auto var(--space-md);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: var(--space-xs) var(--space-lg);
+    border-radius: var(--radius-full);
+    background: oklch(from var(--puru-cloud-base) l c h / 0.5);
+    border: 1px solid oklch(from var(--puru-ink-ghost) l c h / 0.15);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    opacity: 0;
+    animation: fade-in 900ms var(--ease-puru-settle) 1000ms forwards;
+    pointer-events: none;
+    z-index: 2;
+  }
+  .entry-tide[data-shifted] {
+    box-shadow: 0 0 0 1px oklch(from var(--puru-honey-base) l c h / 0.25),
+                0 4px 18px oklch(from var(--puru-honey-base) l c h / 0.15);
+  }
+  .entry-tide-label {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--puru-ink-ghost);
+  }
+  .entry-tide-meta {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--puru-ink-base);
+    letter-spacing: 0.02em;
+  }
+
+  /* Companion identity line for returning players. */
+  .entry-companion {
+    margin: 0 0 var(--space-md);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--puru-ink-dim);
+    font-style: italic;
+    letter-spacing: 0.02em;
+    text-align: center;
+    opacity: 0;
+    animation: fade-in 1100ms var(--ease-puru-settle) 1400ms forwards;
+  }
+
   /* Ambient wuxing breathing strip — five kanji pulse in Shēng order */
   .entry-wuxing-strip {
     margin-top: var(--space-md);

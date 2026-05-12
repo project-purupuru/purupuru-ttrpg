@@ -21,6 +21,7 @@ import {
   type MatchSnapshot,
   validCommandsFor,
 } from "./match.port";
+import { recordMatchOutcome } from "./companion";
 import { initialSnapshot, reduce, stubOpponentLineup } from "./match.reducer";
 import { SHENG, KE } from "./wuxing";
 import { whisper as pickWhisper } from "./whispers";
@@ -275,16 +276,20 @@ export const MatchLive: Layer.Layer<Match, never, Clash> = Layer.scoped(
         yield* publish({ _tag: "round-ended", round, eliminated: result.eliminated });
 
         // 6. Match continuation: result vs next round.
+        const playerEl = snap.playerElement;
         if (newP1.length === 0 && newP2.length === 0) {
           yield* Ref.update(stateRef, (s): MatchSnapshot => ({ ...s, winner: "draw" }));
+          if (playerEl) yield* Effect.sync(() => recordMatchOutcome(playerEl, "draw"));
           yield* publish({ _tag: "match-completed", winner: "draw" });
           yield* transition("result");
         } else if (newP1.length === 0) {
           yield* Ref.update(stateRef, (s): MatchSnapshot => ({ ...s, winner: "p2" }));
+          if (playerEl) yield* Effect.sync(() => recordMatchOutcome(playerEl, "loss"));
           yield* publish({ _tag: "match-completed", winner: "p2" });
           yield* transition("result");
         } else if (newP2.length === 0) {
           yield* Ref.update(stateRef, (s): MatchSnapshot => ({ ...s, winner: "p1" }));
+          if (playerEl) yield* Effect.sync(() => recordMatchOutcome(playerEl, "win"));
           yield* publish({ _tag: "match-completed", winner: "p1" });
           yield* transition("result");
         } else {

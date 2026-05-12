@@ -18,6 +18,7 @@
 
 import { type Card, CARD_DEFINITIONS, createCard } from "./cards";
 import { type Combo, detectCombos } from "./combos";
+import { rememberFirstElement } from "./companion";
 import { CONDITIONS, type BattleCondition } from "./conditions";
 import { isFirstTime, loadDiscovery, recordDiscovery } from "./discovery";
 import type {
@@ -94,6 +95,9 @@ export function reduce(
       const dealtCombos = detectCombos(dealtLineup, { weather: snap.weather });
       const p2Lineup = stubOpponentLineup(snap);
       const p2Combos = detectCombos(p2Lineup, { weather: snap.weather });
+      // Companion side-effect: stamp the player's first vow.
+      // No-op if firstElement is already set; safe to call repeatedly.
+      rememberFirstElement(cmd.element);
       const next: MatchSnapshot = {
         ...snap,
         playerElement: cmd.element,
