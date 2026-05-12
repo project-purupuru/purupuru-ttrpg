@@ -19,6 +19,7 @@ import { BattleHand } from "./BattleHand";
 import { ClashOrb } from "./ClashOrb";
 import { ClashVfx } from "./ClashVfx";
 import { ComboDiscoveryToast } from "./ComboDiscoveryToast";
+import { ParallaxLayer } from "./ParallaxLayer";
 import { ElementQuiz } from "./ElementQuiz";
 import { EntryScreen } from "./EntryScreen";
 import { Guide } from "./Guide";
@@ -212,6 +213,9 @@ export function BattleScene() {
 
       {/* First-time combo discovery ceremony (FR-5) */}
       <ComboDiscoveryToast onActiveChange={setToastActive} />
+
+      {/* Translation-only parallax camera (mousemove → CSS vars) */}
+      <ParallaxLayer />
 
       {/* Guide overlay (tutorial / hints) */}
       <Guide />

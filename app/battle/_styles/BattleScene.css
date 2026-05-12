@@ -45,6 +45,44 @@
 		display: flex;
 		flex-direction: column;
 		pointer-events: none;
+		/* Camera composition: parallax (mousemove) + idle drift (figure-8).
+		   Both are pure translation. The 12s idle drift makes the camera
+		   feel "alive on a tripod" during arrange — pauses during clashing
+		   so impacts read cleanly. Per-direction custom-property compose
+		   into a single translate() call. */
+		transform: translate(
+			calc(var(--parallax-arena-x, 0px) + var(--idle-drift-x, 0px)),
+			calc(var(--parallax-arena-y, 0px) + var(--idle-drift-y, 0px))
+		);
+		transition: transform 320ms cubic-bezier(0.22, 1.0, 0.36, 1);
+		animation: arena-idle-drift 18s ease-in-out infinite;
+	}
+	/* Pause idle drift during clash phases so the impact owns the screen. */
+	.arena[data-phase='clashing'],
+	.arena[data-phase='disintegrating'] {
+		animation-play-state: paused;
+	}
+	/* Figure-8 drift on registered custom properties — translation only,
+	   never rotation, capped at 2px to prevent any nausea. */
+	@property --idle-drift-x {
+		syntax: '<length>';
+		inherits: false;
+		initial-value: 0px;
+	}
+	@property --idle-drift-y {
+		syntax: '<length>';
+		inherits: false;
+		initial-value: 0px;
+	}
+	@keyframes arena-idle-drift {
+		0%   { --idle-drift-x: 0px;    --idle-drift-y: 0px;    }
+		25%  { --idle-drift-x: 2px;    --idle-drift-y: -1.5px; }
+		50%  { --idle-drift-x: 0px;    --idle-drift-y: 1.5px;  }
+		75%  { --idle-drift-x: -2px;   --idle-drift-y: -1.5px; }
+		100% { --idle-drift-x: 0px;    --idle-drift-y: 0px;    }
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.arena { animation: none; transform: none; transition: none; }
 	}
 
 	.clash-zone {

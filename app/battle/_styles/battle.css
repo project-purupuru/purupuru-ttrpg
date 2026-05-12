@@ -142,6 +142,12 @@
 @import "./DevConsole.css";
 
 /* ═══════════════════════════════════════════════════════════════
+   CardBreathing · per-element micro-motion (cardboard → alive)
+   ═══════════════════════════════════════════════════════════════ */
+
+@import "./CardBreathing.css";
+
+/* ═══════════════════════════════════════════════════════════════
    ClashOrb · impact bloom (the consequence beat made visible)
    ═══════════════════════════════════════════════════════════════ */
 

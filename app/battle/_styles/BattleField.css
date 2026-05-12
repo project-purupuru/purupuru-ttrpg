@@ -6,19 +6,29 @@
     pointer-events: none;
     /* Contain reflow — backdrop changes don't trigger page-level layout */
     contain: layout style paint;
+    /* Parallax depth: backdrop moves the most (deepest layer).
+       --parallax-x/y come from ParallaxLayer (mousemove → CSS vars).
+       Smooth via transition; animations on top of transition compose. */
+    transform: translate(var(--parallax-x, 0px), var(--parallax-y, 0px));
+    transition: transform 360ms cubic-bezier(0.22, 1.0, 0.36, 1);
   }
 
-  /* ── Hitstop ───────────────────────────────────────────── */
+  /* ── Hitstop ───────────────────────────────────────────────────
+     Replaced violent multi-axis shake with a directional push toward
+     the clash midpoint + brief desaturation. Translation only — no
+     rotation, no jitter. Reads as IMPACT, not as nausea-inducing
+     vibration on small viewports. */
   .battlefield.hitstop {
-    animation: hitstop-shake 166ms linear;
+    animation: hitstop-push 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
-  @keyframes hitstop-shake {
-    0%, 100% { transform: translate(0); }
-    20% { transform: translate(-2px, 1px); }
-    40% { transform: translate(2px, -1px); }
-    60% { transform: translate(-1px, -2px); }
-    80% { transform: translate(1px, 2px); }
+  @keyframes hitstop-push {
+    0%   { transform: translate(var(--parallax-x, 0px), var(--parallax-y, 0px)); filter: saturate(1); }
+    25%  { transform: translate(calc(var(--parallax-x, 0px) - 0px), calc(var(--parallax-y, 0px) + 4px)); filter: saturate(1.2) brightness(1.05); }
+    100% { transform: translate(var(--parallax-x, 0px), var(--parallax-y, 0px)); filter: saturate(1); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .battlefield.hitstop { animation: none; }
   }
 
   /* ══════════════════════════════════════════════════════════

@@ -66,25 +66,42 @@
   .lineup-row:has(> :nth-child(2):last-child) .card-slot-wrap { width: clamp(110px, 30vw, 140px); margin-left: clamp(-30px, -8vw, -16px); }
   .lineup-row:has(> :nth-child(1):last-child) .card-slot-wrap { width: clamp(120px, 32vw, 150px); margin-left: 0; }
 
+  /* Asymmetric easing — different curve per phase, top-indie feel:
+       0→25%   heavy fall     (cubic-bezier easeIn — gravity)
+       25→65%  fast slide     (cubic-bezier easeOut — release)
+       65→85%  overshoot      (cubic-bezier overshoot — settle bounce)
+       85→100% gentle settle  (cubic-bezier easeInOut — final calm)
+     CSS supports per-keyframe animation-timing-function which is the
+     mechanism. */
   @keyframes card-deal {
     0%   {
       opacity: 0;
-      transform: translateY(40vh) rotate(-25deg);
-      filter: blur(2px);
+      transform: translateY(40vh) rotate(-25deg) scale(0.85);
+      filter: blur(2px) brightness(0.85);
+      animation-timing-function: cubic-bezier(0.42, 0, 1, 1); /* easeInQuad */
     }
-    50%  {
-      opacity: 0.7;
-      transform: translateY(8vh) rotate(-8deg);
-      filter: blur(0.5px);
+    25%  {
+      opacity: 0.4;
+      transform: translateY(20vh) rotate(-15deg) scale(0.95);
+      filter: blur(1.4px) brightness(0.95);
+      animation-timing-function: cubic-bezier(0, 0, 0.2, 1); /* easeOutCirc-ish */
     }
-    80%  {
+    65%  {
+      opacity: 0.95;
+      transform: translateY(2vh) rotate(-3deg) scale(1.02);
+      filter: blur(0.2px) brightness(1.05);
+      animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1); /* overshoot */
+    }
+    85%  {
       opacity: 1;
-      transform: translateY(-6px) rotate(2deg);
-      filter: blur(0);
+      transform: translateY(-8px) rotate(2deg) scale(1.04);
+      filter: blur(0) brightness(1.02);
+      animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); /* easeInOut */
     }
     100% {
       opacity: 1;
-      transform: translateY(0) rotate(0);
+      transform: translateY(0) rotate(0) scale(1);
+      filter: blur(0) brightness(1);
     }
   }
   @media (prefers-reduced-motion: reduce) {
@@ -95,7 +112,13 @@
     }
   }
 
-  /* ── Card slots — player-card visual transform */
+  /* ── Card slots — player-card visual transform.
+     The transform composes 4 sources:
+       1. fan-rotate (static — fan position)
+       2. fan-y      (static — fan offset)
+       3. breath-scale (live — modulated by CardBreathing.css)
+       4. parallax-y (live — modulated by ParallaxLayer mousemove)
+     Order matters: rotate first so translate is in card-local frame. */
   .player-card {
     position: relative;
     width: 100%;
@@ -112,8 +135,12 @@
     gap: 0;
     padding: 0;
     font-family: var(--font-body);
-    transform: rotate(var(--fan-rotate, 0deg)) translateY(var(--fan-y, 0px));
+    transform:
+      rotate(var(--fan-rotate, 0deg))
+      translateY(calc(var(--fan-y, 0px) + var(--parallax-card-y, 0px)))
+      scale(var(--breath-scale, 1));
     transform-origin: bottom center;
+    opacity: var(--breath-opacity, 1);
     transition:
       transform 200ms var(--ease-puru-bounce),
       box-shadow 200ms var(--ease-puru-settle);
