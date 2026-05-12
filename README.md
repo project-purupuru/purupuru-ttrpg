@@ -11,9 +11,24 @@ Version: 1.130.0
 
 [![Version](https://img.shields.io/badge/version-1.130.0-blue.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-AGPL--3.0-green.svg)](LICENSE.md)
-[![Release](https://img.shields.io/badge/release-Spiral%20Autopoietic%20Orchestrator-purple.svg)](CHANGELOG.md#1880---2026-04-15)
+[![Release](https://img.shields.io/badge/release-v1.157.0%20Multi--Model%20Live-purple.svg)](CHANGELOG.md#1157---2026-05-12)
 
 > *"The Loa are pragmatic entities... They're not worshipped for salvation—they're worked with for practical results."*
+
+## What's new in v1.157.0 — Multi-Model Live (2026-05-12)
+
+Multi-model review is now LIVE for all three consumers — Bridgebuilder, Flatline, and Red-team. **One HTTP boundary** (cheval substrate) + **within-company fallback chains** + **voice-drop on chain exhaustion** + **MODELINV v1.1 audit envelope**.
+
+- **Cheval substrate** (cycle-103): BB + FL + RT all delegate to `python3 cheval.py`. The per-provider Node adapter registry was retired; one fix ships to all consumers.
+- **Within-company chains** (cycle-104): every primary has a `fallback_chain` (e.g. `gpt-5.5-pro → gpt-5.5 → gpt-5.3-codex → codex-headless`). Cheval walks it on retryable errors.
+- **Voice-drop on chain exhaustion** (cycle-104): when a voice's chain exhausts, drop it from consensus instead of substituting another company's model. The cycle-102 cross-company anti-pattern is structurally retired.
+- **Headless opt-in** (cycle-104): `LOA_HEADLESS_MODE=cli-only` routes through Claude Code / Codex / Gemini CLI subscription quotas — zero API keys.
+- **MODELINV v1.1** (cycle-104): signed audit envelope at `.run/model-invoke.jsonl` per invocation.
+- **Activation** (cycle-107): `hounfour.flatline_routing` flipped to `true` default. Without this flip, the multi-model work was INERT for FL + RT.
+- **Bonus** (cycle-105): beads_rust migration repair tool (`tools/beads-migration-repair.sh`) — closes KF-005, the recurring `NOT NULL constraint failed: dirty_issues.marked_at` blocker.
+- **Bonus** (cycle-106): framework template hygiene — operator-history no longer leaks into downstream installs via `/update-loa` (closes #818).
+
+See [CHANGELOG.md](CHANGELOG.md#1157---2026-05-12), [migration guide](docs/migration/v1.157-multimodel-live.md), and [ADR-002](docs/architecture/ADR-002-multimodel-cheval-substrate.md).
 
 ## What Is This?
 
