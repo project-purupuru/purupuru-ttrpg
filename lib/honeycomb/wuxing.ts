@@ -13,7 +13,13 @@
 
 export type Element = "wood" | "fire" | "earth" | "metal" | "water";
 
-export const ELEMENT_ORDER: readonly Element[] = ["wood", "fire", "earth", "metal", "water"] as const;
+export const ELEMENT_ORDER: readonly Element[] = [
+  "wood",
+  "fire",
+  "earth",
+  "metal",
+  "water",
+] as const;
 
 /** Generating cycle (相生 Shēng): each element nourishes the next. */
 export const SHENG: Record<Element, Element> = {
@@ -101,6 +107,12 @@ export const ELEMENT_META: Record<
   wood: { kanji: "木", name: "Wood", caretaker: "Kaori", virtue: "Benevolence", virtueKanji: "仁" },
   fire: { kanji: "火", name: "Fire", caretaker: "Akane", virtue: "Propriety", virtueKanji: "禮" },
   earth: { kanji: "土", name: "Earth", caretaker: "Nemu", virtue: "Fidelity", virtueKanji: "信" },
-  metal: { kanji: "金", name: "Metal", caretaker: "Eun", virtue: "Righteousness", virtueKanji: "義" },
+  metal: {
+    kanji: "金",
+    name: "Metal",
+    caretaker: "Eun",
+    virtue: "Righteousness",
+    virtueKanji: "義",
+  },
   water: { kanji: "水", name: "Water", caretaker: "Ruan", virtue: "Wisdom", virtueKanji: "智" },
 };

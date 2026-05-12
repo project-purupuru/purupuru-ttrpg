@@ -39,27 +39,33 @@ export const TYPE_POWER: Record<CardType, number> = {
  * the Burn Rite (see `burn.ts`).
  */
 export const CARD_DEFINITIONS: readonly CardDefinition[] = [
-  ...ELEMENT_ORDER.map((element): CardDefinition => ({
-    defId: `jani-${element}`,
-    element,
-    cardType: "jani",
-    name: `Jani · ${element}`,
-    basePower: 100,
-  })),
-  ...ELEMENT_ORDER.map((element): CardDefinition => ({
-    defId: `caretaker-a-${element}`,
-    element,
-    cardType: "caretaker_a",
-    name: `Caretaker A · ${element}`,
-    basePower: 100,
-  })),
-  ...ELEMENT_ORDER.map((element): CardDefinition => ({
-    defId: `caretaker-b-${element}`,
-    element,
-    cardType: "caretaker_b",
-    name: `Caretaker B · ${element}`,
-    basePower: 100,
-  })),
+  ...ELEMENT_ORDER.map(
+    (element): CardDefinition => ({
+      defId: `jani-${element}`,
+      element,
+      cardType: "jani",
+      name: `Jani · ${element}`,
+      basePower: 100,
+    }),
+  ),
+  ...ELEMENT_ORDER.map(
+    (element): CardDefinition => ({
+      defId: `caretaker-a-${element}`,
+      element,
+      cardType: "caretaker_a",
+      name: `Caretaker A · ${element}`,
+      basePower: 100,
+    }),
+  ),
+  ...ELEMENT_ORDER.map(
+    (element): CardDefinition => ({
+      defId: `caretaker-b-${element}`,
+      element,
+      cardType: "caretaker_b",
+      name: `Caretaker B · ${element}`,
+      basePower: 100,
+    }),
+  ),
 ];
 
 /**
@@ -72,9 +78,30 @@ export const CARD_DEFINITIONS: readonly CardDefinition[] = [
 export const TRANSCENDENCE_DEFINITIONS: readonly (CardDefinition & {
   ability: "forge" | "garden" | "void";
 })[] = [
-  { defId: "transcendence-forge", element: "metal", cardType: "transcendence", name: "The Forge · 克", basePower: 100, ability: "forge" },
-  { defId: "transcendence-garden", element: "wood", cardType: "transcendence", name: "The Garden · 生", basePower: 100, ability: "garden" },
-  { defId: "transcendence-void", element: "water", cardType: "transcendence", name: "The Void · 無", basePower: 100, ability: "void" },
+  {
+    defId: "transcendence-forge",
+    element: "metal",
+    cardType: "transcendence",
+    name: "The Forge · 克",
+    basePower: 100,
+    ability: "forge",
+  },
+  {
+    defId: "transcendence-garden",
+    element: "wood",
+    cardType: "transcendence",
+    name: "The Garden · 生",
+    basePower: 100,
+    ability: "garden",
+  },
+  {
+    defId: "transcendence-void",
+    element: "water",
+    cardType: "transcendence",
+    name: "The Void · 無",
+    basePower: 100,
+    ability: "void",
+  },
 ];
 
 export interface Card {
@@ -106,5 +133,8 @@ export function createCard(def: CardDefinition, now: Date = new Date()): Card {
 }
 
 export function findDef(defId: string): CardDefinition | undefined {
-  return CARD_DEFINITIONS.find((d) => d.defId === defId) ?? TRANSCENDENCE_DEFINITIONS.find((d) => d.defId === defId);
+  return (
+    CARD_DEFINITIONS.find((d) => d.defId === defId) ??
+    TRANSCENDENCE_DEFINITIONS.find((d) => d.defId === defId)
+  );
 }

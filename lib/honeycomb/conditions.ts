@@ -14,7 +14,10 @@
 import type { Element } from "./wuxing";
 
 export type ConditionEffect =
-  | { readonly type: "position_scale"; readonly scales: readonly [number, number, number, number, number] }
+  | {
+      readonly type: "position_scale";
+      readonly scales: readonly [number, number, number, number, number];
+    }
   | { readonly type: "entrenched" }
   | { readonly type: "precise" }
   | { readonly type: "tidal"; readonly multiplier: number };

@@ -22,7 +22,13 @@ import { populationStore, type SpawnedPuruhani } from "@/lib/sim/population.syst
 import { startRadarPolling } from "./radar-source";
 import type { ActivityEvent, ActivityStream, JoinActivity } from "./types";
 
-export type { ActionKind, ActivityEvent, ActivityStream, JoinActivity, MintActivity } from "./types";
+export type {
+  ActionKind,
+  ActivityEvent,
+  ActivityStream,
+  JoinActivity,
+  MintActivity,
+} from "./types";
 
 function toJoin(s: SpawnedPuruhani): JoinActivity {
   return {

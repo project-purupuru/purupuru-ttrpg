@@ -74,9 +74,7 @@ export function LineupTray({ lineup, phase, weather }: LineupTrayProps) {
                 <span className="font-puru-display text-xl text-puru-ink-rich leading-none">
                   {ELEMENT_META[card.element].kanji}
                 </span>
-                <span className="text-2xs font-puru-mono text-puru-ink-soft">
-                  {idx + 1}
-                </span>
+                <span className="text-2xs font-puru-mono text-puru-ink-soft">{idx + 1}</span>
               </div>
               <div className="relative z-10 text-2xs font-puru-mono uppercase tracking-wide text-puru-ink-dim">
                 {card.cardType.split("_").join(" · ")}

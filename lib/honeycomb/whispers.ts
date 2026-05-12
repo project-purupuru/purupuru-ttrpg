@@ -25,15 +25,35 @@ export interface WhisperBank {
 
 const WHISPERS: Record<Element, WhisperBank> = {
   wood: {
-    win: ["The garden blooms.", "Oh — it worked!", "Kaori and Puru, unstoppable.", "See? The seeds knew.", "One more row to tend."],
-    lose: ["The seeds are still there.", "Even the flowers take a while.", "We water it again tomorrow."],
+    win: [
+      "The garden blooms.",
+      "Oh — it worked!",
+      "Kaori and Puru, unstoppable.",
+      "See? The seeds knew.",
+      "One more row to tend.",
+    ],
+    lose: [
+      "The seeds are still there.",
+      "Even the flowers take a while.",
+      "We water it again tomorrow.",
+    ],
     draw: ["The roots held."],
     anticipate: ["Listen for the soil.", "The hopeful path is patient."],
     stillness: ["Spring is waiting."],
   },
   fire: {
-    win: ["NOW.", "Did you see that?", "That was the good kind of reckless.", "Told you.", "Puru is literally on fire."],
-    lose: ["Okay. That was actually interesting.", "...I already know what I did wrong.", "Fine. But I saw an opening."],
+    win: [
+      "NOW.",
+      "Did you see that?",
+      "That was the good kind of reckless.",
+      "Told you.",
+      "Puru is literally on fire.",
+    ],
+    lose: [
+      "Okay. That was actually interesting.",
+      "...I already know what I did wrong.",
+      "Fine. But I saw an opening.",
+    ],
     draw: ["We both felt that."],
     anticipate: ["I don't wait. I move.", "Strike where they don't expect."],
     stillness: ["Embers don't stay still."],
@@ -47,14 +67,27 @@ const WHISPERS: Record<Element, WhisperBank> = {
   },
   metal: {
     win: ["Clean.", "As intended.", "The cut was honest.", "Loyal Puru sees it through."],
-    lose: ["A duller blade today.", "We will sharpen what we have.", "The mistake was named — that's enough."],
+    lose: [
+      "A duller blade today.",
+      "We will sharpen what we have.",
+      "The mistake was named — that's enough.",
+    ],
     draw: ["Balanced edges."],
     anticipate: ["Measure once.", "The cut comes when it must."],
     stillness: ["Metal rests cold."],
   },
   water: {
-    win: ["Of course.", "I felt that one coming.", "Too much, but the right way.", "Ruan saw it. Puru followed."],
-    lose: ["Everything sounded so loud.", "I tried, I tried — okay, again.", "The wave broke wrong."],
+    win: [
+      "Of course.",
+      "I felt that one coming.",
+      "Too much, but the right way.",
+      "Ruan saw it. Puru followed.",
+    ],
+    lose: [
+      "Everything sounded so loud.",
+      "I tried, I tried — okay, again.",
+      "The wave broke wrong.",
+    ],
     draw: ["The tide and the tide."],
     anticipate: ["Everything is signal.", "Let the current move us."],
     stillness: ["Deep water is quiet."],

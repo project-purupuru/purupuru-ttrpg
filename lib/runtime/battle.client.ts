@@ -94,7 +94,8 @@ export const battleCommand = {
   selectCard: (index: number) => battleCommand.dispatch({ _tag: "select-card", index }),
   deselectCard: (index: number) => battleCommand.dispatch({ _tag: "deselect-card", index }),
   proceedToArrange: () => battleCommand.dispatch({ _tag: "proceed-to-arrange" }),
-  rearrange: (from: number, to: number) => battleCommand.dispatch({ _tag: "rearrange-lineup", from, to }),
+  rearrange: (from: number, to: number) =>
+    battleCommand.dispatch({ _tag: "rearrange-lineup", from, to }),
   previewLineup: () => battleCommand.dispatch({ _tag: "preview-lineup" }),
   lockIn: () => battleCommand.dispatch({ _tag: "lock-in" }),
   resetMatch: (seed?: string) => battleCommand.dispatch({ _tag: "reset-match", seed }),

@@ -31,9 +31,9 @@ export function rngFromSeed(seed: string | number): Rng {
 
   const nextInt = (max: number): number => Math.floor(next() * max);
 
-  const pick = <T,>(xs: readonly T[]): T => xs[nextInt(xs.length)];
+  const pick = <T>(xs: readonly T[]): T => xs[nextInt(xs.length)];
 
-  const shuffle = <T,>(xs: readonly T[]): T[] => {
+  const shuffle = <T>(xs: readonly T[]): T[] => {
     const arr = [...xs];
     for (let i = arr.length - 1; i > 0; i--) {
       const j = nextInt(i + 1);

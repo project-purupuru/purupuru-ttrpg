@@ -23,7 +23,9 @@ export function CollectionGrid({ collection, selectedIndices, weather }: Collect
           <motion.button
             key={card.id}
             type="button"
-            onClick={() => (selected ? battleCommand.deselectCard(idx) : battleCommand.selectCard(idx))}
+            onClick={() =>
+              selected ? battleCommand.deselectCard(idx) : battleCommand.selectCard(idx)
+            }
             whileHover={{ y: -3, transition: { duration: 0.2 } }}
             whileTap={{ y: 1, scale: 0.98 }}
             animate={{

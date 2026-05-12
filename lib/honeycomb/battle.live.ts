@@ -56,7 +56,10 @@ function initialSnapshot(seed: string): BattleSnapshot {
  * Starter collection: 12 cards drawn from the 15-base pool.
  * Hackathon: pure RNG. Production: read collection from chain.
  */
-function generateStarterCollection(rng: { pick: <T>(xs: readonly T[]) => T; nextInt: (max: number) => number }): Card[] {
+function generateStarterCollection(rng: {
+  pick: <T>(xs: readonly T[]) => T;
+  nextInt: (max: number) => number;
+}): Card[] {
   const cards: Card[] = [];
   for (let i = 0; i < 12; i++) {
     const def = rng.pick(CARD_DEFINITIONS);
@@ -79,7 +82,9 @@ export const BattleLive: Layer.Layer<Battle> = Layer.scoped(
         yield* publish({ _tag: "phase-entered", phase, at: Date.now() });
       });
 
-    const emitWhisper = (mood: "win" | "lose" | "draw" | "anticipate" | "stillness"): Effect.Effect<void> =>
+    const emitWhisper = (
+      mood: "win" | "lose" | "draw" | "anticipate" | "stillness",
+    ): Effect.Effect<void> =>
       Effect.gen(function* () {
         const snap = yield* Ref.get(stateRef);
         const playerElement = snap.weather;
@@ -93,7 +98,11 @@ export const BattleLive: Layer.Layer<Battle> = Layer.scoped(
       Effect.gen(function* () {
         const snap = yield* Ref.get(stateRef);
         const combos = detectCombos(lineup, { weather: snap.weather });
-        yield* Ref.update(stateRef, (s) => ({ ...s, combos, comboSummary: getComboSummary(combos) }));
+        yield* Ref.update(stateRef, (s) => ({
+          ...s,
+          combos,
+          comboSummary: getComboSummary(combos),
+        }));
         yield* publish({ _tag: "combos-detected", combos });
       });
 
@@ -108,17 +117,28 @@ export const BattleLive: Layer.Layer<Battle> = Layer.scoped(
           }
           case "select-card": {
             if (snap.phase !== "select") {
-              return yield* Effect.fail({ _tag: "wrong-phase", current: snap.phase, expected: ["select"] } as const);
+              return yield* Effect.fail({
+                _tag: "wrong-phase",
+                current: snap.phase,
+                expected: ["select"],
+              } as const);
             }
             if (cmd.index < 0 || cmd.index >= snap.collection.length) {
-              return yield* Effect.fail({ _tag: "index-out-of-range", index: cmd.index, bound: snap.collection.length } as const);
+              return yield* Effect.fail({
+                _tag: "index-out-of-range",
+                index: cmd.index,
+                bound: snap.collection.length,
+              } as const);
             }
             if (snap.selectedIndices.includes(cmd.index) || snap.selectedIndices.length >= 5) {
               return;
             }
             const card = snap.collection[cmd.index];
             if (!card) return;
-            yield* Ref.update(stateRef, (s) => ({ ...s, selectedIndices: [...s.selectedIndices, cmd.index] }));
+            yield* Ref.update(stateRef, (s) => ({
+              ...s,
+              selectedIndices: [...s.selectedIndices, cmd.index],
+            }));
             yield* publish({ _tag: "card-selected", index: cmd.index, card });
             return;
           }
@@ -132,10 +152,17 @@ export const BattleLive: Layer.Layer<Battle> = Layer.scoped(
           }
           case "proceed-to-arrange": {
             if (snap.phase !== "select") {
-              return yield* Effect.fail({ _tag: "wrong-phase", current: snap.phase, expected: ["select"] } as const);
+              return yield* Effect.fail({
+                _tag: "wrong-phase",
+                current: snap.phase,
+                expected: ["select"],
+              } as const);
             }
             if (snap.selectedIndices.length !== 5) {
-              return yield* Effect.fail({ _tag: "lineup-invalid", reason: `need 5 cards, have ${snap.selectedIndices.length}` } as const);
+              return yield* Effect.fail({
+                _tag: "lineup-invalid",
+                reason: `need 5 cards, have ${snap.selectedIndices.length}`,
+              } as const);
             }
             const lineup = snap.selectedIndices.map((i) => snap.collection[i]!).filter(Boolean);
             yield* Ref.update(stateRef, (s) => ({ ...s, lineup }));
@@ -145,7 +172,11 @@ export const BattleLive: Layer.Layer<Battle> = Layer.scoped(
           }
           case "rearrange-lineup": {
             if (snap.phase !== "arrange" && snap.phase !== "preview") {
-              return yield* Effect.fail({ _tag: "wrong-phase", current: snap.phase, expected: ["arrange", "preview"] } as const);
+              return yield* Effect.fail({
+                _tag: "wrong-phase",
+                current: snap.phase,
+                expected: ["arrange", "preview"],
+              } as const);
             }
             const { from, to } = cmd;
             if (from === to) return;
@@ -160,14 +191,22 @@ export const BattleLive: Layer.Layer<Battle> = Layer.scoped(
           }
           case "preview-lineup": {
             if (snap.phase !== "arrange") {
-              return yield* Effect.fail({ _tag: "wrong-phase", current: snap.phase, expected: ["arrange"] } as const);
+              return yield* Effect.fail({
+                _tag: "wrong-phase",
+                current: snap.phase,
+                expected: ["arrange"],
+              } as const);
             }
             yield* transition("preview");
             return;
           }
           case "lock-in": {
             if (snap.phase !== "arrange" && snap.phase !== "preview") {
-              return yield* Effect.fail({ _tag: "wrong-phase", current: snap.phase, expected: ["arrange", "preview"] } as const);
+              return yield* Effect.fail({
+                _tag: "wrong-phase",
+                current: snap.phase,
+                expected: ["arrange", "preview"],
+              } as const);
             }
             yield* transition("committed");
             yield* emitWhisper("stillness");

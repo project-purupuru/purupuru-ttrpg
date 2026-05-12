@@ -44,7 +44,9 @@ export function KaironicPanel({ weights }: KaironicPanelProps) {
                 step="0.05"
                 value={value}
                 onChange={(e) =>
-                  battleCommand.tuneKaironic({ [dim]: Number(e.target.value) } as Partial<KaironicWeights>)
+                  battleCommand.tuneKaironic({
+                    [dim]: Number(e.target.value),
+                  } as Partial<KaironicWeights>)
                 }
                 className="accent-puru-honey-base"
               />

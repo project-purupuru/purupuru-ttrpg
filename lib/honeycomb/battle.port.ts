@@ -68,7 +68,11 @@ export type BattleCommand =
   | { readonly _tag: "tune-kaironic"; readonly weights: Partial<KaironicWeights> };
 
 export type BattleError =
-  | { readonly _tag: "wrong-phase"; readonly current: BattlePhase; readonly expected: readonly BattlePhase[] }
+  | {
+      readonly _tag: "wrong-phase";
+      readonly current: BattlePhase;
+      readonly expected: readonly BattlePhase[];
+    }
   | { readonly _tag: "lineup-invalid"; readonly reason: string }
   | { readonly _tag: "index-out-of-range"; readonly index: number; readonly bound: number };
 

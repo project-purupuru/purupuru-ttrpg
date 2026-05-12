@@ -70,8 +70,8 @@ export function BattleScene() {
                   The tide favors {ELEMENT_META[snap.weather].name.toLowerCase()} today.
                 </h1>
                 <p className="font-puru-body text-puru-ink-soft text-sm leading-puru-relaxed">
-                  {ELEMENT_META[snap.opponentElement].caretaker} brings the imbalance.
-                  Five cards. Five clashes. Order matters.
+                  {ELEMENT_META[snap.opponentElement].caretaker} brings the imbalance. Five cards.
+                  Five clashes. Order matters.
                 </p>
                 <button
                   type="button"
@@ -144,9 +144,7 @@ export function BattleScene() {
                     </button>
                   )}
                   {snap.phase === "committed" && (
-                    <p className="text-sm font-puru-display text-puru-ink-rich">
-                      The line is set.
-                    </p>
+                    <p className="text-sm font-puru-display text-puru-ink-rich">The line is set.</p>
                   )}
                 </div>
               </div>
