@@ -6,7 +6,7 @@
  */
 
 import Image from "next/image";
-import { ELEMENT_META, type Element } from "@/lib/honeycomb/wuxing";
+import { ELEMENT_META, ELEMENT_ORDER, type Element } from "@/lib/honeycomb/wuxing";
 import { matchCommand } from "@/lib/runtime/match.client";
 
 interface EntryScreenProps {
@@ -75,11 +75,28 @@ export function EntryScreen({
           style={{ "--btn-glow": btnGlow } as React.CSSProperties}
           onClick={onPlay}
         >
-          {challengeVs ? "accept challenge" : "play"}
+          {challengeVs ? "Accept challenge" : "Play"}
         </button>
+
+        {/* Ambient wuxing breathing strip — five kanji cycle in Shēng order */}
+        <div className="entry-wuxing-strip" aria-hidden>
+          {ELEMENT_ORDER.map((el, i) => (
+            <span
+              key={el}
+              className="entry-wuxing-glyph"
+              data-element={el}
+              style={{ animationDelay: `${i * 0.8}s` } as React.CSSProperties}
+            >
+              {ELEMENT_META[el].kanji}
+            </span>
+          ))}
+        </div>
       </div>
 
-      <p className="entry-seed">seed · {seed.slice(0, 24)}</p>
+      <p className="entry-seed" aria-label={`Seed ${seed}`}>
+        <span className="entry-seed-label">seed</span>
+        <span className="entry-seed-code">{seed.slice(0, 8)}</span>
+      </p>
     </div>
   );
 }

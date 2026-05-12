@@ -126,6 +126,79 @@
     letter-spacing: 0.02em;
   }
 
+  /* Ambient wuxing breathing strip — five kanji pulse in Shēng order */
+  .entry-wuxing-strip {
+    margin-top: var(--space-md);
+    display: flex;
+    gap: clamp(20px, 6vw, 44px);
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    animation: fade-in 1800ms var(--ease-puru-settle) 1400ms forwards;
+  }
+  .entry-wuxing-glyph {
+    font-family: var(--font-card);
+    font-size: var(--text-lg);
+    color: var(--puru-ink-ghost);
+    line-height: 1;
+    opacity: 0.18;
+    animation: wuxing-breathe 4s var(--ease-puru-breathe) infinite;
+    will-change: opacity, transform, color;
+  }
+  .entry-wuxing-glyph[data-element='wood']  { --glyph-vivid: var(--puru-wood-vivid); }
+  .entry-wuxing-glyph[data-element='fire']  { --glyph-vivid: var(--puru-fire-vivid); }
+  .entry-wuxing-glyph[data-element='earth'] { --glyph-vivid: var(--puru-earth-vivid); }
+  .entry-wuxing-glyph[data-element='metal'] { --glyph-vivid: var(--puru-metal-vivid); }
+  .entry-wuxing-glyph[data-element='water'] { --glyph-vivid: var(--puru-water-vivid); }
+  @keyframes wuxing-breathe {
+    0%, 100% {
+      opacity: 0.18;
+      transform: translateY(0) scale(1);
+      color: var(--puru-ink-ghost);
+    }
+    50% {
+      opacity: 0.85;
+      transform: translateY(-2px) scale(1.08);
+      color: oklch(from var(--glyph-vivid) l c h);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .entry-wuxing-glyph { animation: none; opacity: 0.3; }
+  }
+
+  /* Seed pill — subtle, bottom-right corner, hover for full */
+  .entry-seed {
+    position: absolute;
+    right: var(--space-md);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + var(--space-xs));
+    z-index: 5;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    background: oklch(from var(--puru-cloud-base) l c h / 0.4);
+    border: 1px solid oklch(from var(--puru-ink-ghost) l c h / 0.12);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    color: var(--puru-ink-ghost);
+    opacity: 0.55;
+    pointer-events: auto;
+    transition: opacity var(--duration-fast) var(--ease-puru-settle);
+  }
+  .entry-seed:hover { opacity: 0.9; }
+  .entry-seed-label {
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    opacity: 0.55;
+  }
+  .entry-seed-code {
+    font-feature-settings: "tnum" 1;
+    letter-spacing: 0.04em;
+  }
+
   /* Tile button — duplicated from page for scoped encapsulation */
   .tile-btn {
     font-family: var(--font-body);

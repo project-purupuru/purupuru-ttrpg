@@ -15,14 +15,25 @@
   }
 
   .quiz-title {
-    font-family: var(--font-display);
-    font-size: clamp(var(--text-lg), 4vw, var(--text-xl));
-    font-weight: 400;
-    color: var(--puru-ink-dim);
+    font-family: var(--font-card);
+    font-size: clamp(var(--text-xl), 6vw, var(--text-3xl));
+    font-weight: 500;
+    color: var(--puru-ink-rich);
     text-align: center;
     margin: 0 0 var(--space-xl);
+    letter-spacing: 0.02em;
+    line-height: 1.1;
     animation: fade-in 600ms var(--ease-puru-settle) forwards;
     opacity: 0;
+  }
+  .quiz-title::after {
+    content: '';
+    display: block;
+    width: 48px;
+    height: 1px;
+    margin: var(--space-sm) auto 0;
+    background: linear-gradient(to right, transparent, var(--puru-honey-base), transparent);
+    opacity: 0.6;
   }
 
   /* Element tint wash on selection */
@@ -135,6 +146,31 @@
   .scene-tint[data-element='earth'] { background: var(--puru-earth-pastel); }
   .scene-tint[data-element='metal'] { background: var(--puru-metal-pastel); }
   .scene-tint[data-element='water'] { background: var(--puru-water-pastel); }
+
+  /* Gradient-only scenes (locations without art asset yet). The tint goes
+     full-opacity, with a radial spot to fake atmosphere. */
+  .scene-card-gradient .scene-tint { mix-blend-mode: normal; opacity: 1; }
+  .scene-card-gradient[data-element='wood']  { background: radial-gradient(ellipse at 50% 30%, var(--puru-wood-pastel), var(--puru-wood-tint) 70%, var(--puru-wood-dim)); }
+  .scene-card-gradient[data-element='fire']  { background: radial-gradient(ellipse at 50% 30%, var(--puru-fire-pastel), var(--puru-fire-tint) 70%, var(--puru-fire-dim)); }
+  .scene-card-gradient[data-element='earth'] { background: radial-gradient(ellipse at 50% 30%, var(--puru-earth-pastel), var(--puru-earth-tint) 70%, var(--puru-earth-dim)); }
+  .scene-card-gradient[data-element='metal'] { background: radial-gradient(ellipse at 50% 30%, var(--puru-metal-pastel), var(--puru-metal-tint) 70%, var(--puru-metal-dim)); }
+  .scene-card-gradient[data-element='water'] { background: radial-gradient(ellipse at 50% 30%, var(--puru-water-pastel), var(--puru-water-tint) 70%, var(--puru-water-dim)); }
+
+  /* Place label — small, italic, bottom-left of card */
+  .scene-place {
+    position: absolute;
+    left: var(--space-sm);
+    bottom: var(--space-sm);
+    z-index: 3;
+    font-family: var(--font-body);
+    font-size: var(--text-2xs);
+    font-style: italic;
+    color: oklch(1 0 0 / 0.7);
+    letter-spacing: 0.04em;
+    text-shadow: 0 1px 2px oklch(0 0 0 / 0.4);
+    max-width: calc(100% - var(--space-md));
+    line-height: 1.2;
+  }
 
   .scene-kanji {
     position: absolute; top: var(--space-xs); right: var(--space-xs);

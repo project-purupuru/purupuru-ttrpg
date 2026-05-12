@@ -18,41 +18,43 @@ interface SceneSpec {
   readonly caretakerArt: string;
 }
 
-// Mirrors world-purupuru CARETAKER_ART_THUMB / CARETAKER_FULL fallback chain.
-// Compass uses local thumbs (synced from world-purupuru/static/thumbs).
+// Scenes are LOCATIONS, not character closeups. Element-tinted gradients
+// + atmospheric overlays carry the place. Caretaker mural lives outside
+// the scene card. Local-only assets; no CDN dependency.
 const SCENES: readonly SceneSpec[] = [
   {
     element: "wood",
     scene: "A garden at dawn",
-    sceneArt: "/thumbs/scenes/caretaker-kaori-gardening-with-puruhani.webp",
+    sceneArt: "/art/scenes/kaori-sakura.png",
     caretakerArt: "/thumbs/caretakers/caretaker-kaori-pose.webp",
     puruhani: "/thumbs/puruhani/hopeful-puruhani.png",
   },
   {
     element: "fire",
-    scene: "A rooftop at noon",
-    sceneArt: "/thumbs/scenes/caretaker-akane-with-puruhani-at-bus-stop.webp",
+    scene: "The station at noon",
+    sceneArt: "/art/scenes/akane-station.png",
     caretakerArt: "/thumbs/caretakers/caretaker-akane-puruhani-chibi.webp",
     puruhani: "/thumbs/puruhani/nefarious-puruhani.png",
   },
   {
     element: "earth",
     scene: "A kitchen in amber light",
-    sceneArt: "/thumbs/scenes/caretaker-nemu-puruhani-spring.webp",
+    // No local location asset for earth yet — gradient-only via .scene-tint.
+    sceneArt: "",
     caretakerArt: "/thumbs/caretakers/caretaker-nemu-earth.webp",
     puruhani: "/thumbs/puruhani/exhausted-puruhani.png",
   },
   {
     element: "metal",
     scene: "An observatory at dusk",
-    sceneArt: "/thumbs/scenes/caretaker-ren-puruhani-night-scene.webp",
+    sceneArt: "",
     caretakerArt: "/thumbs/caretakers/caretaker-ren-with-puruhani.webp",
     puruhani: "/thumbs/puruhani/loving-puruhani.png",
   },
   {
     element: "water",
     scene: "A tide pool at night",
-    sceneArt: "/thumbs/scenes/caretaker-ruan-with-puruhani-in-rain.webp",
+    sceneArt: "",
     caretakerArt: "/thumbs/caretakers/caretaker-ruan-cute-pose.webp",
     puruhani: "/thumbs/puruhani/overwhelmed-puruhani.png",
   },
@@ -94,20 +96,23 @@ export function ElementQuiz() {
             >
               <button
                 type="button"
-                className="scene-card"
+                className={`scene-card${s.sceneArt ? "" : " scene-card-gradient"}`}
                 data-element={s.element}
                 onClick={() => setSelected(s.element)}
                 disabled={selected !== null}
                 aria-label={`${meta.name} · ${s.scene}`}
               >
-                <img
-                  className="scene-art"
-                  src={s.sceneArt}
-                  alt={s.scene}
-                  loading="lazy"
-                />
+                {s.sceneArt && (
+                  <img
+                    className="scene-art"
+                    src={s.sceneArt}
+                    alt={s.scene}
+                    loading="lazy"
+                  />
+                )}
                 <div className="scene-tint" data-element={s.element} />
                 <span className="scene-kanji">{meta.kanji}</span>
+                <span className="scene-place">{s.scene}</span>
               </button>
 
               <img

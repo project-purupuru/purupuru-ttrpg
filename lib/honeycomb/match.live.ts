@@ -119,13 +119,29 @@ export const MatchLive: Layer.Layer<Match, never, Clash> = Layer.scoped(
             return;
           }
           case "choose-element": {
-            yield* Ref.update(stateRef, (s) => ({
-              ...s,
-              playerElement: cmd.element,
-            }));
+            // Auto-deal first 5 collection cards as the starting lineup so the
+            // arrange/select surface has visible cards immediately. The
+            // operator can still rearrange before lock-in. (Pre-lock combos
+            // computed so CombosPanel + spark feedback are live.)
+            yield* Ref.update(stateRef, (s) => {
+              const dealtIndices = Array.from(
+                { length: Math.min(5, s.collection.length) },
+                (_, i) => i,
+              );
+              const dealtLineup = dealtIndices.map((i) => s.collection[i]!);
+              const dealtCombos = detectCombos(dealtLineup, { weather: s.weather });
+              return {
+                ...s,
+                playerElement: cmd.element,
+                selectedIndices: dealtIndices,
+                p1Lineup: dealtLineup,
+                p1Combos: dealtCombos,
+              };
+            });
             yield* publish({ _tag: "player-element-chosen", element: cmd.element });
-            // After choosing, transition to select.
-            yield* transition("select");
+            // After choosing, transition straight to arrange so the hand is
+            // editable and the lock-in button is available.
+            yield* transition("arrange");
             return;
           }
           case "complete-tutorial": {
