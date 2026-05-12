@@ -145,6 +145,7 @@ export function BattleScene() {
                 dying={new Set(snap.dyingP1)}
                 visibleClashIdx={snap.visibleClashIdx}
                 activeClashPhase={snap.activeClashPhase}
+                clashWinners={clashWinners}
                 onTap={matchCommand.tapPosition}
                 onSwap={matchCommand.swapPositions}
               />

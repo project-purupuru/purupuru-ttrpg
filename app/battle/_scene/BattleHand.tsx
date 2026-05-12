@@ -22,6 +22,12 @@ interface BattleHandProps {
   readonly dying?: ReadonlySet<number>;
   readonly visibleClashIdx?: number;
   readonly activeClashPhase?: "approach" | "impact" | "settle" | null;
+  /**
+   * Per-position clash winners. Used to gate the 敗 stamp + .lost class to
+   * positions where the PLAYER lost (clash.winner === "opponent"). Without
+   * this gate, every clash position would show 敗 even on wins.
+   */
+  readonly clashWinners?: ReadonlyMap<number, "player" | "opponent">;
   readonly onPlay?: (card: Card) => void;
   readonly onTap?: (index: number) => void;
   readonly onSwap?: (a: number, b: number) => void;
@@ -66,6 +72,7 @@ export function BattleHand({
   dying,
   visibleClashIdx = -1,
   activeClashPhase = null,
+  clashWinners,
   onPlay,
   onTap,
   onSwap,
@@ -103,14 +110,20 @@ export function BattleHand({
           >
             {cards.map((card, i) => {
               const isSelected = selectedIndex === i;
-              const isStamped = stamps?.has(i) ?? false;
+              // The 敗 stamp + .lost class only fire on positions the PLAYER
+              // lost. Positions the player WON share the same `stamps` set
+              // (every resolved clash adds an index) but stay clean visually.
+              const lostThisPosition = stamps?.has(i) && clashWinners?.get(i) === "opponent";
+              const wonThisPosition = stamps?.has(i) && clashWinners?.get(i) === "player";
               const isDying = dying?.has(i) ?? false;
               const isActiveClash = visibleClashIdx === i;
               const cls = [
                 "card-slot",
                 "player-card",
                 isSelected && "selected",
-                isStamped && "stamped",
+                lostThisPosition && "stamped",
+                lostThisPosition && "lost",
+                wonThisPosition && "won",
                 isDying && "disintegrating",
                 isActiveClash && activeClashPhase === "approach" && "clashing-approach",
                 isActiveClash && activeClashPhase === "impact" && "clashing-impact",
@@ -157,7 +170,7 @@ export function BattleHand({
                         +
                       </span>
                     )}
-                    {isStamped && <span className="card-stamp">敗</span>}
+                    {lostThisPosition && <span className="card-stamp">敗</span>}
                   </button>
                 </div>
               );
