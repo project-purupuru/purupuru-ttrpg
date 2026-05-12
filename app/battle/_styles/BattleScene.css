@@ -113,7 +113,63 @@
 		transition: transform 160ms var(--ease-puru-bounce), box-shadow 200ms var(--ease-puru-settle);
 	}
 	.action-bar .tile-btn--lock:hover { transform: translateY(-2px); }
-	.action-bar .tile-btn--lock:active { transform: scaleY(0.94) scaleX(1.03); transition-duration: 80ms; }
+	.action-bar .tile-btn--lock:hover::before {
+		opacity: 0.6;
+		transform: scale(1.08);
+	}
+	.action-bar .tile-btn--lock:active {
+		transform: scaleY(0.88) scaleX(1.06);
+		transition-duration: 80ms;
+		box-shadow: var(--shadow-tile), 0 2px 8px oklch(0.82 0.14 85 / 0.5);
+	}
+	/* Press-and-commit ritual: a honey halo sweep behind the button. */
+	.action-bar .tile-btn--lock {
+		position: relative;
+	}
+	.action-bar .tile-btn--lock::before {
+		content: '';
+		position: absolute;
+		inset: -8px;
+		border-radius: var(--radius-full);
+		background: radial-gradient(
+			ellipse at 50% 50%,
+			oklch(0.82 0.14 85 / 0.45) 0%,
+			transparent 70%
+		);
+		opacity: 0.25;
+		transform: scale(0.95);
+		transition:
+			opacity 240ms var(--ease-puru-settle),
+			transform 320ms var(--ease-puru-settle);
+		pointer-events: none;
+		z-index: -1;
+	}
+
+	/* When the player commits — phase flips from arrange to clashing —
+	   the fan compaction fires (the visual "snap to formation" moment).
+	   This honors the moment of irreversibility — Hearthstone's "End
+	   Turn" rope settling into the clash. */
+	.arena[data-phase='committed'] .lineup-row,
+	.arena[data-phase='clashing'] .lineup-row,
+	.arena[data-phase='disintegrating'] .lineup-row {
+		transition: gap var(--lock-compact-ms, 320ms) var(--ease-puru-settle);
+	}
+	/* Opponent face-down → revealed cascade — staggered by --card-idx. */
+	.arena[data-phase='clashing'] .opponent-card.revealed,
+	.arena[data-phase='disintegrating'] .opponent-card.revealed {
+		animation: opponent-flip 380ms cubic-bezier(0.34, 1.56, 0.64, 1)
+		           calc(var(--card-idx, 0) * 80ms) backwards;
+	}
+	@keyframes opponent-flip {
+		0%   { transform: perspective(800px) rotateY(180deg) scale(0.95); opacity: 0; }
+		60%  { transform: perspective(800px) rotateY(-10deg) scale(1.02); opacity: 1; }
+		100% { transform: perspective(800px) rotateY(0) scale(1); opacity: 1; }
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.arena[data-phase='clashing'] .opponent-card.revealed,
+		.arena[data-phase='disintegrating'] .opponent-card.revealed { animation: none; }
+		.action-bar .tile-btn--lock::before { display: none; }
+	}
 
 	.help-btn {
 		position: fixed;

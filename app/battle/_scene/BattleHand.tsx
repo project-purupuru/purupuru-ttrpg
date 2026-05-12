@@ -11,6 +11,7 @@ import type { Card } from "@/lib/honeycomb/cards";
 import type { MatchPhase } from "@/lib/honeycomb/match.port";
 import { ELEMENT_META, type Element } from "@/lib/honeycomb/wuxing";
 import { type Combo, getPositionMultiplier } from "@/lib/honeycomb/combos";
+import { juiceProfile } from "@/lib/juice/profile";
 import { cardArtChain } from "@/lib/cdn";
 import { CdnImage } from "./CdnImage";
 
@@ -162,7 +163,8 @@ export function BattleHand({
                       "--fan-rotate": `${fanRotation(i, total)}deg`,
                       "--fan-y": `${fanLift(i, total)}px`,
                       "--fan-z": i + 1,
-                      "--deal-delay": `${i * 80}ms`,
+                      // juice: center cards arrive first, edges last
+                      "--deal-delay": `${juiceProfile.cardDealDelayMs(i, total)}ms`,
                     } as React.CSSProperties
                   }
                 >

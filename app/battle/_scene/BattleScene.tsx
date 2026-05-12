@@ -16,6 +16,7 @@ import type { Element } from "@/lib/honeycomb/wuxing";
 import { ArenaSpeakers } from "./ArenaSpeakers";
 import { BattleField } from "./BattleField";
 import { BattleHand } from "./BattleHand";
+import { ClashOrb } from "./ClashOrb";
 import { ClashVfx } from "./ClashVfx";
 import { ComboDiscoveryToast } from "./ComboDiscoveryToast";
 import { ElementQuiz } from "./ElementQuiz";
@@ -134,10 +135,16 @@ export function BattleScene() {
               shielded={new Set(snap.shieldedP2)}
             />
 
-            {/* Clash zone — the visual middle. Cards converge here, and
-                per-element clash VFX fires at impact (composable VFX
-                vocabulary, lib/vfx/clash-particles.ts). */}
+            {/* Clash zone — the visual middle. Cards converge here. The
+                ClashOrb is the consequence bloom; ClashVfx is the per-
+                element particle signature. Both fire on impact phase. */}
             <div className="clash-zone" aria-hidden>
+              <ClashOrb
+                clash={snap.clashSequence[snap.visibleClashIdx] ?? null}
+                visibleClashIdx={snap.visibleClashIdx}
+                totalClashes={snap.clashSequence.length}
+                activeClashPhase={snap.activeClashPhase}
+              />
               <ClashVfx
                 element={snap.lastPlayed}
                 visibleClashIdx={snap.visibleClashIdx}
