@@ -378,13 +378,15 @@ export const MatchLive: Layer.Layer<Match, never, Clash> = Layer.scoped(
 
         switch (cmd._tag) {
           case "lock-in": {
-            // Build lineups
-            const p1Lineup =
-              snap.selectedIndices.length === 5
-                ? snap.selectedIndices.map((i) => snap.collection[i]!).filter(Boolean)
-                : snap.p1Lineup;
-
-            const p2Lineup = snap.p2Lineup.length === 0 ? stubOpponentLineup(snap) : snap.p2Lineup;
+            // p1Lineup is always the live snapshot lineup. Earlier code branched
+            // on selectedIndices.length === 5, but choose-element seeds
+            // selectedIndices to [0,1,2,3,4] permanently — so on round 2 that
+            // branch re-dealt the full collection over the survivors, making
+            // dying cards re-appear. (Reported 2026-05-12 mid-cycle.) Always
+            // trust snap.p1Lineup; the survivors are already there.
+            const p1Lineup = snap.p1Lineup;
+            const p2Lineup =
+              snap.p2Lineup.length === 0 ? stubOpponentLineup(snap) : snap.p2Lineup;
 
             const p1Combos = detectCombos(p1Lineup, { weather: snap.weather });
             const p2Combos = detectCombos(p2Lineup, { weather: snap.weather });
@@ -396,6 +398,8 @@ export const MatchLive: Layer.Layer<Match, never, Clash> = Layer.scoped(
               p1Combos,
               p2Combos,
               selectedIndex: null,
+              // Reset round-scoped UI state so previous round's stamps/dying
+              // don't bleed into the next reveal.
               stamps: [],
               dyingP1: [],
               dyingP2: [],

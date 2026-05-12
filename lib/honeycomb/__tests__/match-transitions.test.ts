@@ -131,6 +131,39 @@ describe("Match.invoke phase enforcement", () => {
     expect(snap.seed).toBe("test-reset");
   });
 
+  it("lock-in preserves p1Lineup survivors across rounds (regression: dying cards came back)", async () => {
+    // Reported 2026-05-12 mid-cycle: cards that died in round 1 re-appeared
+    // in round 2's hand. Root cause: choose-element seeds selectedIndices
+    // to [0,1,2,3,4] permanently, and lock-in's old logic branched on
+    // selectedIndices.length === 5 to re-deal from the full collection,
+    // overwriting the surviving lineup.
+    //
+    // This test simulates the bug: post-clash, p1Lineup is patched down
+    // to 2 survivors via dev:inject-snapshot. Then lock-in is invoked.
+    // The lineup must remain at 2 cards, NOT bounce back to 5.
+    (globalThis as { __PURU_DEV__?: { enabled: boolean } }).__PURU_DEV__ = {
+      enabled: true,
+    };
+    const snap = await run(
+      Effect.gen(function* () {
+        const m = yield* Match;
+        yield* m.invoke({ _tag: "begin-match" });
+        yield* m.invoke({ _tag: "choose-element", element: "wood" });
+        const full = yield* m.current;
+        // Simulate post-clash survivors: keep only positions 0 and 2.
+        const survivors = [full.p1Lineup[0]!, full.p1Lineup[2]!];
+        yield* m.invoke({
+          _tag: "dev:inject-snapshot",
+          patch: { p1Lineup: survivors, phase: "between-rounds" },
+        });
+        yield* m.invoke({ _tag: "lock-in" });
+        return yield* m.current;
+      }),
+    );
+    expect(snap.p1Lineup).toHaveLength(2);
+    (globalThis as { __PURU_DEV__?: unknown }).__PURU_DEV__ = undefined;
+  });
+
   it("complete-tutorial is rejected from arrange (only valid in select)", async () => {
     // The default flow goes idle → entry → arrange. complete-tutorial is
     // a select-only command — UIs that want it must keep the player in
