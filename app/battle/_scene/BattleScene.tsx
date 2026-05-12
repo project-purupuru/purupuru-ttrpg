@@ -26,12 +26,13 @@
 import { motion, AnimatePresence } from "motion/react";
 import { useMatch, matchCommand } from "@/lib/runtime/match.client";
 import { ELEMENT_META } from "@/lib/honeycomb/wuxing";
+import { ArenaSpeakers } from "./ArenaSpeakers";
 import { BattleField } from "./BattleField";
 import { CollectionGrid } from "./CollectionGrid";
 import { ElementQuiz } from "./ElementQuiz";
 import { EntryScreen } from "./EntryScreen";
-import { WhisperBubble } from "./WhisperBubble";
 import { PhaseHud } from "./PhaseHud";
+import { TurnClock } from "./TurnClock";
 import { ELEMENT_TINT_FROM } from "./_element-classes";
 
 const EASE = [0.32, 0.72, 0.32, 1] as const;
@@ -110,7 +111,18 @@ export function BattleScene() {
           )}
         </AnimatePresence>
 
-        <WhisperBubble line={null} element={snap.weather} />
+        {/* ArenaSpeakers reads from Match.lastWhisper (currently null until S1a's
+            Battle service emits via Match orchestration · S4 wires the bridge). */}
+        <ArenaSpeakers line={null} element={snap.playerElement ?? snap.weather} />
+
+        {/* TurnClock surfaces during clashing/disintegrating/between-rounds */}
+        {(snap.phase === "clashing" ||
+          snap.phase === "disintegrating" ||
+          snap.phase === "between-rounds") && (
+          <div className="fixed top-20 right-6 z-30">
+            <TurnClock phase={snap.phase} round={snap.currentRound} weather={snap.weather} />
+          </div>
+        )}
       </div>
     </main>
   );
