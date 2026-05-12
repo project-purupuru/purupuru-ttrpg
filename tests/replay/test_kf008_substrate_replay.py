@@ -175,8 +175,12 @@ def _invoke_cheval_google(prompt: str) -> tuple[int, str, str, dict[str, Any]]:
             str(CHEVAL),
             "--agent",
             "flatline-reviewer",
+            # Use the canonical provider:model form to bypass alias
+            # resolution edge cases (cheval's aliases register the
+            # tier-pin alias `gemini-3.1-pro` → `google:gemini-3.1-pro-preview`,
+            # but the bare model_id is not registered as an alias).
             "--model",
-            "gemini-3.1-pro-preview",
+            "google:gemini-3.1-pro-preview",
             "--input",
             prompt_file.name,
             "--output-format",
