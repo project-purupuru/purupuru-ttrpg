@@ -73,6 +73,17 @@ if [[ "$MODE" == "check" ]]; then
         echo "  actual:   $trace_sha" >&2
         exit 1
     fi
+    # Sprint-1 reviewer C3 closure: LOA_GOLDEN_PINS_REQUIRE_SIGNED=1 refuses
+    # to validate UNSIGNED pins. Benchmark substrate (Sprint 2+3) sets this
+    # to enforce that production cycles only trust operator-signed pins.
+    if [[ "${LOA_GOLDEN_PINS_REQUIRE_SIGNED:-0}" == "1" ]]; then
+        signed_flag=$(jq -r --arg pin "$PIN_ID" '.pins[$pin].signed' "$PINS_JSON")
+        if [[ "$signed_flag" != "true" ]]; then
+            echo "[golden-pins] REFUSED: pin '$PIN_ID' is UNSIGNED and LOA_GOLDEN_PINS_REQUIRE_SIGNED=1." >&2
+            echo "[golden-pins] Operator must re-sign via tools/cycle108-update-golden-pins.sh with L1 signing key configured (see grimoires/loa/runbooks/audit-keys-bootstrap.md)." >&2
+            exit 1
+        fi
+    fi
     echo "[golden-pins] OK: $PIN_ID sha matches ($trace_sha)"
     exit 0
 fi

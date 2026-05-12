@@ -99,3 +99,33 @@ setup() {
     sha2=$(jq -r '.pins."rollback-trace".sha256' "$PINS_JSON")
     [ "$sha1" = "$sha2" ]
 }
+
+# -----------------------------------------------------------------------------
+# Sprint 2 T2.M / sprint-1 reviewer C3 closure:
+# LOA_GOLDEN_PINS_REQUIRE_SIGNED=1 refuses to validate UNSIGNED pins.
+# -----------------------------------------------------------------------------
+
+@test "T2.M C3: --check with LOA_GOLDEN_PINS_REQUIRE_SIGNED=1 rejects unsigned pin" {
+    # The committed pin may be either signed or unsigned depending on whether
+    # an operator key was available at last update. Force-unsign for the test
+    # by rewriting the field, then restore.
+    cp "$PINS_JSON" "$PINS_JSON.bak"
+    tmp_unsigned=$(mktemp)
+    jq '.pins."rollback-trace".signed = false' "$PINS_JSON" > "$tmp_unsigned"
+    mv "$tmp_unsigned" "$PINS_JSON"
+    LOA_GOLDEN_PINS_REQUIRE_SIGNED=1 run "$SCRIPT" --check
+    [ "$status" -ne 0 ]
+    echo "$output" | grep -q "REFUSED\|UNSIGNED"
+    mv "$PINS_JSON.bak" "$PINS_JSON"
+}
+
+@test "T2.M C3: --check WITHOUT require-signed accepts unsigned pin (back-compat)" {
+    cp "$PINS_JSON" "$PINS_JSON.bak"
+    tmp_unsigned=$(mktemp)
+    jq '.pins."rollback-trace".signed = false' "$PINS_JSON" > "$tmp_unsigned"
+    mv "$tmp_unsigned" "$PINS_JSON"
+    unset LOA_GOLDEN_PINS_REQUIRE_SIGNED
+    run "$SCRIPT" --check
+    [ "$status" -eq 0 ]
+    mv "$PINS_JSON.bak" "$PINS_JSON"
+}
