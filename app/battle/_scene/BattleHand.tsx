@@ -12,6 +12,7 @@ import type { MatchPhase } from "@/lib/honeycomb/match.port";
 import { ELEMENT_META, type Element } from "@/lib/honeycomb/wuxing";
 import { type Combo, getPositionMultiplier } from "@/lib/honeycomb/combos";
 import { juiceProfile } from "@/lib/juice/profile";
+import { audioEngine } from "@/lib/audio/engine";
 import { cardArtChain } from "@/lib/cdn";
 import { CdnImage } from "./CdnImage";
 
@@ -99,13 +100,21 @@ export function BattleHand({
   const total = cards.length;
 
   const onCardClick = (i: number, card: Card) => {
-    if (canPlay && onTap) onTap(i);
-    else if (onPlay) onPlay(card);
+    if (canPlay && onTap) {
+      audioEngine().play("ui.tap");
+      onTap(i);
+    } else if (onPlay) {
+      onPlay(card);
+    }
+  };
+  const onCardHover = () => {
+    if (canPlay) audioEngine().play("ui.hover");
   };
   const onDragStart = (e: React.DragEvent, i: number) => {
     if (!canPlay) return;
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", String(i));
+    audioEngine().play("card.lift");
   };
   const onDragOver = (e: React.DragEvent) => {
     if (!canPlay) return;
@@ -115,7 +124,10 @@ export function BattleHand({
     if (!canPlay || !onSwap) return;
     e.preventDefault();
     const i = Number(e.dataTransfer.getData("text/plain"));
-    if (Number.isFinite(i) && i !== j) onSwap(i, j);
+    if (Number.isFinite(i) && i !== j) {
+      audioEngine().play("card.swap");
+      onSwap(i, j);
+    }
   };
 
   return (
@@ -176,6 +188,7 @@ export function BattleHand({
                     disabled={!canPlay && !onPlay}
                     draggable={canPlay}
                     onClick={() => onCardClick(i, card)}
+                    onMouseEnter={onCardHover}
                     onDragStart={(e) => onDragStart(e, i)}
                     onDragOver={onDragOver}
                     onDrop={(e) => onDrop(e, i)}

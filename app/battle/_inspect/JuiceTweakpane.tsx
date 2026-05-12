@@ -21,6 +21,7 @@
 
 import { useEffect, useRef } from "react";
 import { type FolderApi, Pane, type TpChangeEvent } from "tweakpane";
+import { audioEngine } from "@/lib/audio/engine";
 import {
   CSS_VAR_SCHEMA,
   JUICE_SCHEMA,
@@ -197,6 +198,36 @@ export function JuiceTweakpane() {
         );
       }
     }
+
+    pane.addBlade({ view: "separator" });
+
+    // ── Audio (engine routes through localStorage; we just bind UI) ──
+    const audio = audioEngine();
+    const audioParams = {
+      enabled: audio.isEnabled(),
+      master: audio.getVolumes().master,
+      sfx: audio.getVolumes().sfx,
+      music: audio.getVolumes().music,
+    };
+    const audioFolder = pane.addFolder({ title: "Audio", expanded: true });
+    audioFolder
+      .addBinding(audioParams, "enabled", { label: "sound on" })
+      .on("change", (ev: TpChangeEvent<unknown>) => audio.setEnabled(Boolean(ev.value)));
+    audioFolder
+      .addBinding(audioParams, "master", { label: "master vol", min: 0, max: 1, step: 0.01 })
+      .on("change", (ev: TpChangeEvent<unknown>) => audio.setMasterVolume(Number(ev.value)));
+    audioFolder
+      .addBinding(audioParams, "sfx", { label: "SFX vol", min: 0, max: 1, step: 0.01 })
+      .on("change", (ev: TpChangeEvent<unknown>) => audio.setSfxVolume(Number(ev.value)));
+    audioFolder
+      .addBinding(audioParams, "music", { label: "music vol", min: 0, max: 1, step: 0.01 })
+      .on("change", (ev: TpChangeEvent<unknown>) => audio.setMusicVolume(Number(ev.value)));
+    // Audition buttons — useful while tuning the procedural fallbacks.
+    audioFolder.addButton({ title: "▶ ui.tap" }).on("click", () => audio.play("ui.tap"));
+    audioFolder.addButton({ title: "▶ match.lock-in" }).on("click", () => audio.play("match.lock-in"));
+    audioFolder.addButton({ title: "▶ discovery.combo" }).on("click", () => audio.play("discovery.combo"));
+    audioFolder.addButton({ title: "▶ match.win" }).on("click", () => audio.play("match.win"));
+    audioFolder.addButton({ title: "▶ match.lose" }).on("click", () => audio.play("match.lose"));
 
     pane.addBlade({ view: "separator" });
 

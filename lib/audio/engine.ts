@@ -1,0 +1,457 @@
+/**
+ * AudioEngine — single audio engine for Purupuru.
+ *
+ * Composes two patterns from prior repos:
+ *   - henlo-interface use-sound-effects.ts   → file-based player
+ *     (lazy load, cache, clone-on-play, fade-in/out music, soundEnabled toggle)
+ *   - world-purupuru workshop/audio-service.ts → synthesis-based player
+ *     (AudioContext singleton, oscillator presets, polyphony cap, throttle)
+ *
+ * Hexagon shape:
+ *   - Engine is the contract.
+ *   - SFX/music can be FILE-backed (when MP3s exist in /public/sounds/...)
+ *     OR PROCEDURAL (oscillator-built — works today without any assets).
+ *   - Adding a new sound = adding a typed entry to the registry, never
+ *     touching engine internals.
+ *
+ * The engine is a singleton because:
+ *   1. AudioContext is expensive — create once, share globally.
+ *   2. localStorage soundEnabled / volume settings are global anyway.
+ *   3. Music is mutually-exclusive (one track at a time across the app).
+ *
+ * Browser autoplay policy: AudioContext starts SUSPENDED until first user
+ * gesture. The engine resumes on first call. Until then, calls are no-ops.
+ */
+
+const STORAGE_ENABLED_KEY = "puru-audio-enabled";
+const STORAGE_MASTER_KEY = "puru-audio-master-volume";
+const STORAGE_SFX_KEY = "puru-audio-sfx-volume";
+const STORAGE_MUSIC_KEY = "puru-audio-music-volume";
+
+const POLYPHONY_PER_NAMESPACE = 4;
+const PROCEDURAL_THROTTLE_MS = 60;
+
+export type AudioNamespace =
+  | "ui" // hover, click, tap
+  | "card" // deal, swap, lift
+  | "match" // lock-in, clash, win, lose
+  | "discovery" // combo discovery ceremony
+  | "music"; // background tracks (single-channel)
+
+export type SoundKind = "file" | "procedural";
+
+/** A registered sound — file path OR procedural builder. Engine routes
+ * by kind. Volume is per-sound default (0..1); per-call options can
+ * override at play time. */
+export interface RegisteredSound {
+  readonly id: string;
+  readonly namespace: AudioNamespace;
+  readonly kind: SoundKind;
+  readonly volume: number;
+  /** File path under /public; required when kind === "file". */
+  readonly path?: string;
+  /** Procedural builder; required when kind === "procedural".
+   * Returns a stop() that the engine calls on overflow / cleanup. */
+  readonly build?: (ctx: AudioContext, output: AudioNode) => { stop: () => void };
+  /** Loop the file? Used by music tracks. */
+  readonly loop?: boolean;
+}
+
+export interface PlayOptions {
+  readonly volumeOverride?: number;
+  readonly playbackRate?: number;
+  /** For music only: fade between tracks. */
+  readonly fadeInMs?: number;
+  readonly fadeOutMs?: number;
+}
+
+class AudioEngine {
+  private ctx: AudioContext | null = null;
+  private masterGain: GainNode | null = null;
+  private sfxGain: GainNode | null = null;
+  private musicGain: GainNode | null = null;
+
+  private readonly registry = new Map<string, RegisteredSound>();
+  private readonly fileCache = new Map<string, HTMLAudioElement>();
+  private readonly fileLoading = new Map<string, Promise<HTMLAudioElement>>();
+
+  // Polyphony tracking per namespace (for procedural voices).
+  private readonly activeVoices = new Map<AudioNamespace, Array<{ stop: () => void }>>();
+  private readonly lastPlayedAt = new Map<string, number>();
+
+  // Music state
+  private currentMusicId: string | null = null;
+  private currentMusicEl: HTMLAudioElement | null = null;
+  private musicFadeRaf: number | null = null;
+
+  // Settings (mirrored from localStorage)
+  private enabled = true;
+  private masterVolume = 0.8;
+  private sfxVolume = 0.7;
+  private musicVolume = 0.5;
+
+  constructor() {
+    if (typeof window !== "undefined") {
+      this.enabled = window.localStorage.getItem(STORAGE_ENABLED_KEY) !== "false";
+      this.masterVolume = parseFloat(
+        window.localStorage.getItem(STORAGE_MASTER_KEY) ?? String(this.masterVolume),
+      );
+      this.sfxVolume = parseFloat(
+        window.localStorage.getItem(STORAGE_SFX_KEY) ?? String(this.sfxVolume),
+      );
+      this.musicVolume = parseFloat(
+        window.localStorage.getItem(STORAGE_MUSIC_KEY) ?? String(this.musicVolume),
+      );
+    }
+  }
+
+  // ── Lifecycle ──────────────────────────────────────────────────
+
+  private getCtx(): AudioContext | null {
+    if (typeof window === "undefined") return null;
+    if (!this.ctx) {
+      const Ctor = (window.AudioContext ??
+        (window as unknown as { webkitAudioContext?: typeof AudioContext })
+          .webkitAudioContext) as typeof AudioContext | undefined;
+      if (!Ctor) return null;
+      this.ctx = new Ctor();
+      this.masterGain = this.ctx.createGain();
+      this.sfxGain = this.ctx.createGain();
+      this.musicGain = this.ctx.createGain();
+      this.sfxGain.connect(this.masterGain);
+      this.musicGain.connect(this.masterGain);
+      this.masterGain.connect(this.ctx.destination);
+      this.applyVolumes();
+    }
+    return this.ctx;
+  }
+
+  /** Resume the AudioContext if suspended (browser autoplay policy).
+   * Call this on first user gesture (click, keydown, etc.). */
+  async unlock(): Promise<void> {
+    const ctx = this.getCtx();
+    if (!ctx) return;
+    if (ctx.state === "suspended") {
+      try {
+        await ctx.resume();
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+
+  // ── Settings ───────────────────────────────────────────────────
+
+  setEnabled(on: boolean): void {
+    this.enabled = on;
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(STORAGE_ENABLED_KEY, String(on));
+    }
+    if (!on) this.stopMusic();
+  }
+
+  isEnabled(): boolean {
+    return this.enabled;
+  }
+
+  setMasterVolume(v: number): void {
+    this.masterVolume = clamp01(v);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(STORAGE_MASTER_KEY, String(this.masterVolume));
+    }
+    this.applyVolumes();
+  }
+
+  setSfxVolume(v: number): void {
+    this.sfxVolume = clamp01(v);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(STORAGE_SFX_KEY, String(this.sfxVolume));
+    }
+    this.applyVolumes();
+  }
+
+  setMusicVolume(v: number): void {
+    this.musicVolume = clamp01(v);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(STORAGE_MUSIC_KEY, String(this.musicVolume));
+    }
+    this.applyVolumes();
+    if (this.currentMusicEl) {
+      this.currentMusicEl.volume = this.computedMusicElVolume();
+    }
+  }
+
+  getVolumes(): { master: number; sfx: number; music: number } {
+    return { master: this.masterVolume, sfx: this.sfxVolume, music: this.musicVolume };
+  }
+
+  private applyVolumes(): void {
+    const ctx = this.ctx;
+    if (!ctx || !this.masterGain || !this.sfxGain || !this.musicGain) return;
+    const t = ctx.currentTime;
+    this.masterGain.gain.setTargetAtTime(this.masterVolume, t, 0.05);
+    this.sfxGain.gain.setTargetAtTime(this.sfxVolume, t, 0.05);
+    this.musicGain.gain.setTargetAtTime(this.musicVolume, t, 0.05);
+  }
+
+  private computedMusicElVolume(): number {
+    // For HTMLAudioElement music, master + music multiply (sfx isn't routed
+    // through HTMLAudio elements — only through GainNode for procedural).
+    const sound = this.registry.get(this.currentMusicId ?? "");
+    const baseline = sound?.volume ?? 1;
+    return clamp01(this.masterVolume * this.musicVolume * baseline);
+  }
+
+  // ── Registry ───────────────────────────────────────────────────
+
+  register(sound: RegisteredSound): void {
+    this.registry.set(sound.id, sound);
+  }
+
+  registerMany(sounds: readonly RegisteredSound[]): void {
+    for (const s of sounds) this.register(s);
+  }
+
+  has(id: string): boolean {
+    return this.registry.has(id);
+  }
+
+  list(): readonly string[] {
+    return Array.from(this.registry.keys());
+  }
+
+  // ── Playback ───────────────────────────────────────────────────
+
+  /** Play a registered SFX. Music routes through playMusic instead. */
+  play(id: string, options?: PlayOptions): void {
+    if (!this.enabled) return;
+    const sound = this.registry.get(id);
+    if (!sound) {
+      console.warn(`[audio] unknown sound: ${id}`);
+      return;
+    }
+    if (sound.namespace === "music") {
+      this.playMusic(id, options);
+      return;
+    }
+
+    // Throttle
+    const now = Date.now();
+    const last = this.lastPlayedAt.get(id) ?? 0;
+    if (now - last < PROCEDURAL_THROTTLE_MS) return;
+    this.lastPlayedAt.set(id, now);
+
+    if (sound.kind === "file") {
+      this.playFile(sound, options);
+    } else {
+      this.playProcedural(sound, options);
+    }
+  }
+
+  private playFile(sound: RegisteredSound, options?: PlayOptions): void {
+    if (!sound.path) return;
+    this.loadFile(sound.path).then(
+      (template) => {
+        const clone = template.cloneNode() as HTMLAudioElement;
+        clone.volume = clamp01(
+          (options?.volumeOverride ?? sound.volume) * this.masterVolume * this.sfxVolume,
+        );
+        if (options?.playbackRate) clone.playbackRate = options.playbackRate;
+        clone.play().catch(() => {
+          /* user-gesture required — silent */
+        });
+        clone.addEventListener("ended", () => clone.remove(), { once: true });
+      },
+      () => {
+        /* file missing — silent (graceful degradation) */
+      },
+    );
+  }
+
+  private playProcedural(sound: RegisteredSound, options?: PlayOptions): void {
+    const ctx = this.getCtx();
+    if (!ctx || !sound.build || !this.sfxGain) return;
+
+    // Output node — apply per-call volume override at the connect point.
+    let outNode: AudioNode = this.sfxGain;
+    if (options?.volumeOverride !== undefined) {
+      const gain = ctx.createGain();
+      gain.gain.value = clamp01(options.volumeOverride * sound.volume);
+      gain.connect(this.sfxGain);
+      outNode = gain;
+    } else {
+      // Wrap in a per-sound gain so the registered volume applies.
+      const gain = ctx.createGain();
+      gain.gain.value = clamp01(sound.volume);
+      gain.connect(this.sfxGain);
+      outNode = gain;
+    }
+
+    // Polyphony cap per namespace
+    const voices = this.activeVoices.get(sound.namespace) ?? [];
+    if (voices.length >= POLYPHONY_PER_NAMESPACE) {
+      voices.shift()?.stop();
+    }
+    const voice = sound.build(ctx, outNode);
+    voices.push(voice);
+    this.activeVoices.set(sound.namespace, voices);
+
+    // Auto-cleanup after a generous lifetime — most procedural sounds
+    // are <1s, but rarities like discovery chords can run ~1.5s.
+    setTimeout(() => {
+      const list = this.activeVoices.get(sound.namespace);
+      if (list) {
+        const idx = list.indexOf(voice);
+        if (idx !== -1) list.splice(idx, 1);
+      }
+    }, 2000);
+  }
+
+  // ── Music ──────────────────────────────────────────────────────
+
+  /** Play a music track (single-channel). If the same track is already
+   * playing, this is a no-op. Otherwise: cross-fade if fadeInMs is set;
+   * abrupt swap otherwise. */
+  playMusic(id: string, options?: PlayOptions): void {
+    if (!this.enabled) {
+      this.stopMusic();
+      return;
+    }
+    const sound = this.registry.get(id);
+    if (!sound || sound.namespace !== "music" || !sound.path) return;
+
+    if (this.currentMusicId === id && this.currentMusicEl && !this.currentMusicEl.paused) {
+      return; // already playing
+    }
+
+    const startNew = (volume: number) => {
+      this.loadFile(sound.path!).then((template) => {
+        const el = template.cloneNode() as HTMLAudioElement;
+        el.loop = sound.loop ?? true;
+        el.volume = volume;
+        this.currentMusicEl = el;
+        this.currentMusicId = id;
+        el.play().catch(() => {
+          /* user-gesture required */
+        });
+        if (options?.fadeInMs) this.fadeMusic(el, this.computedMusicElVolume(), options.fadeInMs);
+      }, () => {
+        /* music missing — silent */
+      });
+    };
+
+    if (this.currentMusicEl) {
+      const prev = this.currentMusicEl;
+      const targetMs = options?.fadeOutMs ?? options?.fadeInMs ?? 0;
+      if (targetMs > 0) {
+        this.fadeMusic(prev, 0, targetMs, () => {
+          prev.pause();
+          prev.remove();
+          startNew(0);
+        });
+        this.currentMusicEl = null;
+        this.currentMusicId = null;
+      } else {
+        prev.pause();
+        prev.remove();
+        this.currentMusicEl = null;
+        this.currentMusicId = null;
+        startNew(this.computedMusicElVolume());
+      }
+    } else {
+      startNew(options?.fadeInMs ? 0 : this.computedMusicElVolume());
+    }
+  }
+
+  stopMusic(fadeOutMs = 0): void {
+    if (!this.currentMusicEl) return;
+    const el = this.currentMusicEl;
+    if (fadeOutMs > 0) {
+      this.fadeMusic(el, 0, fadeOutMs, () => {
+        el.pause();
+        el.currentTime = 0;
+        el.remove();
+      });
+    } else {
+      el.pause();
+      el.currentTime = 0;
+      el.remove();
+    }
+    this.currentMusicEl = null;
+    this.currentMusicId = null;
+  }
+
+  private fadeMusic(
+    el: HTMLAudioElement,
+    target: number,
+    durationMs: number,
+    onDone?: () => void,
+  ): void {
+    if (this.musicFadeRaf !== null) {
+      cancelAnimationFrame(this.musicFadeRaf);
+      this.musicFadeRaf = null;
+    }
+    const startVol = el.volume;
+    const startAt = performance.now();
+    const step = () => {
+      const t = (performance.now() - startAt) / durationMs;
+      if (t >= 1) {
+        el.volume = clamp01(target);
+        this.musicFadeRaf = null;
+        onDone?.();
+        return;
+      }
+      el.volume = clamp01(startVol + (target - startVol) * t);
+      this.musicFadeRaf = requestAnimationFrame(step);
+    };
+    this.musicFadeRaf = requestAnimationFrame(step);
+  }
+
+  // ── File loader (lazy + cached) ────────────────────────────────
+
+  private loadFile(path: string): Promise<HTMLAudioElement> {
+    const cached = this.fileCache.get(path);
+    if (cached) return Promise.resolve(cached);
+    const inflight = this.fileLoading.get(path);
+    if (inflight) return inflight;
+
+    const p = new Promise<HTMLAudioElement>((resolve, reject) => {
+      const audio = new Audio(path);
+      audio.preload = "auto";
+      audio.addEventListener(
+        "canplaythrough",
+        () => {
+          this.fileCache.set(path, audio);
+          this.fileLoading.delete(path);
+          resolve(audio);
+        },
+        { once: true },
+      );
+      audio.addEventListener(
+        "error",
+        () => {
+          this.fileLoading.delete(path);
+          reject(new Error(`audio load failed: ${path}`));
+        },
+        { once: true },
+      );
+      audio.load();
+    });
+    this.fileLoading.set(path, p);
+    return p;
+  }
+}
+
+function clamp01(n: number): number {
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(1, n));
+}
+
+// ── Singleton ────────────────────────────────────────────────────
+
+let _instance: AudioEngine | null = null;
+
+export function audioEngine(): AudioEngine {
+  if (!_instance) _instance = new AudioEngine();
+  return _instance;
+}

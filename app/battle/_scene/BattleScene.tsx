@@ -10,8 +10,9 @@
  * Dev tooling (KaironicPanel · DevConsole) lives in app/battle/_inspect/.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { matchCommand, useMatch } from "@/lib/runtime/match.client";
+import { useAudio } from "@/lib/audio/use-audio";
 import type { Element } from "@/lib/honeycomb/wuxing";
 import { ArenaSpeakers } from "./ArenaSpeakers";
 import { BattleField } from "./BattleField";
@@ -32,6 +33,14 @@ import "../_styles/battle.css";
 export function BattleScene() {
   const snap = useMatch();
   const [toastActive, setToastActive] = useState(false);
+  // Mount the audio engine + music director (subscribes to phase-entered)
+  const audio = useAudio();
+  // Per-clash impact SFX — fires on each impact phase as visibleClashIdx advances
+  useEffect(() => {
+    if (snap?.activeClashPhase === "impact" && snap.lastPlayed) {
+      audio.playClashImpact(snap.lastPlayed);
+    }
+  }, [snap?.activeClashPhase, snap?.visibleClashIdx, snap?.lastPlayed, audio]);
 
   if (!snap) {
     return (
@@ -175,7 +184,10 @@ export function BattleScene() {
                   <button
                     type="button"
                     className="tile-btn tile-btn--lock"
-                    onClick={() => matchCommand.lockIn()}
+                    onClick={() => {
+                      audio.play("ui.tap");
+                      matchCommand.lockIn();
+                    }}
                   >
                     Lock in
                   </button>
