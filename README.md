@@ -6,10 +6,10 @@ Power user interface: 48 slash commands (truenames).
 Architecture: Three-zone model (System: .claude/, State: grimoires/ + .beads/, App: src/).
 Configuration: .loa.config.yaml (user-owned, never modified by framework).
 Health check: /loa doctor
-Version: 1.130.0
+Version: 1.157.0
 -->
 
-[![Version](https://img.shields.io/badge/version-1.130.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.157.0-blue.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-AGPL--3.0-green.svg)](LICENSE.md)
 [![Release](https://img.shields.io/badge/release-v1.157.0%20Multi--Model%20Live-purple.svg)](CHANGELOG.md#1157---2026-05-12)
 
