@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { BattleScene } from "./_scene/BattleScene";
+import { DevConsole } from "./_inspect/DevConsole";
 
 export const metadata: Metadata = {
   title: "Battle · Purupuru",
@@ -7,5 +9,12 @@ export const metadata: Metadata = {
 };
 
 export default function BattlePage() {
-  return <BattleScene />;
+  return (
+    <>
+      <BattleScene />
+      <Suspense fallback={null}>
+        <DevConsole />
+      </Suspense>
+    </>
+  );
 }
