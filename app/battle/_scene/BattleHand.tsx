@@ -28,6 +28,12 @@ interface BattleHandProps {
    * this gate, every clash position would show 敗 even on wins.
    */
   readonly clashWinners?: ReadonlyMap<number, "player" | "opponent">;
+  /**
+   * Positions saved by Caretaker A Shield this round. Suppresses the 敗
+   * stamp and shows a shield-burst glyph instead, so the player sees the
+   * save mechanic rather than a "dead but undead" card.
+   */
+  readonly shielded?: ReadonlySet<number>;
   readonly onPlay?: (card: Card) => void;
   readonly onTap?: (index: number) => void;
   readonly onSwap?: (a: number, b: number) => void;
@@ -73,6 +79,7 @@ export function BattleHand({
   visibleClashIdx = -1,
   activeClashPhase = null,
   clashWinners,
+  shielded,
   onPlay,
   onTap,
   onSwap,
@@ -113,7 +120,11 @@ export function BattleHand({
               // The 敗 stamp + .lost class only fire on positions the PLAYER
               // lost. Positions the player WON share the same `stamps` set
               // (every resolved clash adds an index) but stay clean visually.
-              const lostThisPosition = stamps?.has(i) && clashWinners?.get(i) === "opponent";
+              // Shielded positions suppress 敗 and show a shield-burst instead —
+              // they survived via Caretaker A Shield (world-purupuru spec).
+              const isShielded = shielded?.has(i) ?? false;
+              const lostThisPosition =
+                !isShielded && stamps?.has(i) && clashWinners?.get(i) === "opponent";
               const wonThisPosition = stamps?.has(i) && clashWinners?.get(i) === "player";
               const isDying = dying?.has(i) ?? false;
               const isActiveClash = visibleClashIdx === i;
@@ -124,6 +135,7 @@ export function BattleHand({
                 lostThisPosition && "stamped",
                 lostThisPosition && "lost",
                 wonThisPosition && "won",
+                isShielded && "shielded",
                 isDying && "disintegrating",
                 isActiveClash && activeClashPhase === "approach" && "clashing-approach",
                 isActiveClash && activeClashPhase === "impact" && "clashing-impact",
@@ -171,6 +183,13 @@ export function BattleHand({
                       </span>
                     )}
                     {lostThisPosition && <span className="card-stamp">敗</span>}
+                    {isShielded && (
+                      <span
+                        className="shield-burst"
+                        data-element={card.element}
+                        aria-label="Saved by Caretaker A Shield"
+                      />
+                    )}
                   </button>
                 </div>
               );

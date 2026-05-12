@@ -130,6 +130,7 @@ export function BattleScene() {
               clashWinners={clashWinners}
               stamps={new Set(snap.stamps)}
               dying={new Set(snap.dyingP2)}
+              shielded={new Set(snap.shieldedP2)}
             />
 
             {/* Clash zone — the visual middle. Cards converge here. */}
@@ -146,6 +147,7 @@ export function BattleScene() {
                 visibleClashIdx={snap.visibleClashIdx}
                 activeClashPhase={snap.activeClashPhase}
                 clashWinners={clashWinners}
+                shielded={new Set(snap.shieldedP1)}
                 onTap={matchCommand.tapPosition}
                 onSwap={matchCommand.swapPositions}
               />

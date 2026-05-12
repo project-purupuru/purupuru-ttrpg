@@ -26,6 +26,7 @@ interface OpponentZoneProps {
   readonly clashWinners?: ReadonlyMap<number, "player" | "opponent">;
   readonly stamps?: ReadonlySet<number>;
   readonly dying?: ReadonlySet<number>;
+  readonly shielded?: ReadonlySet<number>;
 }
 
 const BRAND_CARD_BACK = BRAND.logoCardBack;
@@ -38,6 +39,7 @@ export function OpponentZone({
   clashWinners,
   stamps,
   dying,
+  shielded,
 }: OpponentZoneProps) {
   const isArrange = arenaPhase === "rearrange";
   const isLocked = arenaPhase === "locked";
@@ -53,14 +55,20 @@ export function OpponentZone({
           {lineup.map((card, i) => {
             const winner = clashWinners?.get(i);
             const isDying = dying?.has(i) ?? false;
-            const isStamped = stamps?.has(i) ?? false;
+            const isShielded = shielded?.has(i) ?? false;
+            // Opponent perspective: winner === "player" means the OPPONENT
+            // card at this position lost. Shielded opponent positions
+            // suppress the 敗 + .lost combo for the same legibility reason.
+            const opponentLost = winner === "player" && stamps?.has(i) && !isShielded;
+            const opponentWon = winner === "opponent" && stamps?.has(i);
             const cls = [
               "card-slot",
               "opponent-card",
               isArrange && "face-down",
               (isLocked || isClashing || isResult) && "revealed",
-              winner === "player" && isStamped && "lost",
-              winner === "opponent" && isStamped && "won",
+              opponentLost && "lost",
+              opponentWon && "won",
+              isShielded && "shielded",
               isDying && "disintegrating",
               activeClashPhase === "approach" && visibleClashIdx === i && "clashing-approach",
               activeClashPhase === "impact" && visibleClashIdx === i && "clashing-impact",
@@ -88,14 +96,21 @@ export function OpponentZone({
                     <span className="card-kanji">{ELEMENT_META[card.element].kanji}</span>
                   </>
                 )}
-                {winner === "player" && isStamped && (
+                {opponentLost && (
                   <>
                     <span className="stamp">敗</span>
                     <span className="floor-pulse floor-pulse--lose" />
                   </>
                 )}
-                {winner === "opponent" && isStamped && (
+                {opponentWon && (
                   <span className="floor-pulse floor-pulse--win" data-element={card.element} />
+                )}
+                {isShielded && (
+                  <span
+                    className="shield-burst"
+                    data-element={card.element}
+                    aria-label="Saved by Caretaker A Shield"
+                  />
                 )}
               </div>
             );
