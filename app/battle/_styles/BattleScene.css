@@ -32,30 +32,88 @@
 		opacity: 1;
 	}
 
-	/* Lock-in button — bottom-center prominent action.
-	   The TurnClock floats above the arena, so we tuck this just below it. */
-	.battle-lock-btn {
+	/* ═══════════════════════════════════════════════════════════════
+	   Canonical arena layout (from world-purupuru cycle-088 +page.svelte)
+	   .arena is a flex column: opponent (flex:1) · clash-zone (140-200px)
+	   · player-zone (flex:1 — hand + action-bar). The clash-zone is the
+	   visual middle where opponent cards descend to meet the player hand.
+	   ═══════════════════════════════════════════════════════════════ */
+	.arena {
 		position: absolute;
-		bottom: calc(env(safe-area-inset-bottom, 0px) + var(--space-2xl) + 200px);
-		left: 50%;
-		transform: translateX(-50%);
-		z-index: 50;
-		padding: var(--space-sm) var(--space-2xl);
-		border-radius: var(--radius-full);
-		border: none;
-		background: var(--puru-honey-base);
-		color: var(--puru-ink-rich);
+		inset: 0;
+		z-index: 10;
+		display: flex;
+		flex-direction: column;
+		pointer-events: none;
+	}
+
+	.clash-zone {
+		height: clamp(140px, 28vh, 200px);
+		flex-shrink: 0;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: var(--space-xs);
+		pointer-events: none;
+		position: relative;
+	}
+	.clash-zone::after {
+		content: '';
+		position: absolute;
+		inset: -20%;
+		background: radial-gradient(circle at 50% 50%, oklch(0.97 0.010 90 / 0.4) 0%, transparent 60%);
+		z-index: 27;
+		pointer-events: none;
+		opacity: 0;
+		transition: opacity 200ms var(--ease-puru-settle);
+	}
+	.arena[data-phase='clashing'] .clash-zone::after,
+	.arena[data-phase='disintegrating'] .clash-zone::after { opacity: 1; }
+
+	.player-zone {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: flex-end;
+		gap: var(--space-sm);
+		padding: 0 var(--space-sm) calc(env(safe-area-inset-bottom, 0px) + var(--space-md));
+		pointer-events: auto;
+		min-height: 0;
+	}
+
+	.action-bar {
+		padding: var(--space-xs) var(--space-lg) 0;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: var(--space-sm);
+		pointer-events: auto;
+		width: 100%;
+		min-height: calc(48px + var(--space-xs));
+	}
+
+	.action-bar .tile-btn--lock {
 		font-family: var(--font-body);
 		font-size: var(--text-md);
 		font-weight: 700;
-		letter-spacing: 0.02em;
+		color: var(--puru-ink-rich);
+		background: var(--puru-honey-base);
+		border: none;
+		padding: var(--space-sm) var(--space-2xl);
+		min-height: 48px;
+		width: 100%;
+		max-width: 340px;
+		border-radius: var(--radius-full);
 		cursor: pointer;
-		box-shadow: var(--shadow-tile), 0 6px 24px oklch(0.82 0.14 85 / 0.35);
+		letter-spacing: 0.02em;
+		box-shadow: var(--shadow-tile), 0 4px 20px oklch(0.82 0.14 85 / 0.3);
 		background-image: linear-gradient(to bottom, oklch(1 0 0 / 0.18) 0%, transparent 50%);
 		transition: transform 160ms var(--ease-puru-bounce), box-shadow 200ms var(--ease-puru-settle);
 	}
-	.battle-lock-btn:hover { transform: translateX(-50%) translateY(-2px); }
-	.battle-lock-btn:active { transform: translateX(-50%) scaleY(0.94) scaleX(1.02); transition-duration: 80ms; }
+	.action-bar .tile-btn--lock:hover { transform: translateY(-2px); }
+	.action-bar .tile-btn--lock:active { transform: scaleY(0.94) scaleX(1.03); transition-duration: 80ms; }
 
 	.help-btn {
 		position: fixed;

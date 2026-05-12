@@ -8,14 +8,13 @@
 
 import type { Card } from "@/lib/honeycomb/cards";
 import { ELEMENT_META, type Element } from "@/lib/honeycomb/wuxing";
-import { CARD_SATURATED, CARD_PASTEL, JANI_CARDS } from "@/lib/cdn";
+import { BRAND, cardArtChain } from "@/lib/cdn";
+import { CdnImage } from "./CdnImage";
 
 export type OpponentZoneArenaPhase = "rearrange" | "locked" | "clashing" | "result";
 
-function cardArtFor(card: Card): string {
-  if (card.cardType === "jani") return JANI_CARDS[card.element];
-  if (card.cardType === "caretaker_b") return CARD_PASTEL[card.element];
-  return CARD_SATURATED[card.element];
+function cardArtFor(card: Card): readonly string[] {
+  return cardArtChain(card.cardType, card.element);
 }
 
 interface OpponentZoneProps {
@@ -29,7 +28,7 @@ interface OpponentZoneProps {
   readonly dying?: ReadonlySet<number>;
 }
 
-const BRAND_CARD_BACK = "/thumbs/brand/honey-jar-card-back.webp";
+const BRAND_CARD_BACK = BRAND.logoCardBack;
 
 export function OpponentZone({
   lineup,
@@ -81,11 +80,10 @@ export function OpponentZone({
                   <img className="card-back" src={BRAND_CARD_BACK} alt="face down" />
                 ) : (
                   <>
-                    <img
+                    <CdnImage
                       className="card-art"
-                      src={cardArtFor(card)}
+                      sources={cardArtFor(card)}
                       alt={`${ELEMENT_META[card.element].caretaker} · ${card.cardType}`}
-                      loading="lazy"
                     />
                     <span className="card-kanji">{ELEMENT_META[card.element].kanji}</span>
                   </>

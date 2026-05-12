@@ -104,16 +104,57 @@ export function BattleScene() {
             lastOvercome={snap.lastOvercome}
           />
 
-          <OpponentZone
-            lineup={snap.p2Lineup}
-            arenaPhase={arenaPhase}
-            opponentElement={snap.opponentElement}
-            visibleClashIdx={snap.visibleClashIdx}
-            activeClashPhase={snap.activeClashPhase}
-            clashWinners={clashWinners}
-            stamps={new Set(snap.stamps)}
-            dying={new Set(snap.dyingP2)}
-          />
+          {/* Canonical world-purupuru flex column: opponent at top, clash-zone
+              in the middle (the actual meeting point), player at bottom. */}
+          <div
+            className="arena"
+            data-phase={snap.phase}
+            style={
+              {
+                "--clash-slide": "500ms",
+                "--clash-settle": "350ms",
+              } as React.CSSProperties
+            }
+          >
+            <OpponentZone
+              lineup={snap.p2Lineup}
+              arenaPhase={arenaPhase}
+              opponentElement={snap.opponentElement}
+              visibleClashIdx={snap.visibleClashIdx}
+              activeClashPhase={snap.activeClashPhase}
+              clashWinners={clashWinners}
+              stamps={new Set(snap.stamps)}
+              dying={new Set(snap.dyingP2)}
+            />
+
+            {/* Clash zone — the visual middle. Cards converge here. */}
+            <div className="clash-zone" aria-hidden />
+
+            <div className="player-zone">
+              <BattleHand
+                cards={snap.p1Lineup}
+                phase={snap.phase}
+                turnElement={turnElement}
+                selectedIndex={snap.selectedIndex}
+                stamps={new Set(snap.stamps)}
+                dying={new Set(snap.dyingP1)}
+                onTap={matchCommand.tapPosition}
+                onSwap={matchCommand.swapPositions}
+              />
+
+              <div className="action-bar">
+                {canLockIn && (
+                  <button
+                    type="button"
+                    className="tile-btn tile-btn--lock"
+                    onClick={() => matchCommand.lockIn()}
+                  >
+                    Lock in
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
 
           <ArenaSpeakers
             playerElement={snap.playerElement ?? snap.weather}
@@ -124,27 +165,6 @@ export function BattleScene() {
             opponentWins={snap.opponentClashWins}
             activeClashPhase={snap.activeClashPhase}
           />
-
-          <BattleHand
-            cards={snap.p1Lineup}
-            phase={snap.phase}
-            turnElement={turnElement}
-            selectedIndex={snap.selectedIndex}
-            stamps={new Set(snap.stamps)}
-            dying={new Set(snap.dyingP1)}
-            onTap={matchCommand.tapPosition}
-            onSwap={matchCommand.swapPositions}
-          />
-
-          {canLockIn && (
-            <button
-              type="button"
-              className="battle-lock-btn"
-              onClick={() => matchCommand.lockIn()}
-            >
-              Lock in
-            </button>
-          )}
         </div>
       )}
 

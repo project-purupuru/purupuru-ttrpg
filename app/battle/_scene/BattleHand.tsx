@@ -10,7 +10,8 @@
 import type { Card } from "@/lib/honeycomb/cards";
 import type { MatchPhase } from "@/lib/honeycomb/match.port";
 import { ELEMENT_META, type Element } from "@/lib/honeycomb/wuxing";
-import { CARD_SATURATED, CARD_PASTEL, JANI_CARDS } from "@/lib/cdn";
+import { cardArtChain } from "@/lib/cdn";
+import { CdnImage } from "./CdnImage";
 
 interface BattleHandProps {
   readonly cards: readonly Card[];
@@ -45,12 +46,9 @@ function setLabel(t: Card["cardType"]): string {
   return "transcendence";
 }
 
-/** Pick the right CDN composite per card. Jani → jani card · caretaker_a →
- * saturated · caretaker_b → pastel · transcendence falls back to saturated. */
-function cardArtFor(card: Card): string {
-  if (card.cardType === "jani") return JANI_CARDS[card.element];
-  if (card.cardType === "caretaker_b") return CARD_PASTEL[card.element];
-  return CARD_SATURATED[card.element];
+/** Ordered fallback chain for card art — see lib/cdn.ts. */
+function cardArtFor(card: Card): readonly string[] {
+  return cardArtChain(card.cardType, card.element);
 }
 
 export function BattleHand({
@@ -128,11 +126,10 @@ export function BattleHand({
                   aria-label={`Play ${card.element} ${ELEMENT_META[card.element].name}`}
                   aria-pressed={isSelected}
                 >
-                  <img
+                  <CdnImage
                     className="card-art"
-                    src={cardArtFor(card)}
+                    sources={cardArtFor(card)}
                     alt={`${ELEMENT_META[card.element].caretaker} · ${setLabel(card.cardType)}`}
-                    loading="lazy"
                   />
                   <span className="card-set-overlay">{setLabel(card.cardType)}</span>
                   {card.element === turnElement && (

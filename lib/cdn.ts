@@ -82,3 +82,42 @@ export const JANI_CARDS: Record<string, string> = {
 
 /** Tsuheji map texture — the underlying terrain for backdrop mode. */
 export const WORLD_MAP_TEXTURE = "/art/tsuheji-map.png"; // local, ships with repo
+
+/** Brand identity assets. */
+export const BRAND = {
+  wordmark: cdn("brand/purupuru-wordmark.svg"),
+  logo: cdn("brand/project-purupuru-logo.png"),
+  logoCardBack: cdn("brand/project-purupuru-logo-card-back.png"),
+} as const;
+
+/** Element-to-jani-variant fallback when JANI_CARDS is missing on the bucket.
+ * (Confirmed 2026-05-12: jani-trading-card-earth returns 403; everything else
+ * 200s.) The variant is square art rather than a full card composite, but it
+ * keeps the slot from showing a broken image. */
+export const JANI_VARIANT: Record<string, string> = {
+  wood: cdn("jani/jani-wood-variant.png"),
+  fire: cdn("jani/jani-fire-variant.png"),
+  earth: cdn("jani/jani-earth-variant.png"),
+  metal: cdn("jani/jani-metal-variant.png"),
+  water: cdn("jani/jani-water-variant.png"),
+};
+
+/**
+ * Resolve a card art source given (cardType, element). Returns a fallback
+ * chain — the first element is the preferred composite, subsequent entries
+ * are degraded fallbacks. Pair with <CdnImage> below to walk the chain on
+ * 404 / 403.
+ */
+export function cardArtChain(
+  cardType: "jani" | "caretaker_a" | "caretaker_b" | "transcendence",
+  element: string,
+): readonly string[] {
+  if (cardType === "jani") {
+    return [JANI_CARDS[element]!, JANI_VARIANT[element]!, CARD_SATURATED[element]!];
+  }
+  if (cardType === "caretaker_b") {
+    return [CARD_PASTEL[element]!, CARD_SATURATED[element]!];
+  }
+  // caretaker_a + transcendence → saturated composite
+  return [CARD_SATURATED[element]!, CARD_PASTEL[element]!];
+}

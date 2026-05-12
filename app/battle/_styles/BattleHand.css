@@ -1,22 +1,15 @@
+  /* The hand lives inside .player-zone (a flex column at the arena's
+     bottom half). No absolute positioning — the parent zone owns layout. */
   .hand {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    padding: var(--space-md) var(--space-lg) calc(env(safe-area-inset-bottom, 0px) + var(--space-lg));
+    position: relative;
+    width: 100%;
+    padding: var(--space-md) var(--space-lg) var(--space-xs);
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: var(--space-sm);
     z-index: 20;
     pointer-events: auto;
-    /* Warm fade from cloud — hand area is grounded */
-    background: linear-gradient(
-      to top,
-      var(--puru-cloud-base) 0%,
-      oklch(0.94 0.015 90 / 0.85) 50%,
-      transparent 100%
-    );
     transition: opacity 400ms var(--ease-puru-settle);
   }
 
