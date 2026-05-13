@@ -7,6 +7,7 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { WORLD_MAP_TEXTURE } from "@/lib/cdn";
 import { type CompanionState, loadCompanion } from "@/lib/honeycomb/companion";
 import { type DailyMeta, getDailyMeta, getDailyShift } from "@/lib/honeycomb/daily-meta";
 import { ELEMENT_META, ELEMENT_ORDER, type Element } from "@/lib/honeycomb/wuxing";
@@ -48,6 +49,17 @@ export function EntryScreen({
 
   return (
     <div className="entry" data-element={quizElement ?? undefined}>
+      {/* Operator wants the map presence on the lock screen too — same
+          centered ghost-texture treatment as the arena's .map-flat,
+          but without the territory overlays. Sits at z:0 behind all
+          entry-screen UI. */}
+      <img
+        className="entry-map"
+        src={WORLD_MAP_TEXTURE}
+        alt=""
+        aria-hidden
+      />
+
       <div className="weather-orb" data-element={weather}>
         <span className="orb-kanji">{ELEMENT_META[weather].kanji}</span>
       </div>

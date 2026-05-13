@@ -26,6 +26,35 @@
   .entry[data-element='metal']::before { background: radial-gradient(ellipse at 50% 40%, var(--puru-metal-tint) 0%, transparent 65%); }
   .entry[data-element='water']::before { background: radial-gradient(ellipse at 50% 40%, var(--puru-water-tint) 0%, transparent 65%); }
 
+  /* Lock-screen ghost-map — mirrors arena .map-flat but without the
+     territory overlays. Centered both axes, viewport-bounded, fog-of-war
+     mask. Sits behind all entry-screen UI at z:0. */
+  .entry-map {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(85vw, 85vh, 900px);
+    height: min(85vw, 85vh, 900px);
+    max-width: 900px;
+    max-height: 900px;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    opacity: 0.18;
+    filter: saturate(0.35) sepia(0.08);
+    pointer-events: none;
+    user-select: none;
+    z-index: 0;
+    mask-image: radial-gradient(
+      ellipse 80% 70% at 50% 50%,
+      black 20%,
+      oklch(0 0 0 / 0.7) 40%,
+      oklch(0 0 0 / 0.3) 62%,
+      oklch(0 0 0 / 0.1) 78%,
+      transparent 92%
+    );
+  }
+
   .weather-orb {
     position: absolute;
     /* Operator feedback (2026-05-12): "the big circle is getting cut
