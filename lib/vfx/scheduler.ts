@@ -111,7 +111,10 @@ class VfxScheduler {
   request(req: VfxRequest): AdmittedEffect | null {
     const cfg = this.config;
     if (!cfg.enabled) return null;
-    if (!cfg.allowedPhases[req.family].includes(req.currentPhase)) return null;
+    // FAGAN M4: defensive lookup — preset import / hand-edit could leave
+    // allowedPhases missing keys. Reject (rather than crash) on missing.
+    const allowedForFamily = cfg.allowedPhases[req.family];
+    if (!allowedForFamily || !allowedForFamily.includes(req.currentPhase)) return null;
 
     this.gc();
 
@@ -178,12 +181,72 @@ class VfxScheduler {
         this.notify(f);
       }
       for (const fn of this.allListeners) fn(this.active);
+      // FAGAN M2: clear the gcTimer chain so a previous-state sweep
+      // doesn't fire after we just nuked everything.
+      if (this.gcTimer !== null) {
+        window.clearTimeout(this.gcTimer);
+        this.gcTimer = null;
+      }
     }
   }
 
   /** Read-only snapshot of currently-active effects (for monitor binding). */
   snapshot(): readonly AdmittedEffect[] {
-    return this.active;
+    // FAGAN C3-shape: defensive copy so consumers can't mutate the live array
+    return [...this.active];
+  }
+
+  /**
+   * Tear down — cancel all pending effects + GC timer + clear listeners.
+   * Call on page unmount or HMR cleanup. Idempotent.
+   */
+  dispose(): void {
+    if (this.gcTimer !== null) {
+      window.clearTimeout(this.gcTimer);
+      this.gcTimer = null;
+    }
+    this.active = [];
+    this.lastSpawnAt.clear();
+    this.listeners.clear();
+    this.allListeners.clear();
+  }
+
+  /**
+   * Validated config patch — same shape as cameraEngine.setConfig.
+   * Tweakpane preset import / hand-edit can't smuggle malformed config.
+   */
+  setConfig(patch: Partial<VfxConfig>): void {
+    if (patch.enabled !== undefined) this.config.enabled = patch.enabled;
+    if (patch.intensity !== undefined)
+      this.config.intensity = clamp(0, 5, patch.intensity);
+    if (patch.maxConcurrent) {
+      for (const k of Object.keys(patch.maxConcurrent) as Array<keyof VfxConfig["maxConcurrent"]>) {
+        const v = patch.maxConcurrent[k];
+        if (typeof v === "number")
+          this.config.maxConcurrent[k] = Math.max(0, Math.min(64, Math.floor(v)));
+      }
+    }
+    if (patch.cooldownMs) {
+      for (const k of Object.keys(patch.cooldownMs) as Array<keyof VfxConfig["cooldownMs"]>) {
+        const v = patch.cooldownMs[k];
+        if (typeof v === "number")
+          this.config.cooldownMs[k] = Math.max(0, Math.min(10000, v));
+      }
+    }
+    if (patch.particleRenderer) {
+      for (const el of Object.keys(patch.particleRenderer) as Array<
+        keyof VfxConfig["particleRenderer"]
+      >) {
+        const r = patch.particleRenderer[el];
+        if (r === "css" || r === "pixi") this.config.particleRenderer[el] = r;
+      }
+    }
+    if (patch.waveRenderer) {
+      for (const el of Object.keys(patch.waveRenderer) as Array<keyof VfxConfig["waveRenderer"]>) {
+        const r = patch.waveRenderer[el];
+        if (r === "css" || r === "pixi") this.config.waveRenderer[el] = r;
+      }
+    }
   }
 
   private notify(family: VfxFamily) {
@@ -219,6 +282,10 @@ class VfxScheduler {
       }
     }, delayMs);
   }
+}
+
+function clamp(min: number, max: number, n: number): number {
+  return n < min ? min : n > max ? max : n;
 }
 
 let _instance: VfxScheduler | null = null;

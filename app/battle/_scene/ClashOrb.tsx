@@ -79,13 +79,16 @@ export function ClashOrb({
       },
     ]);
 
-    // Camera punch + shake — substrate→camera wiring lives here at the
-    // semantic event ("a clash impacted") rather than in the engine.
+    // Camera punch + shake + HITSTOP — substrate→camera wiring lives here
+    // at the semantic event ("a clash impacted") rather than in the engine.
+    // Hitstop is the indie-game weight primitive (Sakurai/Smash canon):
+    // 150ms freeze on regular clashes, 280ms on the round-final.
     const isFinal = visibleClashIdx === totalClashes - 1;
     const lead = clash.p1Card.card.element;
     const p = punchForElement(lead);
     cameraEngine().punch(p.x, p.y);
     cameraEngine().shake(p.shake * (isFinal ? 1.4 : 1.0));
+    cameraEngine().freezeFrames(isFinal ? 280 : 150);
 
     // Audio duck — combat moment, lower music briefly
     audioEngine().duck(isFinal ? 600 : 250);

@@ -62,23 +62,29 @@ export function CameraPane() {
     fTest.addButton({ title: "shake light" }).on("click", () => engine.shake(0.3));
     fTest.addButton({ title: "shake medium" }).on("click", () => engine.shake(0.6));
     fTest.addButton({ title: "shake heavy" }).on("click", () => engine.shake(1.0));
+    fTest.addButton({ title: "hitstop 150ms" }).on("click", () => engine.freezeFrames(150));
+    fTest.addButton({ title: "hitstop 280ms (final)" }).on("click", () => engine.freezeFrames(280));
 
     const fMonitor = pane.addFolder({ title: "Monitor", expanded: false });
     // Read-only mirror of engine state (refreshed each frame via subscription)
     const monitor = {
       currentX: 0,
       currentY: 0,
-      shake: 0,
+      trauma: 0,
+      hitstop: false,
     };
     fMonitor.addBinding(monitor, "currentX", { readonly: true, view: "graph", min: -1, max: 1 });
     fMonitor.addBinding(monitor, "currentY", { readonly: true, view: "graph", min: -1, max: 1 });
-    fMonitor.addBinding(monitor, "shake", { readonly: true, view: "graph", min: 0, max: 1 });
+    fMonitor.addBinding(monitor, "trauma", { readonly: true, view: "graph", min: 0, max: 1 });
+    fMonitor.addBinding(monitor, "hitstop", { readonly: true });
 
-    const unsub = engine.subscribe(() => {
+    // FAGAN M6: monitor needs per-frame updates → use subscribeFrame.
+    const unsub = engine.subscribeFrame(() => {
       const s = engine.readState();
       monitor.currentX = s.currentX;
       monitor.currentY = s.currentY;
-      monitor.shake = s.shake;
+      monitor.trauma = s.trauma;
+      monitor.hitstop = engine.isHitstopActive();
     });
 
     const fPersist = pane.addFolder({ title: "Preset", expanded: false });

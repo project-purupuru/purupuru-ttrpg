@@ -119,6 +119,10 @@ export function spawnWaterBurst(opts: WaterBurstOptions): WaterBurstHandle {
       // to the CSS fallback. The caller's CSS layer is still in the DOM.
       return;
     }
+    // FAGAN C1: re-check `destroyed` after every await/sync work boundary
+    // because destroyHandle() may have been called between init resolution
+    // and our continuation. Without this, we mount the canvas + start the
+    // ticker on an Application that the caller already requested torn down.
     if (destroyed) {
       a.destroy(true, { children: true });
       return;
@@ -224,6 +228,12 @@ export function spawnWaterBurst(opts: WaterBurstOptions): WaterBurstHandle {
       }
     };
 
+    // FAGAN C1: final guard before arming the ticker — any awaits between
+    // first guard and here (Pixi may add more) get covered by this re-check.
+    if (destroyed) {
+      a.destroy(true, { children: true });
+      return;
+    }
     a.ticker.add(tick);
   })();
 

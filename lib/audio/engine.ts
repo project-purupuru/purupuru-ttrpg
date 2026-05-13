@@ -337,6 +337,20 @@ class AudioEngine {
     );
   }
 
+  /**
+   * FAGAN C4: per-voice cleanup timer. Each procedural voice gets a
+   * 2s timer that removes it from `activeVoices` AND cancels its
+   * underlying oscillator. Eviction (`voices.shift()?.stop()`) clears
+   * the timer so a forcefully-stopped voice doesn't leave a stray
+   * setTimeout pinning a closure for 2s.
+   */
+  private cancelVoiceTimer(voice: { _timer?: number }): void {
+    if (voice._timer !== undefined) {
+      window.clearTimeout(voice._timer);
+      voice._timer = undefined;
+    }
+  }
+
   private playProcedural(sound: RegisteredSound, options?: PlayOptions): void {
     const ctx = this.getCtx();
     if (!ctx || !sound.build || !this.sfxGain) return;
@@ -356,22 +370,30 @@ class AudioEngine {
       outNode = gain;
     }
 
-    // Polyphony cap per namespace
+    // Polyphony cap per namespace — evict oldest, cancel its cleanup timer
     const voices = this.activeVoices.get(sound.namespace) ?? [];
     if (voices.length >= POLYPHONY_PER_NAMESPACE) {
-      voices.shift()?.stop();
+      const evicted = voices.shift();
+      if (evicted) {
+        this.cancelVoiceTimer(evicted as { _timer?: number });
+        evicted.stop();
+      }
     }
-    const voice = sound.build(ctx, outNode);
+    const voice = sound.build(ctx, outNode) as { stop: () => void; _timer?: number };
     voices.push(voice);
     this.activeVoices.set(sound.namespace, voices);
 
-    // Auto-cleanup after a generous lifetime — most procedural sounds
-    // are <1s, but rarities like discovery chords can run ~1.5s.
-    setTimeout(() => {
+    // Auto-cleanup after a generous lifetime. Timer ID is stored ON the
+    // voice so eviction can cancel it. The cleanup also calls stop() so
+    // procedural sounds that overrun their natural duration are silenced.
+    voice._timer = window.setTimeout(() => {
       const list = this.activeVoices.get(sound.namespace);
       if (list) {
         const idx = list.indexOf(voice);
-        if (idx !== -1) list.splice(idx, 1);
+        if (idx !== -1) {
+          list[idx].stop();
+          list.splice(idx, 1);
+        }
       }
     }, 2000);
   }
@@ -487,9 +509,16 @@ class AudioEngine {
     const p = new Promise<HTMLAudioElement>((resolve, reject) => {
       const audio = new Audio(path);
       audio.preload = "auto";
+      // FAGAN M7: timeout the load so a hung CDN doesn't pin the
+      // promise indefinitely. 5s is generous for SFX, ample for music.
+      const failTimer = window.setTimeout(() => {
+        this.fileLoading.delete(path);
+        reject(new Error(`audio load timeout: ${path}`));
+      }, 5000);
       audio.addEventListener(
         "canplaythrough",
         () => {
+          window.clearTimeout(failTimer);
           this.fileCache.set(path, audio);
           this.fileLoading.delete(path);
           resolve(audio);
@@ -499,6 +528,7 @@ class AudioEngine {
       audio.addEventListener(
         "error",
         () => {
+          window.clearTimeout(failTimer);
           this.fileLoading.delete(path);
           reject(new Error(`audio load failed: ${path}`));
         },
@@ -508,6 +538,36 @@ class AudioEngine {
     });
     this.fileLoading.set(path, p);
     return p;
+  }
+
+  /**
+   * Tear down — stop music, kill all voices + their cleanup timers,
+   * cancel music fade RAF, release the duck timer.
+   * NOTE: AudioContext itself is NOT closed (browser autoplay policy
+   * makes recreating one painful + we want the bus graph to survive
+   * HMR). Singleton outlives most page lifecycles.
+   */
+  dispose(): void {
+    this.stopMusic();
+    if (this.musicFadeRaf !== null) {
+      cancelAnimationFrame(this.musicFadeRaf);
+      this.musicFadeRaf = null;
+    }
+    if (this.duckReleaseTimer !== null) {
+      window.clearTimeout(this.duckReleaseTimer);
+      this.duckReleaseTimer = null;
+    }
+    for (const [, voices] of this.activeVoices) {
+      for (const v of voices) {
+        this.cancelVoiceTimer(v as { _timer?: number });
+        try {
+          v.stop();
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+    this.activeVoices.clear();
   }
 }
 

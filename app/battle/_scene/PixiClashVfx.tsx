@@ -73,6 +73,12 @@ export function PixiClashVfx({ element, visibleClashIdx, activeClashPhase }: Pix
 /**
  * Host div that mounts a Pixi Application via spawnWaterBurst and tears
  * it down on unmount or onDone callback.
+ *
+ * FAGAN C2: onDone is a fresh closure every parent render, so including
+ * it in the effect deps caused the burst to remount on every re-render —
+ * leaking Pixi Applications + droplets. We capture onDone in a ref and
+ * keep deps to the truly-stable identifiers (element + seed). Same fix
+ * shape as React's "stale closure" idiom.
  */
 function PixiBurstHost({
   element,
@@ -84,6 +90,9 @@ function PixiBurstHost({
   readonly onDone: () => void;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
+  const onDoneRef = useRef(onDone);
+  // Always read the latest onDone but never trigger re-mount on its identity
+  onDoneRef.current = onDone;
 
   useEffect(() => {
     if (!hostRef.current) return;
@@ -91,10 +100,11 @@ function PixiBurstHost({
     const handle = spawnWaterBurst({
       host: hostRef.current,
       seed,
-      onDone,
+      onDone: () => onDoneRef.current(),
     });
     return () => handle.destroy();
-  }, [element, seed, onDone]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- onDone is intentionally accessed via ref to avoid burst remount
+  }, [element, seed]);
 
   return (
     <div
