@@ -27,7 +27,7 @@
       "items": { "type": "string" }
     },
     "models_failed": {
-      "description": "Per-model failure record. Structurally compatible with the model-error.schema.json envelope but inlined here for audit-query ergonomics. The error_class enum is referenced from model-error.schema.json — keep in sync.",
+      "description": "Per-model failure record. Structurally compatible with the model-error.schema.json envelope but inlined here for audit-query ergonomics. The error_class enum is referenced from model-error.schema.json — keep in sync. cycle-104 Sprint 2 (T2.6): added optional 'provider' (per-entry provider) and 'missing_capabilities' (populated when error_class=CAPABILITY_MISS). Records appear in chain-walk order.",
       "type": "array",
       "items": {
         "type": "object",
@@ -41,7 +41,17 @@
           "message_redacted": { "type": "string", "maxLength": 8192 },
           "fallback_from": { "type": "string", "minLength": 1 },
           "fallback_to": { "type": "string", "minLength": 1 },
-          "retryable": { "type": "boolean" }
+          "retryable": { "type": "boolean" },
+          "provider": {
+            "description": "cycle-104 Sprint 2 (T2.6 / FR-S2.3). Provider key for this entry (e.g. openai, anthropic, google). Optional for backward compat; new emitters MUST populate.",
+            "type": "string",
+            "minLength": 1
+          },
+          "missing_capabilities": {
+            "description": "cycle-104 Sprint 2 (FR-S2.7). Populated when error_class=CAPABILITY_MISS; lists the capabilities the request required that this entry does not declare.",
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 }
+          }
         }
       }
     },
@@ -79,6 +89,119 @@
     "kill_switch_active": {
       "description": "True iff LOA_FORCE_LEGACY_MODELS=1 at invocation time (SDD section 11 / gemini IMP-004 HIGH). Audits operator-driven legacy-mode use.",
       "type": "boolean"
+    },
+    "streaming": {
+      "description": "True iff the call used the Sprint 4A streaming transport (cycle-102 AC-4.5e). False if LOA_CHEVAL_DISABLE_STREAMING=1 routed the call through the legacy non-streaming http_post path. Additive field (Sprint 4A) — older audit entries written before this field existed will simply omit it; readers must handle absence as 'unknown' rather than 'false'.",
+      "type": "boolean"
+    },
+    "final_model_id": {
+      "description": "cycle-104 Sprint 2 (T2.6 / FR-S2.3). The model that produced the result, in provider:model_id form. May differ from models_requested[0] when within-company chain walked to a fallback entry. Null/absent when models_succeeded is empty (chain exhausted).",
+      "anyOf": [
+        { "type": "null" },
+        {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*:[a-zA-Z0-9._-]+$"
+        }
+      ]
+    },
+    "transport": {
+      "description": "cycle-104 Sprint 2 (T2.6). Transport of the FINAL successful entry — derived from its adapter_kind. 'http' for streaming/non-streaming HTTP adapters; 'cli' for headless subprocess adapters (claude-headless, codex-headless, gemini-headless). Null/absent when chain exhausted.",
+      "anyOf": [
+        { "type": "null" },
+        { "enum": ["http", "cli"] }
+      ]
+    },
+    "config_observed": {
+      "description": "cycle-104 Sprint 2 (T2.6). Audit-the-mode-source per PRD §1.3 axiom 2. Captures the operator-effective headless routing mode AND the precedence layer it came from (env > config > default), so audit consumers can prove which knob produced the chain walk shape.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["headless_mode", "headless_mode_source"],
+      "properties": {
+        "headless_mode": {
+          "enum": ["prefer-api", "prefer-cli", "api-only", "cli-only"]
+        },
+        "headless_mode_source": {
+          "enum": ["env", "config", "default"]
+        }
+      }
+    },
+    "role": {
+      "description": "cycle-108 sprint-1 T1.F. Caller's logical role at invocation time (PRD §5 FR-2). null/absent for legacy callers that did not pass --role.",
+      "anyOf": [
+        { "type": "null" },
+        { "enum": ["planning", "review", "implementation"] }
+      ]
+    },
+    "tier": {
+      "description": "cycle-108 sprint-1 T1.F. Resolved tier — advisor or executor. Null/absent when advisor_strategy disabled or legacy path.",
+      "anyOf": [
+        { "type": "null" },
+        { "enum": ["advisor", "executor"] }
+      ]
+    },
+    "tier_source": {
+      "description": "cycle-108 sprint-1 T1.F. Provenance of the tier decision: default (from defaults map), per_skill_override (explicit override), kill_switch (LOA_ADVISOR_STRATEGY_DISABLE or disabled-by-absence).",
+      "anyOf": [
+        { "type": "null" },
+        { "enum": ["default", "per_skill_override", "kill_switch", "disabled_legacy"] }
+      ]
+    },
+    "tier_resolution": {
+      "description": "cycle-108 sprint-1 T1.F. Resolution mode at load time. 'static:<sha>' pins to .loa.config.yaml commit SHA (SDD §3.6, FR-9). 'dynamic' re-resolves per call. 'disabled' for legacy path.",
+      "anyOf": [
+        { "type": "null" },
+        { "type": "string", "pattern": "^(static:[0-9a-fA-F]{4,40}|static:UNKNOWN|dynamic|disabled)$" }
+      ]
+    },
+    "sprint_kind": {
+      "description": "cycle-108 sprint-1 T1.F. Stratification label for benchmark grouping (e.g. 'glue', 'parser', 'cryptographic'). See SDD §8 taxonomy. Null/absent outside of replay context.",
+      "anyOf": [
+        { "type": "null" },
+        { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,63}$" }
+      ]
+    },
+    "writer_version": {
+      "description": "cycle-108 sprint-1 T1.F (SDD §21.4, IMP-012). MODELINV envelope writer version. '1.2' for cycle-108+. Read from .claude/data/cycle-108/modelinv-writer-version SoT file. Null/absent for legacy v1.1 emitters.",
+      "anyOf": [
+        { "type": "null" },
+        { "type": "string", "pattern": "^[0-9]+\\.[0-9]+$" }
+      ]
+    },
+    "invocation_chain": {
+      "description": "cycle-108 sprint-1 T1.F (SDD §20.5 ATK-A13). Parent skill / slash-command lineage of this cheval invocation (top-most caller first). Used for post-merge audit of skills claiming review-tier but invoked from non-review chains.",
+      "anyOf": [
+        { "type": "null" },
+        {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,63}$" },
+          "maxItems": 16
+        }
+      ]
+    },
+    "replay_marker": {
+      "description": "cycle-108 sprint-1 T1.F (SDD §20.10 ATK-A15). True when this invocation originates inside a benchmark replay context (LOA_REPLAY_CONTEXT=1). Rollup tool excludes replay-marked envelopes from prod queries by default.",
+      "anyOf": [
+        { "type": "null" },
+        { "type": "boolean" }
+      ]
+    },
+    "pricing_snapshot": {
+      "description": "cycle-108 sprint-2 T2.J (SDD §20.9 ATK-A20). Pricing captured at invocation time from .claude/defaults/model-config.yaml::providers.<p>.models.<m>.pricing. Units: micro-USD per million tokens. Rollup tool reads pricing FROM envelopes (not current model-config), so historical pricing changes do not retroactively rewrite cost reports.",
+      "anyOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["input_per_mtok", "output_per_mtok"],
+          "properties": {
+            "input_per_mtok": { "type": "integer", "minimum": 0 },
+            "output_per_mtok": { "type": "integer", "minimum": 0 },
+            "reasoning_per_mtok": { "type": "integer", "minimum": 0 },
+            "per_task_micro_usd": { "type": "integer", "minimum": 0 },
+            "pricing_mode": { "enum": ["token", "task", "hybrid"] }
+          }
+        }
+      ]
     }
   }
 }
