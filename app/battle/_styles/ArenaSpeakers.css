@@ -39,10 +39,12 @@
     align-items: flex-start;
   }
   .speaker--opponent {
-    top: var(--space-sm);
+    /* Top respects iOS safe-area + a 24px hard buffer so the portrait
+       NEVER clips against the viewport top edge. */
+    top: calc(env(safe-area-inset-top, 0px) + 24px);
     right: var(--space-xs);
     --speaker-right: var(--space-xs);
-    --speaker-top: var(--space-sm);
+    --speaker-top: calc(env(safe-area-inset-top, 0px) + 24px);
     align-items: flex-end;
   }
 
@@ -52,10 +54,10 @@
       --speaker-left: var(--space-md);
     }
     .speaker--opponent {
-      top: clamp(40px, 8vh, 80px);
+      top: calc(env(safe-area-inset-top, 0px) + clamp(40px, 8vh, 80px));
       right: var(--space-md);
       --speaker-right: var(--space-md);
-      --speaker-top: clamp(40px, 8vh, 80px);
+      --speaker-top: calc(env(safe-area-inset-top, 0px) + clamp(40px, 8vh, 80px));
     }
   }
 
