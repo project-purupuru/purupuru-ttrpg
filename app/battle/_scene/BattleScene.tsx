@@ -262,9 +262,14 @@ export function BattleScene() {
 }
 
 /**
- * Round context chip — surfaces "Round 2 of 3 · 1 survivor" so
- * between-rounds states with shrunken hands read as intentional drama
- * instead of broken layout. Hidden during entry/quiz/result.
+ * Round context chip — stage-dot indicator that mirrors world-purupuru.
+ * 3 dots horizontally centered: filled = completed, outlined-active =
+ * current, outlined = pending. Survivors line slips in below only when
+ * the hand has shrunk during between-rounds (the drama beat).
+ *
+ * Position: as a sibling to the player-hand fan, vertically centered
+ * via the row's flex shape. NEVER cut by viewport edges (the prior
+ * "Round X of 3" pill snuck into the top safe-area on narrow viewports).
  */
 function RoundContextChip({
   phase,
@@ -283,13 +288,23 @@ function RoundContextChip({
     return null;
   }
   const showSurvivorLine = phase === "between-rounds" && survivors < handSize;
+  const dots = Array.from({ length: totalRounds }, (_, i) => {
+    const state = i < currentRound ? "done" : i === currentRound ? "active" : "pending";
+    return state;
+  });
   return (
     <div className="round-chip" data-phase={phase} aria-live="polite">
-      <span className="round-chip__round">
-        Round <strong>{currentRound + 1}</strong>
-        <span className="round-chip__sep">·</span>
-        <span className="round-chip__total">of {totalRounds}</span>
-      </span>
+      <div
+        className="round-chip__stages"
+        role="progressbar"
+        aria-label={`Round ${currentRound + 1} of ${totalRounds}`}
+        aria-valuenow={currentRound + 1}
+        aria-valuemax={totalRounds}
+      >
+        {dots.map((state, i) => (
+          <span key={i} className={`round-chip__dot round-chip__dot--${state}`} />
+        ))}
+      </div>
       {showSurvivorLine && (
         <span className="round-chip__survivors">
           {survivors} of {handSize} card{survivors === 1 ? "" : "s"} surviving

@@ -1,0 +1,24 @@
+diff --git a/dist/index.mjs b/dist/index.mjs
+index b6662bd6b8bcc9555e22a4d1a0de99198e0c11b5..4678d88b4beb647f6985fc12d6ff490d644b511b 100644
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -7234,8 +7234,18 @@ function parseComponentFrame(stack) {
+     /react-stack-bottom-frame/,
+     /react-reconciler/,
+     /scheduler/,
+-    /<anonymous>/
++    /<anonymous>/,
+     // Proxy handler frames
++    // PATCH (compass cycle 2026-05-12): Next.js Turbopack/webpack bundled
++    // chunk paths — agentation's own dist/index.mjs gets served via these
++    // routes when installed as an npm dep. Without these patterns, the
++    // very first stack frame (the agentation library probe itself) gets
++    // returned as the "user source" — pointing operators at JS bundles
++    // they didn't write.
++    /_next\/static\/chunks\//,
++    /_next\/static\/media\//,
++    /agentation[_/]dist[_/]/,
++    /agentation@\d+\.\d+/
+   ];
+   const v8Re = /^\s*at\s+(?:.*?\s+\()?(.+?):(\d+):(\d+)\)?$/;
+   const webkitRe = /^[^@]*@(.+?):(\d+):(\d+)$/;

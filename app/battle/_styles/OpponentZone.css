@@ -20,9 +20,19 @@
     padding: 0;
   }
 
-  .opponent-lineup { min-height: 0; }
+  .opponent-lineup {
+    min-height: 0;
+    /* Frame the row so 5 face-down cards read as "the opponent's lineup"
+       not as 5 disconnected images. Subtle pill background + fine line. */
+    padding: var(--space-xs) var(--space-sm);
+    background: oklch(from var(--puru-cloud-bright) l c h / 0.18);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border-radius: var(--radius-lg);
+    border: 1px solid oklch(from var(--puru-ink-ghost) l c h / 0.15);
+  }
   .opponent-lineup .lineup-row {
-    gap: clamp(var(--space-2xs), 1vw, var(--space-xs));
+    gap: clamp(var(--space-xs), 1.5vw, var(--space-sm));
   }
 
   .lineup-row {
