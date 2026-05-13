@@ -69,17 +69,20 @@
      ══════════════════════════════════════════════════════════ */
   .map-flat {
     position: absolute;
-    /* Operator feedback (2026-05-12): "the top part…is not aware of
-       the viewport. The big circle is getting cut off." The 900×900
-       texture was bleeding past the viewport's top edge. Now bounded
-       to a viewport-aware size + centered VERTICALLY (not pinned to
-       top: 0). Aspect ratio preserved via height: auto. */
+    /* Operator feedback (2026-05-13 r2): "let's center the map in the
+       back for some reason it's getting cut off on bottom side." Root
+       cause: prior width: min(85vw, 900px) only constrained by VIEWPORT
+       WIDTH. With dev panel open the viewport HEIGHT (633px) was less
+       than 900px → centered map bled off both top + bottom (584px clip).
+       Bounding by min(vw, vh) ensures the square texture FITS the
+       smaller dimension. */
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: min(85vw, 900px);
+    width: min(85vw, 85vh, 900px);
+    height: min(85vw, 85vh, 900px);
     max-width: 900px;
-    height: auto;
+    max-height: 900px;
     aspect-ratio: 1 / 1;
     /* ROSENZU: you're ON the terrain now, not above it.
        Sepia warms the grey desaturation toward earth/parchment. */
@@ -446,25 +449,25 @@
 
   /* ── Floor atmosphere keyframes (very slow — felt, not seen) ── */
   @keyframes atmo-drift {
-    0%, 100% { transform: translateX(-50%) translateY(0); }
-    50% { transform: translateX(-50%) translateY(-3px) scale(1.003); }
+    0%, 100% { transform: translate(-50%, -50%); }
+    50% { transform: translate(-50%, calc(-50% + -3px)) scale(1.003); }
   }
   @keyframes atmo-shimmer {
-    0%, 100% { transform: translateX(-50%); filter: saturate(0.35) sepia(0.08); }
-    50% { transform: translateX(-50%) skewY(0.12deg); filter: saturate(0.35) sepia(0.08) brightness(1.03); }
+    0%, 100% { transform: translate(-50%, -50%); filter: saturate(0.35) sepia(0.08); }
+    50% { transform: translate(-50%, -50%) skewY(0.12deg); filter: saturate(0.35) sepia(0.08) brightness(1.03); }
   }
   @keyframes atmo-breath {
-    0%, 100% { transform: translateX(-50%); filter: saturate(0.40) sepia(0.12); }
-    50% { transform: translateX(-50%) scale(1.002); filter: saturate(0.42) sepia(0.14) brightness(1.01); }
+    0%, 100% { transform: translate(-50%, -50%); filter: saturate(0.40) sepia(0.12); }
+    50% { transform: translate(-50%, -50%) scale(1.002); filter: saturate(0.42) sepia(0.14) brightness(1.01); }
   }
   @keyframes atmo-reflect {
     0%, 100% { filter: saturate(0.50) sepia(0.04) brightness(1.00); }
     40% { filter: saturate(0.55) sepia(0.02) brightness(1.06) contrast(1.06); }
   }
   @keyframes atmo-ripple {
-    0%, 100% { transform: translateX(-50%) translateY(0); }
-    35% { transform: translateX(-50%) translateY(-2px) scaleX(1.002); }
-    70% { transform: translateX(-50%) translateY(2px); }
+    0%, 100% { transform: translate(-50%, -50%); }
+    35% { transform: translate(-50%, calc(-50% + -2px)) scaleX(1.002); }
+    70% { transform: translate(-50%, calc(-50% + 2px)); }
   }
 
   /* ── Phase-driven room state (from immersion brief) ──────── */
