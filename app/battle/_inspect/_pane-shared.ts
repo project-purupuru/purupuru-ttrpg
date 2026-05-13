@@ -10,7 +10,7 @@
  * ButtonGrid — none of which ship in core Tweakpane v4.
  */
 
-import { type FolderApi, type Pane } from "tweakpane";
+import { type FolderApi, Pane } from "tweakpane";
 import * as EssentialsPlugin from "@tweakpane/plugin-essentials";
 
 /** Tweakpane v4's published types are narrower than runtime. Cast to this
@@ -23,12 +23,10 @@ export type PaneEx = FolderApi & {
   readonly registerPlugin: (plugin: unknown) => void;
 };
 
-let _registered = false;
-
+/** Per-instance registration. Tweakpane v4 plugin registration is
+ * pane-scoped, NOT global — every pane must call this. */
 export function registerEssentials(pane: PaneEx): void {
-  if (_registered) return;
   pane.registerPlugin(EssentialsPlugin);
-  _registered = true;
 }
 
 /** Add an FpsGraph at the top of the pane. Returns the blade. */
@@ -42,9 +40,6 @@ export function addFpsGraph(pane: PaneEx | FolderApi, label = "fps") {
 
 /** Construct a Pane and cast to PaneEx in one place. */
 export function makePane(opts: { container?: HTMLElement; title?: string }): PaneEx {
-  // Lazy import to avoid SSR Pane construction — but in practice these
-  // panes mount only in DevConsole which is NODE_ENV-gated.
-  const { Pane } = require("tweakpane");
   return new Pane(opts) as unknown as PaneEx;
 }
 

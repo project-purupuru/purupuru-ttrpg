@@ -29,11 +29,15 @@ export function CameraPane() {
     const preset = loadPreset<typeof engine.config>(PRESET_KEY);
     if (preset) Object.assign(engine.config, preset);
 
-    const pane = makePane({ container: containerRef.current, title: "Camera" });
-    registerEssentials(pane);
-
-    // FPS at the top — every panel has it
-    addFpsGraph(pane, "fps");
+    let pane: ReturnType<typeof makePane>;
+    try {
+      pane = makePane({ container: containerRef.current, title: "Camera" });
+      registerEssentials(pane);
+      addFpsGraph(pane, "fps");
+    } catch (err) {
+      console.error("[CameraPane] init failed:", err);
+      return;
+    }
 
     const fSmoothing = pane.addFolder({ title: "Smoothing", expanded: true });
     fSmoothing.addBinding(engine.config, "smoothing", { min: 0.05, max: 0.30, step: 0.005, label: "lerp" });

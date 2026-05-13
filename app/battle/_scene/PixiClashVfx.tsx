@@ -31,14 +31,13 @@ interface PixiBurstSlot {
 export function PixiClashVfx({ element, visibleClashIdx, activeClashPhase }: PixiClashVfxProps) {
   const [bursts, setBursts] = useState<readonly PixiBurstSlot[]>([]);
 
-  // Scheduler arbitrates: only fires when (a) per-element renderer config
-  // picks "pixi" (default: water only), (b) particle cap not reached,
-  // (c) cooldown elapsed. CSS sibling component is rejected for the same
-  // element so the two don't double-fire.
+  // Symmetric to ClashVfx: skip if config routes this element to CSS.
   useEffect(() => {
     if (activeClashPhase !== "impact") return;
     if (!element || visibleClashIdx < 0) return;
     const sched = vfxScheduler();
+    if (sched.config.particleRenderer[element] !== "pixi") return;
+
     const admitted = sched.request({
       family: "particle",
       element,

@@ -44,12 +44,12 @@ export function ClashVfx({ element, visibleClashIdx, activeClashPhase }: ClashVf
     if (activeClashPhase !== "impact") return;
     if (!element || visibleClashIdx < 0) return;
 
-    // Scheduler arbitrates: this CSS particle kit only renders if
-    // (a) scheduler is enabled, (b) particle family not at cap,
-    // (c) cooldown elapsed, (d) per-element renderer config picks "css".
-    // For water, scheduler routes to Pixi by default (PixiClashVfx
-    // subscribes to "pixi" for the same family).
+    // Per-element renderer config: skip if this element routes to Pixi
+    // (PixiClashVfx will own the spawn). The two renderers share family
+    // capacity but defer to whichever the config picks for the element.
     const sched = vfxScheduler();
+    if (sched.config.particleRenderer[element] !== "css") return;
+
     const admitted = sched.request({
       family: "particle",
       element,
