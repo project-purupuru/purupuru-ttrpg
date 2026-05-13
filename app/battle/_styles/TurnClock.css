@@ -1,8 +1,29 @@
   .turn-clock {
+    /* Operator hit (2026-05-13): "this part" — the kanji pips were
+       clipping at the top of .battle-scene because TurnClock was in
+       normal flow with no positioning, sitting at y=0 inside an
+       overflow: hidden parent. Active pip's scale(1.18) + ring's
+       inset:-5px + ring scale(1.12) = ~10px above its visible top
+       got clipped by the viewport.
+
+       Now: floats top-center with safe-area inset + 24px hard buffer.
+       z-index 30 so it sits above arena content. Has its own
+       transparent backplate so the pips read against any backdrop. */
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 24px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 30;
     display: flex;
     gap: var(--space-sm);
     justify-content: center;
     align-items: center;
+    padding: 8px 14px;
+    border-radius: var(--radius-full);
+    background: oklch(from var(--puru-cloud-bright) l c h / 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    pointer-events: none;
   }
 
   .pip {
