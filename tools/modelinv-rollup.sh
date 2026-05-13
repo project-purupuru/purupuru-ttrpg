@@ -99,12 +99,23 @@ if [ "$CHAIN_VERIFY" -eq 1 ]; then
         # `set -u` in this script. We run the verification in a child bash
         # process so any internal `set -e` doesn't propagate, and emit a
         # marker line to stderr that the parent grep-parses.
+        # BB iter-6 F002 closure: capture audit_verify_chain's stderr to a
+        # separate file inside the subshell + replay on FAIL. The prior
+        # `( source ...; audit_verify_chain ... >&2 ) || marker=FAIL` pattern
+        # let the underlying error message reach stderr but operators couldn't
+        # tell post-hoc whether the failure was "envelope N hash mismatch"
+        # vs "audit-envelope.sh failed to source". Stderr is now teed into
+        # an operator-readable diagnostic file, replayed on FAIL.
         verify_marker_file="$(mktemp)"
+        verify_diag_file="$(mktemp)"
         (
             set +u
             # shellcheck source=/dev/null
-            source "$SCRIPT_DIR/audit-envelope.sh" 2>/dev/null
-            if ! audit_verify_chain "$INPUT_PATH" >&2; then
+            if ! source "$SCRIPT_DIR/audit-envelope.sh" 2> "$verify_diag_file"; then
+                printf 'SOURCE-FAILED\n' > "$verify_marker_file"
+                exit 0
+            fi
+            if ! audit_verify_chain "$INPUT_PATH" 2>> "$verify_diag_file"; then
                 printf 'FAIL\n' > "$verify_marker_file"
             else
                 printf 'OK\n' > "$verify_marker_file"
@@ -113,10 +124,16 @@ if [ "$CHAIN_VERIFY" -eq 1 ]; then
         verify_status="$(cat "$verify_marker_file" 2>/dev/null)"
         rm -f "$verify_marker_file"
         if [ "$verify_status" != "OK" ]; then
-            echo "[CHAIN-VERIFY-FAILED] $INPUT_PATH" >&2
+            echo "[CHAIN-VERIFY-FAILED] $INPUT_PATH (status=$verify_status)" >&2
+            if [ -s "$verify_diag_file" ]; then
+                echo "[CHAIN-VERIFY-DIAGNOSTIC] underlying error:" >&2
+                cat "$verify_diag_file" >&2
+            fi
             echo "Recovery: see grimoires/loa/runbooks/advisor-strategy-rollback.md (audit_recover_chain)." >&2
+            rm -f "$verify_diag_file"
             exit 1
         fi
+        rm -f "$verify_diag_file"
     else
         echo "warning: audit-envelope.sh not found at $SCRIPT_DIR; chain verification SKIPPED" >&2
     fi
