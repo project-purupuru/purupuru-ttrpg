@@ -60,9 +60,24 @@ simstim:
 # Flatline Protocol — multi-model adversarial review
 # Enabled 2026-05-09 for indexer sprint-2 Flatline gate (sprint plan + amendments)
 # Auto-trigger left off — manual invocation via /flatline-review only
+# 2026-05-13 PM (cycle-1): route model-adapter through cheval (model-invoke).
+# Without this, model-adapter.sh sends headless aliases (codex-headless etc) directly
+# to OpenAI API which rejects them with "model does not exist".
+# CLAUDE.md says default is true post-cycle-107 but code default is false.
+hounfour:
+  flatline_routing: true
+
 flatline_protocol:
   enabled: true
   auto_trigger: false
+  # 2026-05-13 PM (cycle-1): auth degraded — anthropic credits exhausted, google project 403.
+  # Routing all 3 voices through codex-headless (only working path) for infrastructure validation.
+  # Manual Opus voice supplied via Claude Code session (this conversation) as second adversarial voice.
+  # Restore Anthropic + Google auth to return to multi-model adversarial config.
+  models:
+    primary: codex-headless
+    secondary: codex-headless
+    tertiary: codex-headless
 
 # ─────────────────────────────────────────────────────────────────────────
 # Run Bridge · Autonomous Excellence Loop (added 2026-05-07 PM)
