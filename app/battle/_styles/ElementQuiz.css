@@ -48,15 +48,8 @@
     letter-spacing: -0.018em;
     line-height: 1.05;
   }
-  .quiz-header::after {
-    content: '';
-    display: block;
-    width: 56px;
-    height: 1px;
-    margin-top: var(--space-sm);
-    background: linear-gradient(to right, transparent, var(--puru-honey-base), transparent);
-    opacity: 0.5;
-  }
+  /* Operator removed the underline divider (2026-05-12) — the
+     eyebrow + title pair stand on their own. */
 
   /* Element tint wash on selection */
   .quiz-tinted::before {
