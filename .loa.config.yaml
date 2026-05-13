@@ -67,6 +67,12 @@ simstim:
 hounfour:
   flatline_routing: true
 
+# Bridgebuilder model — same auth pivot as flatline (codex-headless via subscription)
+bridgebuilder:
+  model: codex-headless
+  dry_run: false
+  max_prs: 10
+
 flatline_protocol:
   enabled: true
   auto_trigger: false
