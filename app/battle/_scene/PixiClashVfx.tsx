@@ -15,8 +15,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Element } from "@/lib/honeycomb/wuxing";
 import { spawnWaterBurst } from "@/lib/vfx/pixi-water-burst";
-
-const PIXI_ENABLED_ELEMENTS: ReadonlySet<Element> = new Set<Element>(["water"]);
+import { vfxScheduler } from "@/lib/vfx/scheduler";
 
 interface PixiClashVfxProps {
   readonly element: Element | null;
@@ -32,13 +31,23 @@ interface PixiBurstSlot {
 export function PixiClashVfx({ element, visibleClashIdx, activeClashPhase }: PixiClashVfxProps) {
   const [bursts, setBursts] = useState<readonly PixiBurstSlot[]>([]);
 
-  // Spawn a burst slot when an enabled element enters impact.
+  // Scheduler arbitrates: only fires when (a) per-element renderer config
+  // picks "pixi" (default: water only), (b) particle cap not reached,
+  // (c) cooldown elapsed. CSS sibling component is rejected for the same
+  // element so the two don't double-fire.
   useEffect(() => {
     if (activeClashPhase !== "impact") return;
     if (!element || visibleClashIdx < 0) return;
-    if (!PIXI_ENABLED_ELEMENTS.has(element)) return;
-    const id = Date.now() + visibleClashIdx;
-    setBursts((prev) => [...prev, { id, element }]);
+    const sched = vfxScheduler();
+    const admitted = sched.request({
+      family: "particle",
+      element,
+      renderer: "pixi",
+      currentPhase: "clashing",
+      expectedDurationMs: 900,
+    });
+    if (!admitted) return;
+    setBursts((prev) => [...prev, { id: admitted.startedAt, element }]);
   }, [activeClashPhase, element, visibleClashIdx]);
 
   // Hard reset when phase ends — same shape as ClashVfx so residue

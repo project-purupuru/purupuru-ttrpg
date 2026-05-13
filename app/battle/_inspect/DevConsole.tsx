@@ -20,6 +20,8 @@
 import { motion, AnimatePresence } from "motion/react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { AudioPane } from "./AudioPane";
+import { CameraPane } from "./CameraPane";
 import { ComboDebug } from "./ComboDebug";
 import { EventLogView } from "./EventLogView";
 import { JuiceTweakpane } from "./JuiceTweakpane";
@@ -29,10 +31,11 @@ import { PhaseScrubber } from "./PhaseScrubber";
 import { SeedReplayPanel } from "./SeedReplayPanel";
 import { SnapshotJsonView } from "./SnapshotJsonView";
 import { SubstrateInspector } from "./SubstrateInspector";
+import { VfxPane } from "./VfxPane";
 
-type Tab = "scrub" | "mech" | "juice" | "kaironic" | "substrate" | "seed" | "combo";
+type Tab = "scrub" | "mech" | "juice" | "vfx" | "audio" | "camera" | "kaironic" | "substrate" | "seed" | "combo";
 
-const TABS: readonly Tab[] = ["scrub", "mech", "juice", "kaironic", "substrate", "seed", "combo"];
+const TABS: readonly Tab[] = ["scrub", "mech", "vfx", "audio", "camera", "juice", "kaironic", "substrate", "seed", "combo"];
 
 const STORAGE_KEY = "puru-dev-panel-enabled";
 
@@ -161,6 +164,9 @@ export function DevConsole() {
             )}
             {tab === "mech" && <MechanicsInspector />}
             {tab === "juice" && <JuiceTweakpane />}
+            {tab === "vfx" && <VfxPane />}
+            {tab === "audio" && <AudioPane />}
+            {tab === "camera" && <CameraPane />}
             {tab === "kaironic" && <KaironicPanel weights={emptyKaironic} />}
             {tab === "substrate" && <SubstrateInspector />}
             {tab === "seed" && <SeedReplayPanel />}

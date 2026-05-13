@@ -7,10 +7,14 @@
     /* Contain reflow — backdrop changes don't trigger page-level layout */
     contain: layout style paint;
     /* Parallax depth: backdrop moves the most (deepest layer).
-       --parallax-x/y come from ParallaxLayer (mousemove → CSS vars).
-       Smooth via transition; animations on top of transition compose. */
-    transform: translate(var(--parallax-x, 0px), var(--parallax-y, 0px));
-    transition: transform 360ms cubic-bezier(0.22, 1.0, 0.36, 1);
+       --parallax-x/y come from CameraEngine (RAF-driven LERP). The CSS
+       transition is REMOVED — engine handles smoothing — leaving it on
+       chase-mode caused the saw-tooth glitch the operator saw. Camera
+       shake adds on top of parallax via additional vars. */
+    transform: translate(
+      calc(var(--parallax-x, 0px) + var(--camera-shake-x, 0px)),
+      calc(var(--parallax-y, 0px) + var(--camera-shake-y, 0px))
+    );
   }
 
   /* ── Hitstop ───────────────────────────────────────────────────

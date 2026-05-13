@@ -97,3 +97,15 @@ Two layered bugs surfaced when running `/flatline-review` on the new PRD after t
 2. **Scoring-engine parse failure** — Opus headless calls succeed (no error) but output doesn't conform to the schema the scoring engine expects. `consensus_summary.degradation_reason = "no_items_to_score"` per issue #759. GPT calls failed entirely (stderr only echoed model-adapter banner, no JSON).
 
 Filed via `/feedback` 2026-05-12. Net: flatline produced no actionable findings for the new PRD. Saved degraded result at `grimoires/loa/a2a/flatline/card-game-prd-degraded-2026-05-12.json`. PRD proceeds to /architect without flatline review this round; operator-ratified post-completion gate stands in.
+
+## 2026-05-12 · DIG fallback used (Gemini 403)
+
+`dig-search.ts` failed across all 4 queries with `PERMISSION_DENIED` — Gemini
+API project denied. Tried fallback chain: gemini-3-flash-preview →
+gemini-2.5-flash → gemini-2.0-flash. All 403.
+
+Per CLAUDE.md: "If both fail, THEN use Agent WebSearch and log the failure."
+Synthesizing from training knowledge instead this turn since the user is
+mid-iteration on /battle visuals and cannot wait for an auth fix. Cite the
+proposal file `grimoires/loa/proposals/foundation-vfx-camera-audio-2026-05-12.md`
+for the doctrine that resulted.

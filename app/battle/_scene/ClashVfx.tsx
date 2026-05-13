@@ -21,6 +21,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { buildClashParticles, type ParticleInstance } from "@/lib/vfx/clash-particles";
+import { vfxScheduler } from "@/lib/vfx/scheduler";
 import type { Element } from "@/lib/honeycomb/wuxing";
 
 interface ClashVfxProps {
@@ -42,8 +43,24 @@ export function ClashVfx({ element, visibleClashIdx, activeClashPhase }: ClashVf
   useEffect(() => {
     if (activeClashPhase !== "impact") return;
     if (!element || visibleClashIdx < 0) return;
+
+    // Scheduler arbitrates: this CSS particle kit only renders if
+    // (a) scheduler is enabled, (b) particle family not at cap,
+    // (c) cooldown elapsed, (d) per-element renderer config picks "css".
+    // For water, scheduler routes to Pixi by default (PixiClashVfx
+    // subscribes to "pixi" for the same family).
+    const sched = vfxScheduler();
+    const admitted = sched.request({
+      family: "particle",
+      element,
+      renderer: "css",
+      currentPhase: "clashing",
+      expectedDurationMs: 700,
+    });
+    if (!admitted) return;
+
     const { kit, particles } = buildClashParticles(element, visibleClashIdx + 1);
-    const id = Date.now() + visibleClashIdx;
+    const id = admitted.startedAt + visibleClashIdx;
     setBursts((prev) => [...prev, { id, element, particles }]);
     const t = setTimeout(() => {
       setBursts((prev) => prev.filter((b) => b.id !== id));

@@ -43,6 +43,9 @@ importers:
       '@solana/web3.js':
         specifier: ^1.95.0
         version: 1.98.4(typescript@5.0.2)
+      '@tweakpane/plugin-essentials':
+        specifier: ^0.2.1
+        version: 0.2.1(tweakpane@4.0.5)
       '@vercel/kv':
         specifier: ^3.0.0
         version: 3.0.0
@@ -2861,6 +2864,14 @@ packages:
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
     dev: true
+
+  /@tweakpane/plugin-essentials@0.2.1(tweakpane@4.0.5):
+    resolution: {integrity: sha512-VbFU1/uD+CJNFQdfLXUOLjeG5HyUZH97Ox9CxmyVetg1hqjVun3C83HAGFULyhKzl8tSgii8jr304r8QpdHwzQ==}
+    peerDependencies:
+      tweakpane: ^4.0.0
+    dependencies:
+      tweakpane: 4.0.5
+    dev: false
 
   /@types/aria-query@5.0.4:
     resolution: {integrity: sha512-rfT93uj5s0PRL7EzccGMs3brplhcrghnDoV26NqKhCAS1hVo+WdNsPvE/yb6ilfr5hi2MEk6d5EWJTKdxg8jVw==}

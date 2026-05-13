@@ -45,20 +45,18 @@
 		display: flex;
 		flex-direction: column;
 		pointer-events: none;
-		/* Camera composition: parallax (mousemove) + idle drift (figure-8).
-		   Both are pure translation. The 12s idle drift makes the camera
-		   feel "alive on a tripod" during arrange — pauses during clashing
-		   so impacts read cleanly. Per-direction custom-property compose
-		   into a single translate() call. */
+		/* Camera composition — CameraEngine writes --parallax-arena-x/y
+		   on every RAF tick (LERP-smoothed in JS). Idle drift is now
+		   ALSO computed by the engine (additive on top of pointer target),
+		   so the legacy --idle-drift-x/y vars + CSS keyframe animation
+		   are removed. Camera shake adds via --camera-shake-x/y * 0.5
+		   (arena lives at the mid layer). The CSS transition that caused
+		   the saw-tooth glitch is removed.
+		*/
 		transform: translate(
-			calc(var(--parallax-arena-x, 0px) + var(--idle-drift-x, 0px)),
-			calc(var(--parallax-arena-y, 0px) + var(--idle-drift-y, 0px))
+			calc(var(--parallax-arena-x, 0px) + var(--camera-shake-x, 0px) * 0.5),
+			calc(var(--parallax-arena-y, 0px) + var(--camera-shake-y, 0px) * 0.5)
 		);
-		transition: transform 320ms cubic-bezier(0.22, 1.0, 0.36, 1);
-		/* Drift period is live-tunable via JuiceTweakpane.
-		   Default 18s; --puru-idle-drift-period overrides. */
-		animation: arena-idle-drift var(--puru-idle-drift-period, 18s)
-		           ease-in-out infinite;
 	}
 	/* Pause idle drift during clash phases so the impact owns the screen. */
 	.arena[data-phase='clashing'],

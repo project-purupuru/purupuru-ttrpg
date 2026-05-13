@@ -13,6 +13,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { ClashResult } from "@/lib/honeycomb/clash.port";
 import type { Element } from "@/lib/honeycomb/wuxing";
+import { vfxScheduler } from "@/lib/vfx/scheduler";
+import { cameraEngine, punchForElement } from "@/lib/camera/parallax-engine";
+import { audioEngine } from "@/lib/audio/engine";
 
 interface ClashOrbProps {
   readonly clash: ClashResult | null;
@@ -49,13 +52,22 @@ export function ClashOrb({
   // must not cancel it.
   useEffect(() => {
     if (activeClashPhase !== "impact" || !clash) return;
+    // Scheduler arbitrates orb spawn (cap = 1 by default, cooldown 80ms)
+    const sched = vfxScheduler();
+    const admitted = sched.request({
+      family: "orb",
+      currentPhase: "clashing",
+      expectedDurationMs: ORB_LIFETIME_MS,
+    });
+    if (!admitted) return;
+
     const winner: Element | null =
       clash.loser === "p1"
         ? clash.p2Card.card.element
         : clash.loser === "p2"
           ? clash.p1Card.card.element
           : null;
-    const id = Date.now() + visibleClashIdx;
+    const id = admitted.startedAt + visibleClashIdx;
     setOrbs((prev) => [
       ...prev,
       {
@@ -66,6 +78,18 @@ export function ClashOrb({
         isFinal: visibleClashIdx === totalClashes - 1,
       },
     ]);
+
+    // Camera punch + shake — substrate→camera wiring lives here at the
+    // semantic event ("a clash impacted") rather than in the engine.
+    const isFinal = visibleClashIdx === totalClashes - 1;
+    const lead = clash.p1Card.card.element;
+    const p = punchForElement(lead);
+    cameraEngine().punch(p.x, p.y);
+    cameraEngine().shake(p.shake * (isFinal ? 1.4 : 1.0));
+
+    // Audio duck — combat moment, lower music briefly
+    audioEngine().duck(isFinal ? 600 : 250);
+
     const t = setTimeout(() => {
       setOrbs((prev) => prev.filter((o) => o.id !== id));
       timersRef.current.delete(t);

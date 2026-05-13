@@ -90,6 +90,13 @@ class AudioEngine {
   private sfxVolume = 0.7;
   private musicVolume = 0.5;
 
+  // Ducking — music auto-attenuates when high-priority SFX plays
+  private duckActive = false;
+  private duckDepth = 0.3; // 0..1, music multiplied by this when ducking
+  private duckAttackMs = 100;
+  private duckReleaseMs = 400;
+  private duckReleaseTimer: number | null = null;
+
   constructor() {
     if (typeof window !== "undefined") {
       this.enabled = window.localStorage.getItem(STORAGE_ENABLED_KEY) !== "false";
@@ -183,6 +190,68 @@ class AudioEngine {
 
   getVolumes(): { master: number; sfx: number; music: number } {
     return { master: this.masterVolume, sfx: this.sfxVolume, music: this.musicVolume };
+  }
+
+  // ── Ducking ────────────────────────────────────────────────────
+
+  setDuckConfig(depth: number, attackMs: number, releaseMs: number): void {
+    this.duckDepth = clamp01(depth);
+    this.duckAttackMs = Math.max(0, attackMs);
+    this.duckReleaseMs = Math.max(0, releaseMs);
+  }
+
+  /** Pull music gain down to duckDepth × musicVolume. Auto-releases. */
+  duck(holdMs = 200): void {
+    const ctx = this.ctx;
+    if (!ctx || !this.musicGain) return;
+    this.duckActive = true;
+    const target = this.musicVolume * this.duckDepth;
+    const t = ctx.currentTime;
+    this.musicGain.gain.cancelScheduledValues(t);
+    this.musicGain.gain.setTargetAtTime(target, t, this.duckAttackMs / 1000 / 3);
+    if (this.duckReleaseTimer !== null) window.clearTimeout(this.duckReleaseTimer);
+    this.duckReleaseTimer = window.setTimeout(() => {
+      this.releaseDuck();
+    }, holdMs);
+  }
+
+  releaseDuck(): void {
+    if (!this.duckActive) return;
+    const ctx = this.ctx;
+    if (!ctx || !this.musicGain) return;
+    this.duckActive = false;
+    this.musicGain.gain.setTargetAtTime(
+      this.musicVolume,
+      ctx.currentTime,
+      this.duckReleaseMs / 1000 / 3,
+    );
+    if (this.duckReleaseTimer !== null) {
+      window.clearTimeout(this.duckReleaseTimer);
+      this.duckReleaseTimer = null;
+    }
+  }
+
+  isDucking(): boolean {
+    return this.duckActive;
+  }
+
+  // ── Snapshot system (named bus presets) ────────────────────────
+
+  applySnapshot(snap: AudioSnapshot): void {
+    this.setMasterVolume(snap.master);
+    this.setSfxVolume(snap.sfx);
+    this.setMusicVolume(snap.music);
+    if (snap.duckDepth !== undefined) this.duckDepth = clamp01(snap.duckDepth);
+  }
+
+  /** Read-only snapshot of current voice activity (for tweakpane monitor). */
+  getActiveVoiceCounts(): Record<AudioNamespace, number> {
+    const out: Record<AudioNamespace, number> = {
+      ui: 0, card: 0, match: 0, discovery: 0, music: 0,
+    };
+    for (const [ns, voices] of this.activeVoices) out[ns] = voices.length;
+    if (this.currentMusicEl) out.music = 1;
+    return out;
   }
 
   private applyVolumes(): void {
@@ -441,6 +510,22 @@ class AudioEngine {
     return p;
   }
 }
+
+/** Named bus preset — applied atomically via applySnapshot. */
+export interface AudioSnapshot {
+  readonly name: string;
+  readonly master: number;
+  readonly sfx: number;
+  readonly music: number;
+  readonly duckDepth?: number;
+}
+
+export const SNAPSHOTS: Record<string, AudioSnapshot> = {
+  combat: { name: "combat", master: 0.85, sfx: 0.85, music: 0.35, duckDepth: 0.25 },
+  menu: { name: "menu", master: 0.7, sfx: 0.55, music: 0.55, duckDepth: 0.5 },
+  victory: { name: "victory", master: 1.0, sfx: 0.9, music: 0.7, duckDepth: 0.4 },
+  silent: { name: "silent", master: 0, sfx: 0, music: 0 },
+};
 
 function clamp01(n: number): number {
   if (!Number.isFinite(n)) return 0;
