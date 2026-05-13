@@ -21,12 +21,10 @@
 import { useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import type { Card } from "@/lib/honeycomb/cards";
-import { findDef } from "@/lib/honeycomb/cards";
-import { TYPE_POWER } from "@/lib/honeycomb/cards";
-import { ELEMENT_META } from "@/lib/honeycomb/wuxing";
+import { findDef, TYPE_POWER } from "@/lib/honeycomb/cards";
+import { ELEMENT_META, SHENG, KE } from "@/lib/honeycomb/wuxing";
 import { audioEngine } from "@/lib/audio/engine";
-import { cardArtChain } from "@/lib/cdn";
-import { CdnImage } from "./CdnImage";
+import { CARD_ART_PANELS, WORLD_SCENES } from "@/lib/cdn";
 
 interface CardPetalProps {
   readonly card: Card | null;
@@ -100,21 +98,54 @@ export function CardPetal({ card, onClose }: CardPetalProps) {
               </span>
             </header>
 
+            {/* COMPOSED art panel — bare scene + character overlay,
+                NO pre-rendered template chrome. The chrome is the
+                .petal frame itself. Layers (bottom to top):
+                1. .petal-art-bg     — soft scene background (low op)
+                2. .petal-art        — the character art-panel composite
+                3. .petal-power-badge— top-left rounded power chip
+                4. .petal-cycle-strip— bottom strip with sheng/ke neighbors */}
             <div className="petal-art-wrap">
-              <CdnImage
+              <img
+                className="petal-art-bg"
+                src={WORLD_SCENES[card.element]}
+                alt=""
+                aria-hidden
+              />
+              <img
                 className="petal-art"
-                sources={cardArtChain(card.cardType, card.element)}
+                src={CARD_ART_PANELS[card.element]}
                 alt={`${ELEMENT_META[card.element].caretaker} · ${card.cardType}`}
               />
+              <div className="petal-power-badge" aria-label="power">
+                <span className="petal-power-badge__num">{TYPE_POWER[card.cardType].toFixed(2)}</span>
+                <span className="petal-power-badge__times">×</span>
+              </div>
+              {/* Sheng/Ke cycle strip — what this element BEATS and is BEATEN BY.
+                  Replaces the placeholder bear icons. Real lore content. */}
+              <div className="petal-cycle-strip">
+                <div className="petal-cycle-pair" title={`Generates ${ELEMENT_META[SHENG[card.element]].name}`}>
+                  <span className="petal-cycle-arrow">→</span>
+                  <span
+                    className="petal-cycle-kanji"
+                    data-element={SHENG[card.element]}
+                  >
+                    {ELEMENT_META[SHENG[card.element]].kanji}
+                  </span>
+                </div>
+                <div className="petal-cycle-pair" title={`Overcomes ${ELEMENT_META[KE[card.element]].name}`}>
+                  <span className="petal-cycle-arrow">⚔</span>
+                  <span
+                    className="petal-cycle-kanji"
+                    data-element={KE[card.element]}
+                  >
+                    {ELEMENT_META[KE[card.element]].kanji}
+                  </span>
+                </div>
+              </div>
             </div>
 
             <footer className="petal-footer">
-              <div className="petal-power">
-                <span className="petal-power-label">power</span>
-                <span className="petal-power-value">
-                  {TYPE_POWER[card.cardType].toFixed(2)}×
-                </span>
-              </div>
               {findDef(card.defId)?.name && (
                 <p className="petal-name">{findDef(card.defId)?.name}</p>
               )}

@@ -5,10 +5,11 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    justify-content: flex-end;
-    /* Hard 24px buffer ABOVE safe-area-inset to prevent any clipping
-       against the viewport top edge (operator hit this on dev panel
-       open at 1708×934 — opponent zone touched the top). */
+    /* Operator feedback (2026-05-12): "Move these up a bit" —
+       opponent cards now align to FLEX-START (top) of their zone
+       so they sit higher on screen, closer to the safe-area inset
+       rather than bottom-aligned against the clash zone. */
+    justify-content: flex-start;
     padding: calc(env(safe-area-inset-top, 0px) + 24px) var(--space-sm) 0;
     min-height: 0;
     pointer-events: none;

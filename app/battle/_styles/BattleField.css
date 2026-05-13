@@ -69,22 +69,28 @@
      ══════════════════════════════════════════════════════════ */
   .map-flat {
     position: absolute;
-    top: 0;
+    /* Operator feedback (2026-05-12): "the top part…is not aware of
+       the viewport. The big circle is getting cut off." The 900×900
+       texture was bleeding past the viewport's top edge. Now bounded
+       to a viewport-aware size + centered VERTICALLY (not pinned to
+       top: 0). Aspect ratio preserved via height: auto. */
+    top: 50%;
     left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
+    transform: translate(-50%, -50%);
+    width: min(85vw, 900px);
     max-width: 900px;
     height: auto;
+    aspect-ratio: 1 / 1;
     /* ROSENZU: you're ON the terrain now, not above it.
        Sepia warms the grey desaturation toward earth/parchment. */
-    opacity: 0.28;
+    opacity: 0.22;
     filter: saturate(0.35) sepia(0.08);
     pointer-events: none;
     user-select: none;
     z-index: 0;
     /* Fog of war — matches homepage exactly (TDR-018) */
     mask-image: radial-gradient(
-      ellipse 80% 70% at 50% 38%,
+      ellipse 80% 70% at 50% 50%,
       black 20%,
       oklch(0 0 0 / 0.7) 40%,
       oklch(0 0 0 / 0.3) 62%,
