@@ -75,26 +75,26 @@ Apply the Slay the Spire vocabulary to:
 - The faded non-selected cards need to feel REJECTED (Spire fades + dims, doesn't just opacity-down)
 - Caretaker mural overflowing the bottom-corner is good; needs a complementary detail at the TOP of each card
 
-### Pillar 3 — `construct-composition` pairing with nano-banana / chatgpt-image for moodboarding
+### Pillar 3 — Use `construct-compositions` (already built) to sequence the FEEL passes
 
-This is the operator's killer move that came out of the AskUserQuestion: 
+The operator's `construct-compositions` repo at `/Users/zksoju/bonfire/construct-compositions/` already ships **7 compositions** that EXACTLY match what the next session needs. Do NOT design new compositions from scratch — RUN the existing ones in sequence.
 
-> "utilize a construct-composition here around generating assets in nano banana/chatgpt image would help us here. Referring back to strong references from game design perspective but then further refining the references to produce design options visually will help us coordination on this."
+**Repo:** https://github.com/0xHoneyJar/construct-compositions
+**Runner:** `compose-run <name> --target ./compass` (script in `loa-constructs`)
+**Interactive UI:** `loom` (palette at `~/bonfire/construct-compositions/bin/loom`)
+**Validator:** `~/bonfire/construct-compositions/scripts/validate.sh`
 
-Pattern: **reference → spec → 3-5 visual options → operator picks → asset enters layer registry**. Two existing constructs in `~/.claude/constructs/packs/` could be the seam:
+Mapping each pillar to a composition:
 
-- `the-easel` — moodboard / reference collection / screenshot capture (already installed, no setup)
-- `the-mint` — AI image generation pipeline (Recraft + FLUX, batch-generate, curate, animate)
+| Pillar | Composition | Why |
+|---|---|---|
+| Open the session | `discovery/audit-feel` | artisan/decomposing-feel + observer/analyzing-gaps. Surfaces where each room falls flat — generates the verdict that drives Pillars 2-3. |
+| Pillar 1 (Layer port) | `delivery/code-implement-and-review` | Straight engineering port from purupuru's `lib/card-system/`. Code + review pass. |
+| Pillar 2 (FEEL pass on rooms) | `delivery/feel-iterate` | Component-iteration primitive. artisan ↔ the-mint loop with PixelMark/agent-browser HITL. Run TWICE — once per room (Lock, then ElementQuiz). |
+| Pillar 3 (asset moodboarding) | `delivery/direct-render` | The canonical eye-hand pattern: artisan/directing-generation ↔ the-mint/prompting-images → curate → composite. **THIS is the construct-composition the operator was naming.** |
+| Pillar 4 (asset CLI) | `delivery/code-implement-and-review` | Same shape as Pillar 1 — engineering with review gate. |
 
-The next session's job is to wire ONE of them (or compose both) into a **construct-composition workflow**:
-
-1. Operator says "moodboard the lock screen against Slay the Spire's title screen"
-2. Easel pulls reference screenshots (Spire + Balatro + Marvel Snap title cards)
-3. Mint generates 3-5 candidate compositions (different layer arrangements, different element treatments)
-4. Operator picks
-5. Picked composition → entered into `lib/cards/layers/registry.json` as a `face: "background"` layer variant
-
-This closes the "I need to come in and refine with asset packs" gap from the earlier handoff.
+**The killer pattern**: `audit-feel` runs FIRST. Its Verdict tells the next session whether each room needs new ASSETS (→ run `direct-render` to generate them) or just COMPOSITIONAL fixes (→ run `feel-iterate` only). Don't generate art before audit-feel says you need to.
 
 ### Pillar 4 — Thin CLI for asset awareness (the gap that bit us this session)
 
@@ -212,3 +212,125 @@ Read referenced sources from purupuru/world-purupuru
 Set /goal to the goal defined in §/goal definition above
 Begin Pillar 1 (Layer primitive port)
 ```
+
+## Operator-runnable prompt sequence (literal copy-paste blocks)
+
+The operator runs these IN ORDER. Each block is one prompt. Composition runner wires the artifact handoffs; operator stays in feedback-loop mode (Pixar-dailies discipline).
+
+### Step 0 — Open the session
+
+```text
+/kickoff
+Read grimoires/loa/proposals/kickoff-next-session-2026-05-12.md end-to-end.
+Then read:
+  /Users/zksoju/Documents/GitHub/purupuru/lib/card-system/layer-registry.json
+  /Users/zksoju/Documents/GitHub/purupuru/lib/card-system/types.ts
+  /Users/zksoju/Documents/GitHub/purupuru/components/card/CardLayerPreview.tsx
+Set /goal to the §/goal definition block. Confirm before continuing.
+```
+
+### Step 1 — Audit-feel pass (where do rooms fall flat?)
+
+```text
+compose-run audit-feel \
+  --target /Users/zksoju/Documents/GitHub/compass \
+  --inputs.surfaces "app/battle/_scene/EntryScreen.tsx,app/battle/_scene/ElementQuiz.tsx" \
+  --inputs.canon "grimoires/loa/proposals/kickoff-next-session-2026-05-12.md" \
+  --inputs.reference "Slay the Spire title + map screen + card-played reveal"
+```
+**Artifact out**: friction-map.md + verdict.md telling you which rooms need new assets vs compositional-only fixes.
+
+### Step 2 — Layer primitive port (Pillar 1)
+
+```text
+compose-run code-implement-and-review \
+  --target /Users/zksoju/Documents/GitHub/compass \
+  --inputs.brief "Port purupuru's lib/card-system/ to compass at lib/cards/layers/. Add face: 'front'|'back' axis to LayerDef. Register in lib/registry/index.ts as registry.cards.layers. Tests cover all 120 (5 elements × 4 rarities × 3 reveal × 2 faces) combinations."
+```
+**Artifact out**: PR commit with `lib/cards/layers/{registry.json, types.ts, resolve.ts, CardStack.tsx}` + tests + registry binding. Review verdict.
+
+### Step 3 — Asset moodboard for the rooms that need it (Pillar 3)
+
+Only run if Step 1's verdict said the room needs NEW ASSETS. Run once per room.
+
+```text
+compose-run direct-render \
+  --target /Users/zksoju/Documents/GitHub/compass \
+  --inputs.canon "app/globals.css,grimoires/loa/proposals/kickoff-next-session-2026-05-12.md,public/art/cards/scene-card-fire.png" \
+  --inputs.brief "Slay the Spire-grade Lock screen background — same Tsuheji map texture but recomposed as a moody title card. 3-5 variants exploring: parchment vs ink-wash, day vs dusk, with/without water reflection. 1024x1024 PNG with transparent center vignette."
+```
+**Artifact out**: 3-5 candidate PNGs in `public/art/generated/lock-screen/v{N}/`, operator picks 1, picked PNG enters `lib/cards/layers/registry.json` as a `face: "back" / layer: "background"` variant.
+
+Repeat for ElementQuiz card backgrounds if Step 1 verdict demanded.
+
+### Step 4 — FEEL iterate per room (Pillar 2)
+
+Run per room. Each invocation is one artisan ↔ the-mint loop with operator-marking via PixelMark or agent-browser screenshot.
+
+```text
+compose-run feel-iterate \
+  --target /Users/zksoju/Documents/GitHub/compass \
+  --inputs.surface "app/battle/_scene/EntryScreen.tsx" \
+  --inputs.canon "Slay the Spire title screen feel — tight readable layout, modest VFX, super-clear status indicators" \
+  --inputs.refs "screenshot:slay-spire-title.png" \
+  --inputs.iteration_cap 3
+```
+
+Then again for ElementQuiz:
+
+```text
+compose-run feel-iterate \
+  --target /Users/zksoju/Documents/GitHub/compass \
+  --inputs.surface "app/battle/_scene/ElementQuiz.tsx" \
+  --inputs.canon "Slay the Spire character-select feel — card snaps + glows + locks; rejected cards FADE not just dim" \
+  --inputs.refs "screenshot:slay-spire-character-select.png" \
+  --inputs.iteration_cap 3
+```
+**Artifact out per loop**: distilled component diff + pixelmark trail + curation log.
+
+### Step 5 — Asset audit CLI (Pillar 4)
+
+```text
+compose-run code-implement-and-review \
+  --target /Users/zksoju/Documents/GitHub/compass \
+  --inputs.brief "Build pnpm cards:audit + pnpm assets:list (--filter, --missing, --orphan) as tsx scripts. Walk lib/assets/manifest.ts, HEAD every URL via existing scripts/check-assets.mjs, print markdown coverage tables to stdout. Reference world-purupuru's prior CLI before designing — operator says 'alot has already been built there.'"
+```
+**Artifact out**: `scripts/cards-audit.ts` + `scripts/assets-list.ts` + package.json bindings + clean-run output proving zero orphans + zero missing.
+
+### Step 6 — Cleanup (operator-driven, agent assists)
+
+```text
+Walk the inventory in §Pillar 4 of the kickoff brief. For each honey/bera
+asset folder (bears, bear-faces, bear-pfps, bear-costumes, banners,
+boarding-passes, characters-hd, scenes-hd):
+  - Confirm each PNG is a token-id-named file (numeric)
+  - Confirm zero references in app/, lib/, components/, scripts/
+  - Move to public/_archive/honey-collection/ (don't delete in case
+    operator wants them later)
+Commit the move as a single 'chore(assets):' commit.
+```
+
+### Step 7 — Goal-condition verification
+
+```text
+Run through each of the 6 done-conditions in /goal:
+  1. Layer primitive files exist + registered + tested (120 combos)
+  2. CardPetal · BattleHand · OpponentZone consume <CardStack>
+  3. pnpm cards:audit clean, pnpm assets:list --orphan returns zero
+  4. Lock + ElementQuiz pass operator's "feels like Slay the Spire" check
+  5. construct-composition workflow demonstrated end-to-end (which: direct-render run
+     in Step 3 OR feel-iterate run in Step 4)
+  6. honey/bera PNGs cleaned (Step 6)
+For each: print PASS/FAIL with evidence (git log, agent-browser snapshot, command output).
+Goal hook should auto-clear when all 6 PASS.
+```
+
+### When something drifts mid-session
+
+The compose-run loop is the work. Operator watches at the curation/iteration loops:
+
+- **`generate` loop in `direct-render`** — operator sees 3-5 candidates per round; rejects → next prompt; accepts → moves to composite
+- **`iterate` loop in `feel-iterate`** — operator marks pixel regions on the PixelMark canvas; the-mint reads the marks + renders next variation
+- **`audit-feel` verdict** — operator can override; if "no new assets needed" was wrong, re-run with corrected scope
+
+This is the Pixar-dailies pattern. The operator doesn't write code; the operator gives notes at the loops. The agent writes code only at Steps 2 + 5 (substrate work). Steps 1, 3, 4, 6 are operator-led.
