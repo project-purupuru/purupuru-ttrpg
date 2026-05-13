@@ -13,7 +13,9 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "hounfour:drift": "tsx scripts/hounfour-drift.ts",
-    "test:types": "pnpm typecheck"
+    "test:types": "pnpm typecheck",
+    "s0:preflight": "tsx scripts/s0-preflight-harness.ts",
+    "s0:spike": "tsx scripts/s0-spike-ajv-element-wood.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.1",
@@ -29,6 +31,7 @@
     "@solana/wallet-adapter-react": "^0.15.39",
     "@solana/wallet-adapter-react-ui": "^0.9.39",
     "@solana/web3.js": "^1.95.0",
+    "@types/js-yaml": "^4.0.9",
     "@vercel/kv": "^3.0.0",
     "agentation": "^3.0.2",
     "ajv": "^8.20.0",
@@ -36,6 +39,7 @@
     "bs58": "^6.0.0",
     "clsx": "^2.1.1",
     "effect": "^3.10.0",
+    "js-yaml": "^4.1.1",
     "lucide-react": "^1.14.0",
     "motion": "^12.38.0",
     "next": "16.2.6",
