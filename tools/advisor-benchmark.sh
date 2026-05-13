@@ -244,14 +244,23 @@ estimate_cost_usd() {
     median_input_price="$(jq -r '.median_input_per_mtok // 10000000' "$medians_file" 2>/dev/null)"
     median_output_price="$(jq -r '.median_output_per_mtok // 30000000' "$medians_file" 2>/dev/null)"
     # cost_micro = replays × (input × in_price + output × out_price) / 1_000_000
-    python3 -c "
-import sys
-n = int('$replay_count')
-inp = int('$median_input'); out = int('$median_output')
-ip = int('$median_input_price'); op = int('$median_output_price')
+    # BB iter-3 F001 closure: pass values via env to avoid shell→python
+    # source-interpolation. Even though jq -r outputs are CODEOWNERS-gated
+    # historical-medians.json, a literal single-quote or newline in those
+    # numeric fields would break the inline script.
+    LOA_EST_N="$replay_count" \
+    LOA_EST_IN="$median_input" LOA_EST_OUT="$median_output" \
+    LOA_EST_IP="$median_input_price" LOA_EST_OP="$median_output_price" \
+    python3 - <<'PY'
+import os
+n = int(os.environ["LOA_EST_N"])
+inp = int(os.environ["LOA_EST_IN"])
+out = int(os.environ["LOA_EST_OUT"])
+ip  = int(os.environ["LOA_EST_IP"])
+op  = int(os.environ["LOA_EST_OP"])
 micro = n * (inp * ip + out * op) // 1_000_000
 print(micro)
-"
+PY
 }
 
 
@@ -264,9 +273,17 @@ pre_estimate_or_abort() {
     local cost_micro
     cost_micro="$(estimate_cost_usd "$replay_count")"
     local cost_usd
-    cost_usd="$(python3 -c "print(f'{int(\"$cost_micro\")/1_000_000:.2f}')")"
+    cost_usd="$(LOA_COST_MICRO="$cost_micro" python3 - <<'PY'
+import os
+print(f'{int(os.environ["LOA_COST_MICRO"])/1_000_000:.2f}')
+PY
+)"
     local cap_micro
-    cap_micro="$(python3 -c "print(int(${COST_CAP_USD} * 1_000_000))")"
+    cap_micro="$(LOA_COST_CAP_USD="$COST_CAP_USD" python3 - <<'PY'
+import os
+print(int(float(os.environ["LOA_COST_CAP_USD"]) * 1_000_000))
+PY
+)"
     echo "[advisor-benchmark] pre-estimate: ${cost_usd} USD for $replay_count replays (cap: ${COST_CAP_USD} USD)" >&2
     # shellcheck disable=SC2086
     if [ "$cost_micro" -gt $cap_micro ]; then

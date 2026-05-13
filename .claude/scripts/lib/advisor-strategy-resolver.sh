@@ -41,11 +41,27 @@ advisor_strategy_resolve() {
     local skill="$2"
     local provider="$3"
 
-    python3 -c "
+    # BB iter-3 F002 closure: pass role/skill/provider via env vars + quoted
+    # heredoc to avoid shell→python source-interpolation. args.skill is
+    # free-form caller-controlled text — a literal single-quote or newline
+    # in the skill name would have escaped the Python literal in the prior
+    # f-string interpolation.
+    LOA_RESOLVER_ROLE="$role" \
+    LOA_RESOLVER_SKILL="$skill" \
+    LOA_RESOLVER_PROVIDER="$provider" \
+    LOA_RESOLVER_PROJECT_ROOT="$PROJECT_ROOT" \
+    python3 - <<'PY'
 import json
+import os
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path('$PROJECT_ROOT') / '.claude' / 'adapters'))
+
+_project_root = os.environ["LOA_RESOLVER_PROJECT_ROOT"]
+_role = os.environ["LOA_RESOLVER_ROLE"]
+_skill = os.environ["LOA_RESOLVER_SKILL"]
+_provider = os.environ["LOA_RESOLVER_PROVIDER"]
+
+sys.path.insert(0, str(Path(_project_root) / ".claude" / "adapters"))
 try:
     from loa_cheval.config.advisor_strategy import (
         load_advisor_strategy,
@@ -53,42 +69,42 @@ try:
         ConfigError,
     )
 except ImportError as e:
-    sys.stderr.write(f'[advisor-strategy-resolver] ImportError: {e}\n')
+    sys.stderr.write(f"[advisor-strategy-resolver] ImportError: {e}\n")
     sys.exit(1)
 
 try:
-    cfg = load_advisor_strategy(Path('$PROJECT_ROOT'))
+    cfg = load_advisor_strategy(Path(_project_root))
 except ConfigError as e:
-    sys.stderr.write(f'[advisor-strategy-resolver] EX_CONFIG: {e}\n')
+    sys.stderr.write(f"[advisor-strategy-resolver] EX_CONFIG: {e}\n")
     sys.exit(78)
 
 if not cfg.enabled:
     # Disabled-by-config or kill-switch — emit a sentinel that callers can
     # detect via .tier_source == 'disabled_legacy'
     out = {
-        'model_id': '',
-        'tier': '',
-        'tier_source': 'disabled_legacy',
-        'tier_resolution': 'disabled',
-        'provider': '$provider',
+        "model_id": "",
+        "tier": "",
+        "tier_source": "disabled_legacy",
+        "tier_resolution": "disabled",
+        "provider": _provider,
     }
     print(json.dumps(out))
     sys.exit(0)
 
 try:
-    resolved = cfg.resolve(role='$role', skill='$skill', provider='$provider')
+    resolved = cfg.resolve(role=_role, skill=_skill, provider=_provider)
 except ConfigError as e:
-    sys.stderr.write(f'[advisor-strategy-resolver] EX_CONFIG: {e}\n')
+    sys.stderr.write(f"[advisor-strategy-resolver] EX_CONFIG: {e}\n")
     sys.exit(78)
 
 print(json.dumps({
-    'model_id': resolved.model_id,
-    'tier': resolved.tier,
-    'tier_source': resolved.tier_source,
-    'tier_resolution': resolved.tier_resolution,
-    'provider': resolved.provider,
+    "model_id": resolved.model_id,
+    "tier": resolved.tier,
+    "tier_source": resolved.tier_source,
+    "tier_resolution": resolved.tier_resolution,
+    "provider": resolved.provider,
 }))
-"
+PY
 }
 
 # CLI entrypoint when not sourced
