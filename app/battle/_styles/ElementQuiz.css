@@ -41,23 +41,19 @@
     font-size: clamp(1.8rem, 5.5vw, 2.6rem);
     font-weight: 700;
     color: var(--puru-ink-rich);
-    margin: 0;
+    /* Operator feedback (2026-05-12): give the title room to breathe.
+       The subtitle was removed; the eyebrow + title alone needed
+       generous bottom margin so the scene grid doesn't crowd it. */
+    margin: 0 0 var(--space-md);
     letter-spacing: -0.018em;
     line-height: 1.05;
-  }
-  .quiz-sub {
-    font-family: var(--font-body);
-    font-size: var(--text-sm);
-    color: var(--puru-ink-dim);
-    letter-spacing: 0.01em;
-    line-height: 1.4;
   }
   .quiz-header::after {
     content: '';
     display: block;
     width: 56px;
     height: 1px;
-    margin-top: var(--space-xs);
+    margin-top: var(--space-sm);
     background: linear-gradient(to right, transparent, var(--puru-honey-base), transparent);
     opacity: 0.5;
   }
@@ -182,26 +178,19 @@
   .scene-card-gradient[data-element='metal'] { background: radial-gradient(ellipse at 50% 30%, var(--puru-metal-pastel), var(--puru-metal-tint) 70%, var(--puru-metal-dim)); }
   .scene-card-gradient[data-element='water'] { background: radial-gradient(ellipse at 50% 30%, var(--puru-water-pastel), var(--puru-water-tint) 70%, var(--puru-water-dim)); }
 
-  /* Place label — small, italic, bottom-left of card */
-  .scene-place {
-    position: absolute;
-    left: var(--space-sm);
-    bottom: var(--space-sm);
-    z-index: 3;
-    font-family: var(--font-body);
-    font-size: var(--text-2xs);
-    font-style: italic;
-    color: oklch(1 0 0 / 0.7);
-    letter-spacing: 0.04em;
-    text-shadow: 0 1px 2px oklch(0 0 0 / 0.4);
-    max-width: calc(100% - var(--space-md));
-    line-height: 1.2;
-  }
-
   .scene-kanji {
-    position: absolute; top: var(--space-xs); right: var(--space-xs);
-    font-family: var(--font-card); font-size: var(--text-lg);
-    color: oklch(1 0 0 / 0.25); z-index: 3;
+    position: absolute;
+    /* Operator feedback (2026-05-12): inset more from the card edge so
+       the glyph reads as PART OF the composition, not crammed against
+       the corner. Was xs (4-8px); now md (16-24px). */
+    top: var(--space-md);
+    right: var(--space-md);
+    font-family: var(--font-card);
+    font-size: var(--text-lg);
+    color: oklch(1 0 0 / 0.3);
+    z-index: 3;
+    /* Slight backdrop softening so the kanji holds against any art */
+    text-shadow: 0 1px 4px oklch(0 0 0 / 0.5);
   }
 
   .mural-caretaker {

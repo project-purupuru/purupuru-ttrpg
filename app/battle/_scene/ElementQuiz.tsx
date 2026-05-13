@@ -56,7 +56,6 @@ export function ElementQuiz() {
       <header className="quiz-header">
         <span className="quiz-eyebrow">Observatory · Calibration</span>
         <h2 className="quiz-title">Choose your element.</h2>
-        <span className="quiz-sub">The tide reads your alignment.</span>
       </header>
 
       <div className="scene-grid">
@@ -92,7 +91,6 @@ export function ElementQuiz() {
                 />
                 <div className="scene-tint" data-element={s.element} />
                 <span className="scene-kanji">{meta.kanji}</span>
-                <span className="scene-place">{s.scene}</span>
               </button>
 
               <img
