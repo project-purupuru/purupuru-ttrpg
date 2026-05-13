@@ -7,14 +7,10 @@
  * Colors derived from the two cards' elements + winner. Lives ~600ms,
  * then leaves. Sibling to ClashVfx; both inside .clash-zone.
  *
- * The orb is the "consequence" beat. Without it, the impact lands as a
- * particle puff and a stamp — but no SOUND. The orb is the sound made
- * visible.
- *
  * Ported from world-purupuru cycle-088 +page.svelte lines 529-537 + 1356-1381.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ClashResult } from "@/lib/honeycomb/clash.port";
 import type { Element } from "@/lib/honeycomb/wuxing";
 
@@ -33,6 +29,8 @@ interface ActiveOrb {
   readonly isFinal: boolean;
 }
 
+const ORB_LIFETIME_MS = 700;
+
 export function ClashOrb({
   clash,
   visibleClashIdx,
@@ -40,10 +38,17 @@ export function ClashOrb({
   activeClashPhase,
 }: ClashOrbProps) {
   const [orbs, setOrbs] = useState<readonly ActiveOrb[]>([]);
+  // Track in-flight removal timers so they survive effect re-runs
+  // (the previous version returned `clearTimeout` from the effect, which
+  // cancelled the orb's own removal when activeClashPhase flipped
+  // impact → settle — leaving the orb on screen forever).
+  const timersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
 
+  // Spawn an orb when a clash enters its impact phase. Per-orb cleanup
+  // is scheduled here but NOT returned as effect cleanup — phase changes
+  // must not cancel it.
   useEffect(() => {
-    if (activeClashPhase !== "impact") return;
-    if (!clash) return;
+    if (activeClashPhase !== "impact" || !clash) return;
     const winner: Element | null =
       clash.loser === "p1"
         ? clash.p2Card.card.element
@@ -63,9 +68,28 @@ export function ClashOrb({
     ]);
     const t = setTimeout(() => {
       setOrbs((prev) => prev.filter((o) => o.id !== id));
-    }, 700);
-    return () => clearTimeout(t);
+      timersRef.current.delete(t);
+    }, ORB_LIFETIME_MS);
+    timersRef.current.add(t);
   }, [activeClashPhase, clash, visibleClashIdx, totalClashes]);
+
+  // Hard reset when the clashing phase ends. Prevents residue from
+  // bleeding into between-rounds / result.
+  useEffect(() => {
+    if (activeClashPhase !== null) return;
+    for (const t of timersRef.current) clearTimeout(t);
+    timersRef.current.clear();
+    setOrbs([]);
+  }, [activeClashPhase]);
+
+  // Mount-lifetime cleanup
+  useEffect(
+    () => () => {
+      for (const t of timersRef.current) clearTimeout(t);
+      timersRef.current.clear();
+    },
+    [],
+  );
 
   return (
     <>

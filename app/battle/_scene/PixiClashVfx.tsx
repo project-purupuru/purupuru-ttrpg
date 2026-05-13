@@ -1,0 +1,109 @@
+"use client";
+
+/**
+ * PixiClashVfx — procedural shader-style burst for clash impacts.
+ *
+ * MVP scope: water-only proof. Sits BESIDE ClashVfx so the CSS layer
+ * still renders for non-water clashes; flip elements over to Pixi
+ * one at a time as we audition them.
+ *
+ * Same trigger contract as ClashVfx: spawn on activeClashPhase ===
+ * "impact", auto-destruct after the burst's `durationMs`. Per-burst
+ * instances stack so back-to-back clashes don't fight each other.
+ */
+
+import { useEffect, useRef, useState } from "react";
+import type { Element } from "@/lib/honeycomb/wuxing";
+import { spawnWaterBurst } from "@/lib/vfx/pixi-water-burst";
+
+const PIXI_ENABLED_ELEMENTS: ReadonlySet<Element> = new Set<Element>(["water"]);
+
+interface PixiClashVfxProps {
+  readonly element: Element | null;
+  readonly visibleClashIdx: number;
+  readonly activeClashPhase: "approach" | "impact" | "settle" | null;
+}
+
+interface PixiBurstSlot {
+  readonly id: number;
+  readonly element: Element;
+}
+
+export function PixiClashVfx({ element, visibleClashIdx, activeClashPhase }: PixiClashVfxProps) {
+  const [bursts, setBursts] = useState<readonly PixiBurstSlot[]>([]);
+
+  // Spawn a burst slot when an enabled element enters impact.
+  useEffect(() => {
+    if (activeClashPhase !== "impact") return;
+    if (!element || visibleClashIdx < 0) return;
+    if (!PIXI_ENABLED_ELEMENTS.has(element)) return;
+    const id = Date.now() + visibleClashIdx;
+    setBursts((prev) => [...prev, { id, element }]);
+  }, [activeClashPhase, element, visibleClashIdx]);
+
+  // Hard reset when phase ends — same shape as ClashVfx so residue
+  // can't bleed into between-rounds.
+  useEffect(() => {
+    if (activeClashPhase !== null) return;
+    setBursts([]);
+  }, [activeClashPhase]);
+
+  return (
+    <>
+      {bursts.map((b) => (
+        <PixiBurstHost
+          key={b.id}
+          element={b.element}
+          seed={b.id}
+          onDone={() => setBursts((prev) => prev.filter((p) => p.id !== b.id))}
+        />
+      ))}
+    </>
+  );
+}
+
+/**
+ * Host div that mounts a Pixi Application via spawnWaterBurst and tears
+ * it down on unmount or onDone callback.
+ */
+function PixiBurstHost({
+  element,
+  seed,
+  onDone,
+}: {
+  readonly element: Element;
+  readonly seed: number;
+  readonly onDone: () => void;
+}) {
+  const hostRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!hostRef.current) return;
+    if (element !== "water") return; // MVP scope
+    const handle = spawnWaterBurst({
+      host: hostRef.current,
+      seed,
+      onDone,
+    });
+    return () => handle.destroy();
+  }, [element, seed, onDone]);
+
+  return (
+    <div
+      ref={hostRef}
+      className="pixi-clash-vfx"
+      data-element={element}
+      aria-hidden
+      style={{
+        position: "absolute",
+        left: "50%",
+        top: "50%",
+        width: "min(360px, 60vw)",
+        height: "min(360px, 60vw)",
+        transform: "translate(-50%, -50%)",
+        pointerEvents: "none",
+        zIndex: 27,
+      }}
+    />
+  );
+}

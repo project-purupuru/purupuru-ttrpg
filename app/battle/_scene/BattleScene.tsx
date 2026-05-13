@@ -21,6 +21,7 @@ import { BattleHand } from "./BattleHand";
 import { CardPetal } from "./CardPetal";
 import { ClashOrb } from "./ClashOrb";
 import { ClashVfx } from "./ClashVfx";
+import { PixiClashVfx } from "./PixiClashVfx";
 import { ComboDiscoveryToast } from "./ComboDiscoveryToast";
 import { ParallaxLayer } from "./ParallaxLayer";
 import { ElementQuiz } from "./ElementQuiz";
@@ -163,9 +164,21 @@ export function BattleScene() {
                 visibleClashIdx={snap.visibleClashIdx}
                 activeClashPhase={snap.activeClashPhase}
               />
+              <PixiClashVfx
+                element={snap.lastPlayed}
+                visibleClashIdx={snap.visibleClashIdx}
+                activeClashPhase={snap.activeClashPhase}
+              />
             </div>
 
             <div className="player-zone">
+              <RoundContextChip
+                phase={snap.phase}
+                currentRound={snap.currentRound}
+                totalRounds={3}
+                survivors={snap.p1Lineup.length}
+                handSize={5}
+              />
               <BattleHand
                 cards={snap.p1Lineup}
                 phase={snap.phase}
@@ -244,6 +257,44 @@ export function BattleScene() {
 
       {/* Guide overlay (tutorial / hints) */}
       <Guide />
+    </div>
+  );
+}
+
+/**
+ * Round context chip — surfaces "Round 2 of 3 · 1 survivor" so
+ * between-rounds states with shrunken hands read as intentional drama
+ * instead of broken layout. Hidden during entry/quiz/result.
+ */
+function RoundContextChip({
+  phase,
+  currentRound,
+  totalRounds,
+  survivors,
+  handSize,
+}: {
+  readonly phase: import("@/lib/honeycomb/match.port").MatchPhase;
+  readonly currentRound: number;
+  readonly totalRounds: number;
+  readonly survivors: number;
+  readonly handSize: number;
+}) {
+  if (!["arrange", "committed", "clashing", "disintegrating", "between-rounds"].includes(phase)) {
+    return null;
+  }
+  const showSurvivorLine = phase === "between-rounds" && survivors < handSize;
+  return (
+    <div className="round-chip" data-phase={phase} aria-live="polite">
+      <span className="round-chip__round">
+        Round <strong>{currentRound + 1}</strong>
+        <span className="round-chip__sep">·</span>
+        <span className="round-chip__total">of {totalRounds}</span>
+      </span>
+      {showSurvivorLine && (
+        <span className="round-chip__survivors">
+          {survivors} of {handSize} card{survivors === 1 ? "" : "s"} surviving
+        </span>
+      )}
     </div>
   );
 }

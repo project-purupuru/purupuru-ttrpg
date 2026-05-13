@@ -132,6 +132,47 @@
 		min-height: 0;
 	}
 
+	/* Round context chip — surfaces "Round 2 · 1 of 5 surviving" so
+	   shrunken hands read as drama, not broken layout. Sits above the
+	   hand fan so the player sees state before they see cards. */
+	.round-chip {
+		display: inline-flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 2px;
+		padding: 6px 14px;
+		border-radius: var(--radius-full);
+		background: oklch(from var(--puru-cloud-bright) l c h / 0.7);
+		backdrop-filter: blur(10px);
+		-webkit-backdrop-filter: blur(10px);
+		border: 1px solid oklch(from var(--puru-ink-ghost) l c h / 0.2);
+		font-family: var(--font-mono);
+		font-size: var(--text-2xs);
+		color: var(--puru-ink-soft);
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		opacity: 0.9;
+		pointer-events: none;
+		transition: opacity 240ms ease;
+	}
+	.round-chip[data-phase='clashing'],
+	.round-chip[data-phase='disintegrating'] { opacity: 0.55; }
+	.round-chip__round strong {
+		color: var(--puru-honey-rich);
+		font-weight: 700;
+		font-feature-settings: 'tnum' 1;
+		margin: 0 4px;
+	}
+	.round-chip__sep { margin: 0 4px; opacity: 0.45; }
+	.round-chip__total { opacity: 0.65; }
+	.round-chip__survivors {
+		font-size: 10px;
+		letter-spacing: 0.06em;
+		text-transform: none;
+		color: var(--puru-fire-vivid);
+		opacity: 0.85;
+	}
+
 	.action-bar {
 		padding: var(--space-xs) var(--space-lg) 0;
 		display: flex;
