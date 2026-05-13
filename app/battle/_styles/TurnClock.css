@@ -1,29 +1,34 @@
   .turn-clock {
-    /* Operator hit (2026-05-13): "this part" — the kanji pips were
-       clipping at the top of .battle-scene because TurnClock was in
-       normal flow with no positioning, sitting at y=0 inside an
-       overflow: hidden parent. Active pip's scale(1.18) + ring's
-       inset:-5px + ring scale(1.12) = ~10px above its visible top
-       got clipped by the viewport.
-
-       Now: floats top-center with safe-area inset + 24px hard buffer.
-       z-index 30 so it sits above arena content. Has its own
-       transparent backplate so the pips read against any backdrop. */
+    /* Operator wants the pip strip vertical on the LEFT side (was
+       horizontal across the top). Top-left anchor, safe-area aware,
+       vertically column-flowed. Avoids collision with .speaker--player
+       which lives at bottom-left. z-index 30 above arena content. */
     position: absolute;
     top: calc(env(safe-area-inset-top, 0px) + 24px);
-    left: 50%;
-    transform: translateX(-50%);
+    left: calc(env(safe-area-inset-left, 0px) + 16px);
     z-index: 30;
     display: flex;
+    flex-direction: column;
     gap: var(--space-sm);
     justify-content: center;
     align-items: center;
-    padding: 8px 14px;
+    padding: 14px 8px;
     border-radius: var(--radius-full);
     background: oklch(from var(--puru-cloud-bright) l c h / 0.55);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     pointer-events: none;
+  }
+
+  /* Weather dot lives BELOW each pip in horizontal mode. Vertical mode
+     would collide with the next pip — move it to the RIGHT side instead. */
+  .turn-clock .weather-dot {
+    bottom: auto;
+    left: auto;
+    transform: none;
+    top: 50%;
+    right: -7px;
+    margin-top: -2.5px;
   }
 
   .pip {
