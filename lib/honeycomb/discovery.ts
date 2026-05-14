@@ -74,6 +74,13 @@ export const COMBO_META: Record<ComboKind, ComboDiscoveryMeta> = {
     subtitle: "today's tide carries you",
     tooltip: "Cards matching today's weather element. +15% each.",
   },
+  "garden-grace": {
+    kind: "garden-grace",
+    title: "Garden Grace",
+    icon: "生",
+    subtitle: "chain memory lingers",
+    tooltip: "The Garden retains a portion of last round's chain bonus.",
+  },
 };
 
 const ALL_KINDS: readonly ComboKind[] = [
@@ -81,6 +88,7 @@ const ALL_KINDS: readonly ComboKind[] = [
   "setup-strike",
   "elemental-surge",
   "weather-blessing",
+  "garden-grace",
 ];
 
 interface PersistedShape {

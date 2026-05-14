@@ -13,7 +13,12 @@ import type { Card } from "./cards";
 import type { Element } from "./wuxing";
 import { SHENG } from "./wuxing";
 
-export type ComboKind = "sheng-chain" | "setup-strike" | "elemental-surge" | "weather-blessing";
+export type ComboKind =
+  | "sheng-chain"
+  | "setup-strike"
+  | "elemental-surge"
+  | "weather-blessing"
+  | "garden-grace";
 
 export interface Combo {
   readonly id: string;
@@ -53,7 +58,13 @@ export function detectCombos(lineup: readonly Card[], options: DetectCombosOptio
     const a = lineup[i];
     const b = lineup[i + 1];
     if (!a || !b) continue;
-    if (SHENG[a.element] === b.element) {
+    // Transcendence cards bridge chains — they count as any element needed
+    // (canonical combos.ts:126-128).
+    const isSheng =
+      SHENG[a.element] === b.element ||
+      a.cardType === "transcendence" ||
+      b.cardType === "transcendence";
+    if (isSheng) {
       // continues chain
       if (i === lineup.length - 2) {
         emitShengChain(combos, chainStart, i + 1);
@@ -113,6 +124,35 @@ export function detectCombos(lineup: readonly Card[], options: DetectCombosOptio
       bonus: 0.15,
       affected: weatherPositions,
     });
+  }
+
+  // 5. Garden Grace — The Garden retains a portion of last round's chain bonus.
+  //    Canonical combos.ts:167-187. R1 retains 50%, R2 retains 100%.
+  //
+  //    Encoding (SDD §9.2): `previousChainBonus` arrives increment-encoded —
+  //    the substrate carries chain bonus as `summary.totalBonus`, a sum of
+  //    increment combo bonuses (`getPositionMultiplier` does `1 + c.bonus`).
+  //    Canonical's formula is multiplier-encoded (`1 + (m-1)*0.5`); with
+  //    `incr = m - 1` it reduces to the increment-native form below, and the
+  //    pushed `bonus` is already in compass's increment encoding — no `-1`.
+  const { previousChainBonus } = options;
+  if (previousChainBonus && previousChainBonus > 0) {
+    const garden = lineup.find((c) => c?.defId === "transcendence-garden");
+    if (garden) {
+      const resonance = garden.resonance ?? 1;
+      // R1 retains 50% of last round's chain increment; R2 retains 100%.
+      const actualGrace = resonance >= 2 ? previousChainBonus : previousChainBonus * 0.5;
+      const positions = lineup.map((_, i) => i);
+      combos.push({
+        id: "garden-grace",
+        kind: "garden-grace",
+        name: "Garden Grace",
+        description: "chain memory lingers",
+        positions,
+        bonus: actualGrace,
+        affected: positions,
+      });
+    }
   }
 
   return combos;

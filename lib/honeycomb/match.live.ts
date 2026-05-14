@@ -246,7 +246,14 @@ export const MatchLive: Layer.Layer<Match, never, Clash> = Layer.scoped(
         const oWins = result.clashes.filter((c) => c.loser === "p1").length;
         const newP1 = snap.p1Lineup.filter((_, idx) => !dyingP1.has(idx));
         const newP2 = snap.p2Lineup.filter((_, idx) => !dyingP2.has(idx));
-        const newP1Combos = detectCombos(newP1, { weather: snap.weather });
+        // Between-rounds recompute — pass previousChainBonus so The Garden's
+        // grace combo can retain a portion of last round's chain bonus
+        // (Port 2d, SDD §2.2). The reducer's pre-battle detectCombos calls
+        // correctly omit this — grace only applies after round 1.
+        const newP1Combos = detectCombos(newP1, {
+          weather: snap.weather,
+          previousChainBonus: snap.chainBonusAtRoundStart,
+        });
         const newP2Combos = detectCombos(newP2, { weather: snap.weather });
         const summary = getComboSummary(newP1Combos);
 

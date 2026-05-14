@@ -13,6 +13,7 @@ const KIND_LABEL: Record<Combo["kind"], string> = {
   "setup-strike": "Setup Strike",
   "elemental-surge": "Elemental Surge",
   "weather-blessing": "Weather Blessing",
+  "garden-grace": "Garden Grace",
 };
 
 const KIND_DOT: Record<Combo["kind"], string> = {
@@ -20,6 +21,7 @@ const KIND_DOT: Record<Combo["kind"], string> = {
   "setup-strike": "bg-puru-fire-vivid",
   "elemental-surge": "bg-puru-metal-vivid",
   "weather-blessing": "bg-puru-honey-base",
+  "garden-grace": "bg-puru-wood-vivid",
 };
 
 export function CombosPanel({ combos, summary }: CombosPanelProps) {

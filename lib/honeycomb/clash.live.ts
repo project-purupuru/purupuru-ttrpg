@@ -81,16 +81,23 @@ function applyTranscendence(
 
   if (myCard.cardType !== "transcendence") return { effectiveElement, power, reason };
 
+  // Resonance defaults to 1 for transcendence cards (FR-5 / pinned invariant 7).
+  const resonance = myCard.resonance ?? 1;
+
   // The Forge (克 · metal-element transcendence): become the element that overcomes
   // opponent. OVERCOMES_LOOKUP gives us "what element kè-counters X?".
   if (myCard.defId === "transcendence-forge") {
     effectiveElement = OVERCOMES_LOOKUP[theirCard.element] ?? theirCard.element;
     reason = `forge → overcomes ${theirCard.element}`;
+    if (resonance >= 2) power *= 1.1; // R2 bonus (canonical battle.ts:134)
   }
 
   // The Void (無 · water-element transcendence): mirror opponent's base type+power
   if (myCard.defId === "transcendence-void") {
-    power = TYPE_POWER[theirCard.cardType] + 0.1; // mirror + small advantage
+    // R1: mirror + small advantage (compass form, unchanged).
+    // R2: strengthen the mirrored value by 1.1× (canonical battle.ts:143).
+    const mirrorMult = resonance >= 2 ? 1.1 : 1.0;
+    power = TYPE_POWER[theirCard.cardType] * mirrorMult + 0.1;
     effectiveElement = theirCard.element;
     reason = `void → mirror ${theirCard.cardType}`;
   }
