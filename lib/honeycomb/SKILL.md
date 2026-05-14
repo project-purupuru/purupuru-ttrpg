@@ -38,6 +38,9 @@ Prefer `Match` for `/battle-v2` lifecycle work. Treat `Battle` as the older sele
 - Route UI actions through `matchCommand` / `battleCommand`; do not mutate snapshots from components.
 - Add new `MatchPhase` or `MatchCommand` values in `match.port.ts`, `match.reducer.ts` or `match.live.ts`, and the phase tests together.
 - Keep dev-only mutation behind `dev:*` commands and the `__PURU_DEV__.enabled` gate.
+- Service filenames are kebab-case and suffix-typed: `foo-bar.port.ts`,
+  `foo-bar.live.ts`, and `foo-bar.mock.ts`; live layer exports are named
+  `FooBarLive` and are composed in `lib/runtime/runtime.ts`.
 - When adding a new Effect service, create the `port/live/mock` trio and wire the live layer once in `lib/runtime/runtime.ts`.
 
 ## Checks
