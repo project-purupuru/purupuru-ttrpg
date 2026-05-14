@@ -1,0 +1,54 @@
+# Resonance Profile — The Daily Social Duel (the retention loop)
+#
+# Facet of grimoires/loa/context/10-game-pitch.md. The pull toward depth on the
+# social layer: async friend duels, the Puruhani ghost, no-ladder retention.
+
+profile: daily-social-duel
+status: candidate
+parent: purupuru-master
+derived_from: grimoires/loa/context/10-game-pitch.md — "The Daily Duel"
+
+keywords:
+  - your friend's ghost sitting across the table
+  - async duels while you're both asleep
+  - no ranked, no ladder, no ELO
+  - just a daily thing — like Wordle
+  - the result shows up in both gardens
+  - tomorrow they rearrange to counter what you did
+  - the cosmic weather changes the matchup so the same lineup plays differently tomorrow
+  - familiar but infinitely deep
+  - retention through ritual, not grind
+
+keywords_mechanical:
+  - you duel friends' Puruhani — their agent plays bound by their element's personality
+  - Fire Puruhani plays aggressively · Earth walls up · Water adapts to your patterns
+  - every morning, your friend's Puruhani has already challenged you
+  - the result lands in both gardens — a shared artifact, not a score
+
+references:
+  - Wordle [pitch] — the daily familiar ritual; shared without being competitive; one-and-done
+  - Neko Atsume [pitch] — the ambient asynchronous return; the world moved while you were gone
+  - chess by mail [candidate] — the opponent's move waiting for you; slow, personal, turn-as-ritual
+  - Death Stranding asynchronous traces [candidate] — other players present as left-behind ghosts, not live opponents
+
+touchstones:
+  - social through people you know, not matchmaking against strangers
+  - the ghost that learns — your friend's agent counters what you did yesterday
+  - retention as a gentle daily ritual, not a streak you're punished for breaking
+  - the duel result as a shared object living in two gardens, not a number on a ladder
+  - asymmetric time — you and your friend are never online together, and that's the point
+
+prohibited:
+  - leaderboards, ELO, ranked tiers — explicitly none
+  - matchmaking against strangers — the social graph is friends, period
+  - streak-punishment or loss-aversion retention — the ritual is invitational, not coercive
+  - live synchronous PvP — the duel is always async, ghost vs ghost
+  - “Victory / Defeat” result screens — results are felt and shared, not scored
+
+aesthetic: >
+  Wordle, but the puzzle is your friend's ghost. You wake up, the challenge is
+  already there, you arrange and lock in and watch — and the whole thing is
+  over in under a minute, and it lands in both your gardens like a postcard.
+  No ladder to climb, no rank to defend. Just a small daily exchange with
+  someone you know, made fresh every day by a sky neither of you controls. It
+  should feel like a habit you'd miss, not a job you'd quit.

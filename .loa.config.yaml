@@ -57,20 +57,45 @@ simstim:
   flatline:
     beads_loop: false                 # Phase 6.5 off · 4d clock
 
+# Multi-model routing substrate (cheval)
+# 2026-05-13: flatline_routing enabled so cheval routes `kind: cli` headless
+# aliases through the CLI binaries. Required because this environment has NO
+# working API keys — operator decree "always use subscription CLI" (see
+# auto-memory subscription-cli-always). Live smoke tests 2026-05-13 showed the
+# anthropic/openai/google API keys are present-but-dead (quota / access denied);
+# the claude/codex/gemini CLI binaries are installed + subscription-authed.
+hounfour:
+  flatline_routing: true
+
 # Flatline Protocol — multi-model adversarial review
 # Enabled 2026-05-09 for indexer sprint-2 Flatline gate (sprint plan + amendments)
 # Auto-trigger left off — manual invocation via /flatline-review only
 flatline_protocol:
   enabled: true
   auto_trigger: false
-  # Operator-stated 2026-05-12 (card-game cycle): use latest GPT + Gemini.
-  # Default gpt-5.3-codex produces output the scoring engine can't parse
-  # post-1.157.0 upgrade. gpt-5.5-pro restores the working substrate-cycle
-  # config. gemini-3.1-pro enables 3-model review (was disabled by default).
+  # 2026-05-13: all three voices switched to `-headless` subscription-CLI
+  # aliases. Prior config (opus / gpt-5.5-pro / gemini-3.1-pro) routed through
+  # API keys — live smoke tests confirmed openai "quota exceeded" + google
+  # "project access denied". Operator: "we should ALWAYS be using subscription
+  # CLI. I have no API keys." The headless aliases (kind: cli) route through
+  # the claude/codex/gemini CLI binaries via cheval (requires hounfour.
+  # flatline_routing: true, set above). Supersedes the 2026-05-12 GPT+Gemini-
+  # API note. All three CLIs verified installed + authed 2026-05-13.
+  #
+  # 2026-05-13 (operator decision): running 2-VOICE. Live smoke tests:
+  #   codex-headless  ✅ clean parseable JSON via codex CLI
+  #   claude-headless ✅ functional (claude -p wraps JSON in agent preamble;
+  #                      extractable) — secondary
+  #   gemini-headless ❌ "rate limited by google" — cheval passes GOOGLE_API_KEY
+  #                      through to the gemini CLI (the dig-search script scrubs
+  #                      it precisely to avoid this 429 class). System-Zone bug
+  #                      in loa_cheval env-handling — filed upstream. Left as
+  #                      tertiary so cheval voice-drops it; auto-restores to
+  #                      3-voice once the cheval env-scrub fix lands.
   models:
-    primary: claude-opus-4-7
-    secondary: gpt-5.5-pro
-    tertiary: gemini-3.1-pro
+    primary: codex-headless
+    secondary: claude-headless
+    tertiary: gemini-headless
 
 # ─────────────────────────────────────────────────────────────────────────
 # Run Bridge · Autonomous Excellence Loop (added 2026-05-07 PM)

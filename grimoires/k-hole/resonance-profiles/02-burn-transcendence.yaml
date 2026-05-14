@@ -1,0 +1,60 @@
+# Resonance Profile — Burn & Transcendence (the collection loop)
+#
+# Facet of grimoires/loa/context/10-game-pitch.md. The pull toward depth on the
+# economic + progression loop: 18 cards, the burn, the three transcendence
+# minds, resonance leveling.
+
+profile: burn-transcendence
+status: candidate
+parent: purupuru-master
+derived_from: grimoires/loa/context/10-game-pitch.md — "The Cards", "Transcendence"
+
+keywords:
+  - completion over accumulation — 18 cards, you finish the set
+  - burning as ascent, not loss
+  - the gap that drives the next mint
+  - mint, collect, burn, transcend, mint again
+  - duplicates are fuel, never waste — burn-fodder, trade, or garden energy
+  - three sets, three burns, three transcendence cards
+  - three burn-cards, three fundamentally different kinds of thinking
+  - resonance you earn by burning again — weather you can't buy
+  - minting gives you options; strategy gives you wins
+
+the_three_minds:
+  - The Forge (克) — reads the opponent's element and auto-counters; becomes whatever overcomes them. The tactical scalpel. Rewards reading the board.
+  - The Void (無) — mirrors; copies the opponent's base power and card type, then adds its own bonus. The opponent's strength becomes yours. Rewards patience and adaptation.
+  - The Garden (生) — protects; surviving cards keep chain bonuses even after the chain breaks. Prevents the death spiral. Rewards building chains you intend to lose pieces from.
+
+keywords_mechanical:
+  - transcendence cards bridge Shēng chains — count as any element needed
+  - 1.40x base power — the strongest single cards in the game
+  - Resonance 2 strengthens the ability; Resonance 3 grants tiebreaker immunity
+  - Resonance 2 only activates when real-world conditions align
+  - a hundred-pack minter with Resonance 3 cannot brute-force a player who understands the system
+
+references:
+  - Wuxing destructive cycle (Kè) — the Forge's "becomes whatever overcomes them" grammar
+  - alchemical transmutation [candidate] — burning base matter to yield a higher form
+  - Balatro [pitch] — the joker as a discovered piece that reframes the whole hand (transcendence as that, earned)
+
+touchstones:
+  - economy driven by lore-consistent burn cycles, not artificial scarcity
+  - power that buys options, never outcomes — the anti-pay-to-win invariant
+  - the collection that regenerates — burning is not an ending
+  - three transcendence cards as three stances toward the game itself (counter / mirror / protect)
+  - resonance as a real-world-gated reward — you cannot purchase the conditions
+
+prohibited:
+  - gacha psychology — no chase rarity, no FOMO, the set is completable by design
+  - “your collection is worth $X” — no floor-price or extractive framing on the burn loop
+  - pay-to-win — minting is options, never wins; Resonance 3 cannot beat understanding
+  - burning framed as loss or sacrifice-with-regret — it is ascent
+
+aesthetic: >
+  An economy that breathes in and out — collect, burn, transcend, and the gap
+  it leaves pulls you back to mint again. Burning should feel like the cards
+  earned their ascent, not like you destroyed something you paid for.
+  Transcendence cards arrive heavy and rare, but they are won by understanding
+  the burn loop, not by spending through it. The three minds — Forge, Void,
+  Garden — should each feel like adopting a different philosophy, not equipping
+  a different stat block.

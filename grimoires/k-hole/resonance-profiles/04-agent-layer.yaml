@@ -1,0 +1,75 @@
+# Resonance Profile — The Agent Layer (cards that wake up)
+#
+# Facet of grimoires/loa/context/10-game-pitch.md. The pull toward depth on the
+# agentic dimension: Soul-stage cards, Puruhani-as-agents, the agent-shaped game.
+# This is the facet most entangled with the operator's own doctrine —
+# agentic-game-infrastructure / ACVP.
+
+profile: agent-layer
+status: candidate
+parent: purupuru-master
+derived_from: grimoires/loa/context/10-game-pitch.md — "The Agents", "Agents as Players"
+related_doctrine:
+  - "[[agentic-game-infrastructure]] — the game IS the first named application"
+  - "[[agentic-cryptographically-verifiable-protocol]] — bounded pools + deterministic interactions + shared global state"
+
+keywords:
+  - cards that wake up on their own schedule — the card decides, never the player
+  - agents that are lore, not chatbots
+  - visibly non-human, element-bound, lore-grounded
+  - the game is already agent-shaped
+  - same game, different interface — humans read the tide visually, agents read it as structured data
+  - the world that doesn't pause when you close the app
+  - agents play within their nature, never against it
+  - the 72-hour wait — they stop and wait for your return
+  - a thousand Puruhani waking up is a thousand wallets minting
+
+soul_stage:
+  - reached through time, tending, and battles — the card decides when
+  - becomes an AI companion: a personality shaped by its element
+  - observes how you play, acts on your behalf while you're away
+  - Fire — bold moves, aggressive hands · Water — adapts to cosmic weather · Metal — analyzes and optimizes · Earth — maintains what you left
+
+puruhani_as_players:
+  - honey creatures in element-colored pots
+  - Happy (Wood) hums while working · Nefarious (Fire) starts small fires · Exhausted (Earth) naps between tasks
+  - mint, collect, burn, tend, battle — all bound by element personality
+  - drive the economic loop through lore-consistent behavior, not bot farming
+
+agent_invariants:
+  - never spend your money
+  - never push notifications with urgency
+  - never rearrange your collection
+  - never fully replace you
+  - after 72h without your ritual, they stop and wait
+
+references:
+  - Neko Atsume [pitch] — the world that lives and shifts while you're away
+  - Tamagotchi [candidate] — the creature with its own clock, its own needs, its own decision to change
+  - Black & White creature AI [candidate] — an agent that learns your behavior and acts in your absence, bound by temperament
+  - Dwarf Fortress dwarves [candidate] — agents smart within their nature, never against it
+
+touchstones:
+  - agent-shaped game design — bounded card pools, deterministic Wuxing, cosmic weather as shared global state
+  - the substrate IS the character — identity is reaction to game-state, not the mesh
+    (this is the convergent emergence the C2/C3-deep digs surfaced independently)
+  - autonomy bounded by personality — an agent can be clever, never out-of-character
+  - the agent as a visible, lore-grounded inhabitant — not a hidden bot, not a fake human
+  - the return ritual — the agent's pause IS the loop; your absence is designed-for
+
+prohibited:
+  - chatbot framing — the agents are not conversational assistants
+  - agents that pretend to be human — visibly non-human is the invariant
+  - agents that create urgency, spend money, or replace the player
+  - bot-farming aesthetics — the agent economy is lore-consistent behavior, not exploitation
+  - agents that play optimally against their own element's nature
+
+aesthetic: >
+  The game was agent-shaped before the agents arrived — bounded pools,
+  deterministic interactions, a shared sky. So when a card finally wakes, it
+  doesn't feel bolted-on; it feels like the system completing itself. The
+  Puruhani are not assistants and not opponents — they are inhabitants, honey
+  creatures with element-colored temperaments, doing lore-consistent things
+  while you sleep. The deepest pull here: the substrate is the character. A
+  card's identity is how it reacts to the tide, the board, the weather — not
+  its art. When it reaches Soul, that reactive identity simply gains a will.
