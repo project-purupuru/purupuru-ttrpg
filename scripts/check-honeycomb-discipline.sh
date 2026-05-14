@@ -7,8 +7,12 @@
 set -euo pipefail
 shopt -s nullglob
 
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
 HONEYCOMB_DIR="lib/honeycomb"
 RUNTIME="lib/runtime/runtime.ts"
+SERVICE_RE='^[a-z][a-z0-9]*(-[a-z0-9]+)*$'
 
 if [ ! -d "$HONEYCOMB_DIR" ]; then
   echo "OK: $HONEYCOMB_DIR does not exist yet"
@@ -24,21 +28,21 @@ if [ -n "$TSX_FILES" ]; then
   fail=1
 fi
 
-UI_IMPORTS=$(grep -RInE "from ['\"](react|react-dom|next|motion|framer-motion|@radix-ui|lucide-react|@/app|\\.\\./.*app/)" "$HONEYCOMB_DIR" --include="*.ts" --include="*.tsx" 2>/dev/null || true)
+UI_IMPORTS=$(grep -RInE "(from|import|require).*['\"](react|react-dom|next|motion|framer-motion|@radix-ui|lucide-react|@/app|\\.\\./.*app/)" "$HONEYCOMB_DIR" --include="*.ts" 2>/dev/null || true)
 if [ -n "$UI_IMPORTS" ]; then
   echo "FAIL: lib/honeycomb must not import UI/framework modules"
   echo "$UI_IMPORTS"
   fail=1
 fi
 
-RUNTIME_IMPORTS=$(grep -RInE "from ['\"]@/lib/runtime/" "$HONEYCOMB_DIR" --include="*.ts" --include="*.tsx" 2>/dev/null | grep -vE "^${HONEYCOMB_DIR}/collection\\.seed\\.ts:" || true)
+RUNTIME_IMPORTS=$(grep -RInE "(from|import|require).*['\"]@/lib/runtime/" "$HONEYCOMB_DIR" --include="*.ts" 2>/dev/null | grep -vE "^${HONEYCOMB_DIR}/collection\\.seed\\.ts:" || true)
 if [ -n "$RUNTIME_IMPORTS" ]; then
   echo "FAIL: lib/honeycomb runtime imports are only allowed in collection.seed.ts"
   echo "$RUNTIME_IMPORTS"
   fail=1
 fi
 
-CHAIN_IMPORTS=$(grep -RInE "from ['\"](@solana|@metaplex-foundation|@vercel/kv)" "$HONEYCOMB_DIR" --include="*.ts" --include="*.tsx" 2>/dev/null || true)
+CHAIN_IMPORTS=$(grep -RInE "(from|import|require).*['\"](@solana|@metaplex-foundation|@vercel/kv)" "$HONEYCOMB_DIR" --include="*.ts" 2>/dev/null || true)
 if [ -n "$CHAIN_IMPORTS" ]; then
   echo "FAIL: lib/honeycomb must stay chain/backend agnostic"
   echo "$CHAIN_IMPORTS"
@@ -47,7 +51,7 @@ fi
 
 for port in "$HONEYCOMB_DIR"/*.port.ts; do
   base=$(basename "$port" .port.ts)
-  if [[ ! "$base" =~ ^[a-z][a-z0-9-]*$ ]]; then
+  if [[ ! "$base" =~ $SERVICE_RE ]]; then
     echo "FAIL: service filename must be kebab-case: $port"
     fail=1
     continue
@@ -64,8 +68,12 @@ done
 
 for adapter in "$HONEYCOMB_DIR"/*.live.ts "$HONEYCOMB_DIR"/*.mock.ts; do
   base=$(basename "$adapter")
-  service="${base%.*.ts}"
-  if [[ ! "$service" =~ ^[a-z][a-z0-9-]*$ ]]; then
+  if [[ "$base" == *.live.ts ]]; then
+    service="${base%.live.ts}"
+  else
+    service="${base%.mock.ts}"
+  fi
+  if [[ ! "$service" =~ $SERVICE_RE ]]; then
     echo "FAIL: adapter filename must be kebab-case: $adapter"
     fail=1
     continue

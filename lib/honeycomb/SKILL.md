@@ -41,6 +41,9 @@ Prefer `Match` for `/battle-v2` lifecycle work. Treat `Battle` as the older sele
 - Service filenames are kebab-case and suffix-typed: `foo-bar.port.ts`,
   `foo-bar.live.ts`, and `foo-bar.mock.ts`; live layer exports are named
   `FooBarLive` and are composed in `lib/runtime/runtime.ts`.
+- Port pairing is universal inside `lib/honeycomb`: every `*.port.ts` must
+  have matching `*.live.ts` and `*.mock.ts` adapters, and every adapter must
+  have its matching port. Empty placeholder services should not be committed.
 - When adding a new Effect service, create the `port/live/mock` trio and wire the live layer once in `lib/runtime/runtime.ts`.
 
 ## Checks
