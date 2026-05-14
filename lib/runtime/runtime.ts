@@ -13,6 +13,8 @@ import { BattleLive } from "@/lib/honeycomb/battle.live";
 import { ClashLive } from "@/lib/honeycomb/clash.live";
 import { MatchLive } from "@/lib/honeycomb/match.live";
 import { OpponentLive } from "@/lib/honeycomb/opponent.live";
+// Burn-rite cycle (S1 / sprint-148): the player's persistent owned-card store.
+import { CollectionLive } from "@/lib/honeycomb/collection.live";
 
 // THE single Effect.provide site for the app. Lint check: a grep for
 // `ManagedRuntime.make` in lib/ or app/ should return exactly one match
@@ -32,6 +34,7 @@ const PrimitivesLayer = Layer.mergeAll(
   BattleLive,
   ClashLive,
   OpponentLive,
+  CollectionLive,
 );
 const AwarenessOnPrimitives = Layer.provide(AwarenessLive, PrimitivesLayer);
 const ObservatoryOnAwareness = Layer.provide(ObservatoryLive, AwarenessOnPrimitives);
