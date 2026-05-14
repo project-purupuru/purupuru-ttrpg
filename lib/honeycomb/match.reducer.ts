@@ -78,7 +78,10 @@ export function reduce(
 
   switch (cmd._tag) {
     case "begin-match": {
-      const fresh = initialSnapshot(cmd.seed ?? snap.seed);
+      // Preserve the player's owned collection across the rebuild — a fresh
+      // match re-rolls weather/opponent/condition, but the owned pool only
+      // changes via the /burn route, not the battle loop (FR-7a deal seam).
+      const fresh = initialSnapshot(cmd.seed ?? snap.seed, snap.collection);
       const next: MatchSnapshot = { ...fresh, phase: "entry" };
       return {
         next,
@@ -187,7 +190,9 @@ export function reduce(
     }
 
     case "reset-match": {
-      const fresh = initialSnapshot(cmd.seed ?? `match-${Date.now()}`);
+      // Preserve the owned collection across a reset (FR-7a deal seam) — same
+      // rationale as begin-match: the owned pool only changes via /burn.
+      const fresh = initialSnapshot(cmd.seed ?? `match-${Date.now()}`, snap.collection);
       return {
         next: fresh,
         events: [{ _tag: "phase-entered", phase: "idle", at: Date.now() }],
@@ -211,14 +216,30 @@ export function reduce(
 // stays self-contained. match.live.ts still uses them via re-export.
 // ─────────────────────────────────────────────────────────────────
 
-export function initialSnapshot(seed: string): MatchSnapshot {
+/**
+ * Build a fresh idle snapshot.
+ *
+ * `collection` (FR-7a deal seam): when provided, it *is* the player's owned
+ * pool — owned transcendence cards reach the playable lineup via the
+ * `choose-element` slice (`Math.min(5, collection.length)` above). When
+ * absent (tests, fresh boot), falls back to the original 12-random
+ * `CARD_DEFINITIONS` deal so existing callers — and the regression suites —
+ * are unaffected. Stays pure and synchronous: the optional param is the only
+ * addition (SDD §6.2 — an Effect cascade was explicitly rejected).
+ */
+export function initialSnapshot(
+  seed: string,
+  collection?: readonly Card[],
+): MatchSnapshot {
   const rng = rngFromSeed(seed);
   const weather = getDailyElement();
   const opponentElement: Element = rng.pick(ELEMENT_ORDER);
   const condition: BattleCondition = CONDITIONS[opponentElement];
-  const collection: Card[] = Array.from({ length: 12 }, (_, i) =>
-    createCard(rng.pick(CARD_DEFINITIONS), new Date(2026, 4, 12 + i)),
-  );
+  const dealtCollection: readonly Card[] =
+    collection ??
+    Array.from({ length: 12 }, (_, i) =>
+      createCard(rng.pick(CARD_DEFINITIONS), new Date(2026, 4, 12 + i)),
+    );
   return {
     phase: "idle",
     seed,
@@ -227,7 +248,7 @@ export function initialSnapshot(seed: string): MatchSnapshot {
     condition,
     playerElement: null,
     hasSeenTutorial: false,
-    collection,
+    collection: dealtCollection,
     selectedIndices: [],
     p1Lineup: [],
     p2Lineup: [],

@@ -11,6 +11,12 @@
 import { describe, expect, it } from "vitest";
 import { initialSnapshot, reduce, type ReduceError, type ReduceResult } from "./match.reducer";
 import type { MatchCommand, MatchPhase, MatchSnapshot } from "./match.port";
+import {
+  type Card,
+  CARD_DEFINITIONS,
+  TRANSCENDENCE_DEFINITIONS,
+  createCard,
+} from "./cards";
 
 const SEED = "fixed-seed-reducer-tests";
 
@@ -265,6 +271,77 @@ describe("reduce / reset-match", () => {
     const ev = r.events.find((e) => e._tag === "phase-entered");
     expect(ev).toBeDefined();
     if (ev?._tag === "phase-entered") expect(ev.phase).toBe("idle");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────
+describe("initialSnapshot / FR-7a collection-aware deal seam", () => {
+  it("without a collection arg, falls back to the 12-random deal", () => {
+    // Regression guard for the optional-param default: existing callers
+    // (tests, fresh boot) get the original 12-card CARD_DEFINITIONS deal.
+    const snap = initialSnapshot(SEED);
+    expect(snap.collection).toHaveLength(12);
+    expect(
+      snap.collection.every((c) => c.cardType !== "transcendence"),
+    ).toBe(true);
+  });
+
+  it("with a collection arg, the snapshot collection IS the passed pool", () => {
+    const owned: readonly Card[] = [
+      createCard(CARD_DEFINITIONS[0]!),
+      createCard(TRANSCENDENCE_DEFINITIONS[0]!),
+    ];
+    const snap = initialSnapshot(SEED, owned);
+    expect(snap.collection).toBe(owned);
+  });
+
+  it("a transcendence card reaches the dealt lineup through the real begin-match flow", () => {
+    // Seed an owned pool: base cards + a transcendence card inside the
+    // choose-element window (Math.min(5, collection.length) → first 5).
+    const forgeDef = TRANSCENDENCE_DEFINITIONS.find(
+      (d) => d.defId === "transcendence-forge",
+    )!;
+    const owned: readonly Card[] = [
+      createCard(CARD_DEFINITIONS[0]!),
+      createCard(CARD_DEFINITIONS[1]!),
+      createCard(forgeDef),
+      createCard(CARD_DEFINITIONS[2]!),
+      createCard(CARD_DEFINITIONS[3]!),
+    ];
+
+    // The real runtime flow: match.live.ts seeds the idle snapshot with the
+    // owned collection, then the player issues begin-match → choose-element.
+    // begin-match MUST preserve the collection across its rebuild (FR-7a) —
+    // otherwise the owned pool is replaced by the 12-random fallback before
+    // choose-element ever runs.
+    const idle = initialSnapshot(SEED, owned);
+    const entered = expectOk(reduce(idle, { _tag: "begin-match" }));
+    expect(entered.next.phase).toBe("entry");
+    expect(entered.next.collection).toBe(owned); // begin-match preserved it
+
+    const arrange = expectOk(
+      reduce(entered.next, { _tag: "choose-element", element: "metal" }),
+    );
+
+    const lineupDefIds = arrange.next.p1Lineup.map((c) => c.defId);
+    expect(arrange.next.p1Lineup).toHaveLength(5);
+    expect(lineupDefIds).toContain("transcendence-forge");
+    expect(
+      arrange.next.p1Lineup.some((c) => c.cardType === "transcendence"),
+    ).toBe(true);
+  });
+
+  it("reset-match preserves the owned collection across the rebuild", () => {
+    // reset-match re-rolls the match but the owned pool only changes via the
+    // /burn route — the collection must survive a reset (FR-7a).
+    const owned: readonly Card[] = [
+      createCard(CARD_DEFINITIONS[0]!),
+      createCard(TRANSCENDENCE_DEFINITIONS[0]!),
+    ];
+    const idle = initialSnapshot(SEED, owned);
+    const reset = expectOk(reduce(idle, { _tag: "reset-match" }));
+    expect(reset.next.phase).toBe("idle");
+    expect(reset.next.collection).toBe(owned);
   });
 });
 

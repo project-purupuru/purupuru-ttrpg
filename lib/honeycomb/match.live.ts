@@ -8,9 +8,10 @@
  * the port. Wrong-phase commands return a typed `wrong-phase` error.
  */
 
-import { Duration, Effect, Fiber, Layer, PubSub, Ref, Stream } from "effect";
+import { Duration, Effect, Fiber, Layer, Option, PubSub, Ref, Stream } from "effect";
 import { Clash } from "./clash.port";
 import type { Card } from "./cards";
+import { Collection } from "./collection.port";
 import { detectCombos, getComboSummary } from "./combos";
 import {
   Match,
@@ -95,7 +96,21 @@ export const MatchLive: Layer.Layer<Match, never, Clash> = Layer.scoped(
   Match,
   Effect.gen(function* () {
     const clash = yield* Clash;
-    const stateRef = yield* Ref.make<MatchSnapshot>(initialSnapshot("match-genesis"));
+    // FR-7a deal seam: read the player's owned collection and seed the match
+    // with it, so owned transcendence cards reach the playable lineup. When
+    // the collection is empty — or the Collection service isn't provided
+    // (e.g. the transition-matrix test layer) — initialSnapshot falls back to
+    // its 12-random deal. Collection is read via serviceOption so MatchLive's
+    // requirement type stays `Clash`-only: the runtime provides Collection
+    // via PrimitivesLayer, but suites that wire MatchLive over ClashLive
+    // alone keep working with no fixture changes. SDD §6.4.
+    const collectionOpt = yield* Effect.serviceOption(Collection);
+    const ownedCards = Option.isSome(collectionOpt)
+      ? yield* collectionOpt.value.getAll()
+      : [];
+    const stateRef = yield* Ref.make<MatchSnapshot>(
+      initialSnapshot("match-genesis", ownedCards.length > 0 ? ownedCards : undefined),
+    );
     const pubsub = yield* PubSub.unbounded<MatchEvent>();
     /** Ref to the currently-running reveal fiber, so reset-match can interrupt it. */
     const fiberRef = yield* Ref.make<Fiber.RuntimeFiber<unknown, unknown> | null>(null);
