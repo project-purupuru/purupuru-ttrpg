@@ -116,7 +116,15 @@ const moduleName = 'react';
 export const loadUi = () => import(`${moduleName}`);
 export interface FooPort {}
 EOF
-expect_failure "template-literal dynamic import" "template-literal dynamic imports"
+expect_failure "template-literal dynamic import" "non-static import or require calls"
+
+reset_fixture
+cat > "$honeycomb/foo.port.ts" <<'EOF'
+const moduleName = 'react';
+export const loadUi = () => require(moduleName);
+export interface FooPort {}
+EOF
+expect_failure "dynamic require" "non-static import or require calls"
 
 reset_fixture
 cat > "$runtime" <<'EOF'

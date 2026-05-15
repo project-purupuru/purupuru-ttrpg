@@ -59,19 +59,38 @@ function walk(dir) {
   });
 }
 
-function importSpecifiers(source) {
+function stripComments(source) {
   // Non-greedy block comment stripping is sufficient because TypeScript does
   // not support nested block comments.
-  const stripped = source
+  return source
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/(^|[^:])\/\/.*$/gm, '$1');
+}
+
+function importSpecifiers(source) {
+  const stripped = stripComments(source);
   const patterns = [
     /(?:^|[\n;])\s*import\s+(?:type\s+)?(?:[^'";]*?\s+from\s*)?['"]([^'"]+)['"]/g,
     /(?:^|[\n;])\s*export\s+(?:type\s+)?[^'";]*?\s+from\s*['"]([^'"]+)['"]/g,
+    // Intentionally limited to static string specifiers. Non-static calls are
+    // rejected below; graduate to AST parsing if this rule needs more nuance.
     /\brequire\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
     /\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
   ];
   return patterns.flatMap((pattern) => Array.from(stripped.matchAll(pattern), (match) => match[1]));
+}
+
+function nonStaticModuleCalls(source) {
+  const stripped = stripComments(source);
+  const calls = [];
+  for (const match of stripped.matchAll(/\b(import|require)\s*\(\s*([^)]+?)\s*\)/g)) {
+    const callee = match[1];
+    const argument = match[2].trim();
+    if (!/^['"][^'"]+['"]$/.test(argument)) {
+      calls.push(`${callee}(${argument})`);
+    }
+  }
+  return calls;
 }
 
 function rel(file) {
@@ -80,11 +99,8 @@ function rel(file) {
 
 for (const file of walk(honeycombDir)) {
   const source = fs.readFileSync(file, 'utf8');
-  const stripped = source
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/(^|[^:])\/\/.*$/gm, '$1');
-  if (/\bimport\s*\(\s*`/.test(stripped)) {
-    errors.push(`FAIL: lib/honeycomb must not use template-literal dynamic imports: ${rel(file)}`);
+  for (const call of nonStaticModuleCalls(source)) {
+    errors.push(`FAIL: lib/honeycomb must not use non-static import or require calls: ${rel(file)} -> ${call}`);
   }
   for (const specifier of importSpecifiers(source)) {
     if (
