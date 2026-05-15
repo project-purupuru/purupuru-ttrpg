@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
+    "test:battle-v2": "PLAYWRIGHT_PORT=3000 playwright test tests/e2e/battle-v2.spec.ts --project=chromium",
     "assets:scan": "node app/battle-v2/_devtools/scripts/scan-media.mjs",
     "hounfour:drift": "tsx scripts/hounfour-drift.ts",
     "test:types": "pnpm typecheck",

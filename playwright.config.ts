@@ -1,11 +1,16 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const port = process.env.PLAYWRIGHT_PORT ?? "3000";
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${port}`;
+const reuseExistingServer =
+  process.env.PLAYWRIGHT_FORCE_SERVER === "1" ? false : !process.env.CI;
+
 export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: true,
   reporter: "list",
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL,
     trace: "on-first-retry",
   },
   projects: [
@@ -13,9 +18,9 @@ export default defineConfig({
     { name: "webkit",   use: { ...devices["Desktop Safari"] } },
   ],
   webServer: {
-    command: "pnpm dev",
-    url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
+    command: `pnpm exec next dev -H 127.0.0.1 -p ${port}`,
+    url: baseURL,
+    reuseExistingServer,
     timeout: 120_000,
   },
 });
