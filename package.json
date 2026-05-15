@@ -9,6 +9,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "check:world": "bash scripts/check-world-discipline.sh",
+    "check:world:selftest": "bash scripts/check-world-discipline.selftest.sh",
     "check:honeycomb": "bash scripts/check-honeycomb-discipline.sh",
     "check:honeycomb:selftest": "bash scripts/check-honeycomb-discipline.selftest.sh",
     "test": "vitest run",
