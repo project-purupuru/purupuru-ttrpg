@@ -19,6 +19,9 @@ guard="$ROOT/scripts/check-honeycomb-discipline.sh"
 honeycomb="$tmp/lib/honeycomb"
 runtime="$tmp/lib/runtime/runtime.ts"
 
+# Exercise the real default paths before using env-var fixture overrides.
+bash "$guard" >/dev/null
+
 reset_fixture() {
   rm -rf "$tmp/lib"
   mkdir -p "$honeycomb" "$(dirname "$runtime")"
@@ -108,9 +111,21 @@ EOF
 expect_failure "runtime import outside collection.seed.ts" "runtime imports are only allowed"
 
 reset_fixture
+cat > "$honeycomb/foo.port.ts" <<'EOF'
+const moduleName = 'react';
+export const loadUi = () => import(`${moduleName}`);
+export interface FooPort {}
+EOF
+expect_failure "template-literal dynamic import" "template-literal dynamic imports"
+
+reset_fixture
 cat > "$runtime" <<'EOF'
 export const RuntimeLive = {};
 EOF
 expect_failure "missing runtime live reference" "FooLive is not referenced"
+
+reset_fixture
+rm "$runtime"
+expect_failure "missing runtime file" "runtime file not found"
 
 echo "OK: Honeycomb substrate discipline selftest passed"

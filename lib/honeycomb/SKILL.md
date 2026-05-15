@@ -50,9 +50,13 @@ Prefer `Match` for `/battle-v2` lifecycle work. Treat `Battle` as the older sele
   `require`, and dynamic `import()` specifiers, and intentionally avoids a
   TypeScript parser during build bootstrap. If Honeycomb starts needing syntax
   outside the selftest fixtures, graduate the guard to an AST-backed rule.
+  Template-literal dynamic imports are intentionally banned in Honeycomb files;
+  use explicit module imports so boundary checks can read the dependency.
 - `pnpm build` runs the Honeycomb guard through `prebuild`. Use
   `SKIP_HONEYCOMB_GUARD=1` only for an emergency hotfix when the guard itself is
-  broken, then restore the guard in the follow-up PR.
+  broken, then restore the guard in the follow-up PR. Use
+  `HONEYCOMB_GUARD_MODE=warn` only when a hotfix must keep the guard visible
+  without blocking the build; the default mode is blocking.
 
 ## Checks
 

@@ -60,6 +60,8 @@ function walk(dir) {
 }
 
 function importSpecifiers(source) {
+  // Non-greedy block comment stripping is sufficient because TypeScript does
+  // not support nested block comments.
   const stripped = source
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/(^|[^:])\/\/.*$/gm, '$1');
@@ -78,6 +80,12 @@ function rel(file) {
 
 for (const file of walk(honeycombDir)) {
   const source = fs.readFileSync(file, 'utf8');
+  const stripped = source
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:])\/\/.*$/gm, '$1');
+  if (/\bimport\s*\(\s*`/.test(stripped)) {
+    errors.push(`FAIL: lib/honeycomb must not use template-literal dynamic imports: ${rel(file)}`);
+  }
   for (const specifier of importSpecifiers(source)) {
     if (
       /^(react|react-dom|next|motion|framer-motion)(\/|$)/.test(specifier) ||
@@ -142,8 +150,9 @@ for adapter in "$HONEYCOMB_DIR"/*.live.ts "$HONEYCOMB_DIR"/*.mock.ts; do
   fi
 done
 
+live_files=("$HONEYCOMB_DIR"/*.live.ts)
 if [ -f "$RUNTIME" ]; then
-  for live in "$HONEYCOMB_DIR"/*.live.ts; do
+  for live in "${live_files[@]}"; do
     base=$(basename "$live" .live.ts)
     pascal=$(echo "$base" | LC_ALL=C awk -F- '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2);}1' OFS='')
     layer="${pascal}Live"
@@ -152,6 +161,9 @@ if [ -f "$RUNTIME" ]; then
       fail=1
     fi
   done
+elif [ "${#live_files[@]}" -gt 0 ]; then
+  echo "FAIL: runtime file not found for live adapter registration check: $RUNTIME"
+  fail=1
 fi
 
 if [ "$fail" != "0" ]; then
