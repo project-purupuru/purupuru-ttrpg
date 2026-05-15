@@ -1,0 +1,59 @@
+# Resonance Profile — The Live-World Meta (cosmic weather)
+#
+# Facet of grimoires/loa/context/10-game-pitch.md. The pull toward depth on the
+# real-world-grounded meta: cosmic weather, the Five Oracles, a meta you can't
+# solve because reality moves it first.
+
+profile: live-world-meta
+status: candidate
+parent: purupuru-master
+derived_from: grimoires/loa/context/10-game-pitch.md — "The Battles" (cosmic weather), "Where It's Going"
+
+keywords:
+  - a meta driven by real earthquakes and solar flares
+  - cosmic weather that is real — seismic data, solar flares, air quality readings
+  - the weather you can't buy
+  - a meta that shifts before anyone can solve it
+  - everyone knows what day it is, so the meta adjusts
+  - the meta stops being a 5-day counter and starts being real
+  - shared global state nobody controls
+
+the_five_oracles:
+  - TREMOR — reads seismic data
+  - CORONA — reads solar flares
+  - BREATH — reads air quality
+  - (five-element cycle; today might favor Wood)
+
+keywords_mechanical:
+  - weather-matching cards get a boost
+  - each battle's condition is set by the imbalance element
+  - Resonance 2 on transcendence cards only activates when real-world conditions align
+  - no strategy dominates because the meta shifts faster than it can be solved
+
+references:
+  - Wuxing five-phase cycle — the cosmology the weather rotates through
+  - the I Ching [candidate] — state read from the world, not set by a designer
+  - ARGs / real-world-data games [candidate] — the game surface that reaches into physical reality
+  - weather in roguelikes [candidate] — a global modifier nobody controls, reshaping every run
+
+touchstones:
+  - the game grounded in physical reality — the substrate is literally the planet
+  - shared global state that no player and no designer controls
+  - the meta as weather, not as a balance patch — it changes because the world changed
+  - “you can't buy good weather” — the un-monetizable layer that keeps the game honest
+  - common knowledge as a balancing force — everyone knows the tide, so everyone adapts
+
+prohibited:
+  - a designer-tuned, patch-driven meta — the meta is real-world-sourced, not balanced by hand
+  - a meta that can be "solved" and then dominated — it must shift faster than mastery
+  - pay-to-influence-the-weather — the cosmic layer is un-purchasable, period
+  - hiding the day's tide — it is common knowledge by design; the adjustment is the game
+
+aesthetic: >
+  The sky is real. Somewhere a fault line shifted and a solar flare arced, and
+  tomorrow your lineup means something different because of it. The meta is not
+  a thing a designer balances — it is weather, sourced from the actual planet
+  through the Five Oracles, and nobody controls it, and you can't buy it. This
+  is what keeps the game honest forever: no strategy can dominate, because the
+  ground itself moves before anyone finishes solving it. Everyone knows what
+  day it is. The skill is in adapting, not in cracking.

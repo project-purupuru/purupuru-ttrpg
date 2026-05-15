@@ -1,0 +1,57 @@
+# Resonance Profile — Feel First, No Numbers (the aesthetic invariant)
+#
+# Facet of grimoires/loa/context/10-game-pitch.md. The pull toward depth on the
+# game's interface philosophy: no visible numbers, feel the tide, discover
+# through attention. This facet is the most load-bearing for the Easel.
+
+profile: feel-first-no-numbers
+status: candidate
+parent: purupuru-master
+derived_from: grimoires/loa/context/10-game-pitch.md — "The Battles" (results), "What It's Not"
+primary_consumer: the-easel (visual direction) — but binds k-hole digs too
+
+keywords:
+  - “the tide favored Wood today” — never “Victory” or “Defeat”
+  - no visible numbers anywhere
+  - you feel who's winning by the animated flow of element energy
+  - the caretaker whispers hints — strategic information carried through personality, not dashboards
+  - cards breathe with holographic shimmer
+  - the garden as a warm daily view
+  - discover through attention — the game never shows a progress bar
+  - never "do X to unlock Y"
+  - feel first, visual first, explanation only if absolutely needed
+
+keywords_mechanical:
+  - results are stated as tide-language, not scores
+  - strategic info is delivered diegetically — through the caretaker's voice and personality
+  - the tactical tutorial teaches through showing, not telling
+
+references:
+  - Tunic [candidate] — discovery through attention; the manual you assemble yourself; nothing explained
+  - Inscryption [candidate] — diegetic UI; the interface IS the world, not an overlay on it
+  - Journey [candidate] — wordless legibility; you always know what to do, nothing tells you
+  - Wuxing five-stone tide indicator (from the harness) — state shown as a felt arrangement, not a readout
+
+touchstones:
+  - legibility through animation, not annotation — the flow of energy IS the information
+  - personality as the information channel — the caretaker's voice replaces the dashboard
+  - the game that never explains itself — mastery is earned by attention
+  - diegetic-everything — no HUD that isn't also part of the world
+  - the holographic shimmer — cards are alive objects, not data rows
+
+prohibited:
+  - visible numbers — health, damage, power, percentages — anywhere in the played experience
+  - “Victory / Defeat” screens — results are tide-language
+  - progress bars, unlock trees, "do X to get Y" prompts
+  - tooltips and stat panels as the primary information channel
+  - tutorials that tell instead of show
+
+aesthetic: >
+  The interface disappears. Nothing is a readout — the tide is a flow you feel,
+  the caretaker is a voice you trust, the cards are objects that breathe. You
+  learn this game the way you learn a room you keep returning to: by attention,
+  not instruction. When you win, the game doesn't congratulate you with a
+  number — it tells you the tide favored Wood today, and you already knew,
+  because you felt it turn. Strategic depth lives underneath a surface that
+  refuses to lecture. Feel first. Visual first. Explanation only if absolutely
+  needed.

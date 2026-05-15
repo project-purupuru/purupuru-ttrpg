@@ -1,0 +1,59 @@
+# Resonance Profile — Elemental Tactics (the battle core)
+#
+# Facet of grimoires/loa/context/10-game-pitch.md. The pull toward depth on
+# everything battle: lineup arrangement, simultaneous clash, attrition rounds,
+# the Shēng chain, the imbalance conditions.
+
+profile: elemental-tactics
+status: candidate
+parent: purupuru-master
+derived_from: grimoires/loa/context/10-game-pitch.md — "The Battles"
+
+keywords:
+  - lineup order is the entire puzzle
+  - simultaneous clash, left to right, no turns
+  - face-down opponent — you commit before you see
+  - the round ends in seconds
+  - attrition that reshapes adjacency every round
+  - the Shēng chain bonus that escalates and breaks
+  - Setup Strike — deliberately breaking your own chain for focused power
+  - chains recalculate as cards die — losing a card can create an adjacency you didn't have
+  - solving a shrinking puzzle where the optimal answer changes every round
+  - the imbalance condition reshapes the puzzle every match
+
+keywords_mechanical:
+  - 5-card lineup, 2-4 rounds, fast matches, dense decisions
+  - matching pairs clash; losers stamped 敗 and disintegrate
+  - clash count equals the smaller side; draws go to the bigger side
+  - full 5-card generative cycle = +35% to every card
+  - Fire — early positions hit harder
+  - Wood — rewards patience
+  - Earth — strengthens the center
+  - Metal — doubles the single biggest clash
+  - Water — amplifies everything; wild swings, real comebacks
+
+references:
+  - Hearthstone Battlegrounds [pitch] — hidden lineup, rearrange between rounds, the round-to-round re-solve
+  - Balatro [pitch] — combo discovery happening DURING preparation, not after
+  - Into the Breach [candidate] — deterministic, legible, fully-readable tactical puzzle-combat
+  - chess problems [candidate] — the position as a self-contained puzzle with a discoverable best move
+
+touchstones:
+  - the optimal move changing because the board shrank, not because the opponent acted
+  - tradeoff between broad chain strength and concentrated strikes — no dominant answer
+  - legibility without numbers — the puzzle must be readable by feel
+  - commitment under hidden information — you lock in blind, then watch
+  - the Wuxing generative cycle as the spatial grammar of the lineup
+
+prohibited:
+  - turn-by-turn back-and-forth — clashes are simultaneous
+  - visible damage numbers or health bars during the clash
+  - a single dominant lineup — the meta and the attrition must keep breaking it
+  - long matches — this is seconds-per-round, dense, fast
+
+aesthetic: >
+  A puzzle that re-solves itself every round. You are not out-thinking an
+  opponent move-by-move — you are reading a shrinking board and finding the
+  chain that survives it. Tense commitment, then a fast violent clash, then the
+  quiet of rearranging what's left. The pleasure is in the re-solve: the same
+  five cards mean something different after two of them are gone.

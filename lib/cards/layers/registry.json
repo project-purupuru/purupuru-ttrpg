@@ -1,0 +1,144 @@
+{
+  "version": 1,
+  "canvas": {
+    "width": 733,
+    "height": 1024,
+    "note": "Matches existing AssetRecord dimensions for card composites."
+  },
+  "cdnBase": "/art/cards",
+  "layers": [
+    {
+      "name": "background",
+      "zIndex": 0,
+      "source": "adaptive",
+      "faces": ["front"],
+      "selectionLogic": {
+        "type": "element",
+        "variants": {
+          "wood": "backgrounds/wood.svg",
+          "fire": "backgrounds/fire.svg",
+          "earth": "backgrounds/earth.svg",
+          "metal": "backgrounds/metal.svg",
+          "water": "backgrounds/water.svg",
+          "harmony": "backgrounds/harmony.svg"
+        }
+      },
+      "description": "Element-specific background."
+    },
+    {
+      "name": "card_back",
+      "zIndex": 5,
+      "source": "immutable",
+      "faces": ["back"],
+      "selectionLogic": {
+        "type": "static",
+        "path": "/brand/project-purupuru-logo-card-back.png"
+      },
+      "description": "Canonical brand card-back. Only resolves for face=back; the cycle-1 hand renders front faces, so this asset is not required."
+    },
+    {
+      "name": "frame",
+      "zIndex": 10,
+      "source": "immutable",
+      "faces": ["front"],
+      "revealStages": [3],
+      "selectionLogic": {
+        "type": "rarity",
+        "variants": {
+          "common": "frames/common.svg",
+          "mid": "frames/mid.svg",
+          "rare": "frames/rare.svg",
+          "rarest": "frames/rarest.svg"
+        }
+      },
+      "description": "Card frame at full reveal. Reveal stages 1-2 swap to frame_pot."
+    },
+    {
+      "name": "frame_pot",
+      "zIndex": 10,
+      "source": "immutable",
+      "faces": ["front"],
+      "revealStages": [1, 2],
+      "selectionLogic": {
+        "type": "element",
+        "variants": {
+          "wood": "frames_pot/wood.svg",
+          "fire": "frames_pot/fire.svg",
+          "earth": "frames_pot/earth.svg",
+          "metal": "frames_pot/metal.svg",
+          "water": "frames_pot/water.svg",
+          "harmony": "frames_pot/harmony.svg"
+        }
+      },
+      "description": "Pot frame for reveal stages 1-2. Mutually exclusive with `frame`."
+    },
+    {
+      "name": "character",
+      "zIndex": 30,
+      "source": "immutable",
+      "faces": ["front"],
+      "selectionLogic": {
+        "type": "static",
+        "path": "art-panels/{caretaker}-{element}.png"
+      },
+      "description": "Character art panel — element-driven via {caretaker} interpolation. Ported: the original cardType-keyed variants all mapped to this same path."
+    },
+    {
+      "name": "element_effects",
+      "zIndex": 70,
+      "source": "immutable",
+      "faces": ["front"],
+      "selectionLogic": {
+        "type": "element",
+        "variants": {
+          "wood": "/art/element-effects/wood_glow.svg",
+          "fire": "/art/element-effects/fire_glow.svg",
+          "earth": "/art/element-effects/earth_glow.svg",
+          "metal": "/art/element-effects/metal_glow.svg",
+          "water": "/art/element-effects/water_glow.svg",
+          "harmony": "/art/element-effects/harmony_glow.svg"
+        }
+      },
+      "description": "Element atmospheric overlay. Absolute paths bypass cdnBase prefix."
+    },
+    {
+      "name": "rarity_treatment",
+      "zIndex": 80,
+      "source": "immutable",
+      "faces": ["front"],
+      "selectionLogic": {
+        "type": "rarity",
+        "variants": {
+          "common": "rarity-treatments/common.svg",
+          "mid": "rarity-treatments/mid_shimmer.svg",
+          "rare": "rarity-treatments/rare_glow.svg",
+          "rarest": "rarity-treatments/rarest_full.svg"
+        }
+      },
+      "description": "Rarity visual escalation overlay. Common is transparent (no treatment)."
+    },
+    {
+      "name": "behavioral",
+      "zIndex": 90,
+      "source": "adaptive",
+      "faces": ["front"],
+      "selectionLogic": {
+        "type": "resonance",
+        "thresholds": {
+          "dormant": [0, 25],
+          "awakening": [26, 50],
+          "resonant": [51, 75],
+          "harmonized": [76, 100]
+        },
+        "paths": {
+          "dormant": "behavioral/dormant.svg",
+          "awakening": "behavioral/awakening.svg",
+          "resonant": "behavioral/resonant_{element}.svg",
+          "harmonized": "behavioral/harmonized_{element}.svg"
+        },
+        "elementSpecific": ["resonant", "harmonized"]
+      },
+      "description": "Behavioral overlay driven by holder resonance. Element-specific for resonant + harmonized states."
+    }
+  ]
+}

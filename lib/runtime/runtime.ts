@@ -8,6 +8,8 @@ import { PopulationLive } from "@/lib/sim/population.live";
 import { AwarenessLive } from "@/lib/world/awareness.live";
 import { ObservatoryLive } from "@/lib/world/observatory.live";
 import { InvocationLive } from "@/lib/world/invocation.live";
+// The clash game, driven off the substrate (battle-v2 cycle-1):
+import { MatchEngineLive } from "@/lib/cards/battle/match-engine.live";
 
 // THE single Effect.provide site for the app. Lint check: a grep for
 // `ManagedRuntime.make` in lib/ or app/ should return exactly one match
@@ -24,6 +26,7 @@ const PrimitivesLayer = Layer.mergeAll(
   ActivityLive,
   PopulationLive,
   InvocationLive,
+  MatchEngineLive,
 );
 const AwarenessOnPrimitives = Layer.provide(AwarenessLive, PrimitivesLayer);
 const ObservatoryOnAwareness = Layer.provide(ObservatoryLive, AwarenessOnPrimitives);

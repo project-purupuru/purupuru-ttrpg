@@ -1,0 +1,75 @@
+# Resonance Profile — Purupuru (Master)
+#
+# The whole-game fingerprint. Decomposed from Gumi's original pitch
+# (grimoires/loa/context/10-game-pitch.md, 2026-03-23). This is the founding
+# resonance — what Purupuru IS, and what it refuses to be.
+#
+# For digs into a specific dimension, use the facet profiles (01-06).
+# This master is the default whole-game weighting.
+
+profile: purupuru-master
+status: candidate
+derived_from: grimoires/loa/context/10-game-pitch.md
+authored_resonance: Gumi (pitch) · k-hole (decomposition)
+
+# Keywords — phrases that resonate. Specificity matters.
+keywords:
+  - elemental tactics, not deckbuilding
+  - lineup order as the whole puzzle
+  - combo discovery during preparation
+  - attrition that reshapes the board every round
+  - a meta driven by real earthquakes and solar flares
+  - cards that breathe, then wake up, then play for you
+  - burn the collection to transcend it
+  - your friend's ghost sitting across the table
+  - feel the tide, never read the number
+  - familiar but infinitely deep
+  - let the Wuxing do the work
+
+# References — works that anchor the taste. Not "things liked" — things that
+# define the shape. [pitch] = named in the pitch verbatim (authoritative).
+# [candidate] = agent-proposed taste-anchor, operator to ratify.
+references:
+  - Hearthstone Battlegrounds [pitch] — hidden opponent lineup, rearrange between rounds
+  - Balatro [pitch] — combo discovery during the preparation phase
+  - Neko Atsume [pitch] — ambient tending; the world that lives while you're away
+  - Wordle [pitch] — the daily familiar ritual, shared but not competitive
+  - Wuxing / Five Phases cosmology — generative + destructive cycles as game grammar
+
+# Touchstones — concepts the game keeps returning to across every system.
+touchstones:
+  - Wuxing generative (Shēng) and destructive (Kè) cycles as the deep grammar
+  - a meta you cannot solve because reality shifts it before you can
+  - agents that are lore, not chatbots — visibly non-human, element-bound
+  - completion over accumulation — 18 cards, you finish the set
+  - discovery through attention, never through tutorial or progress bar
+  - the substrate is real (seismic, solar, air) — the game is grounded in physics
+  - feel first, visual first, explanation only if absolutely needed
+
+# Comps and why none quite fit (from the pitch).
+comps:
+  statement: >
+    Hearthstone Battlegrounds, Balatro, Neko Atsume — none of these are quite
+    right. Purupuru is what happens when a card game's meta is driven by real
+    earthquakes and solar flares, your cards evolve into AI companions, and
+    your friend's Puruhani challenges yours while you're both asleep.
+
+# Prohibited — what the game refuses to be. Equally load-bearing as the
+# positive anchors. A dig finding that pulls toward any of these is a
+# resonance MISMATCH and should be named as such.
+prohibited:
+  - gacha mechanics — there are 18 cards, you will complete the set
+  - competitive-first design — tending the garden for months without battling is a complete experience
+  - extractive framing — no floor prices, no "your collection is worth $X", no scarcity language
+  - explained design — no progress bars, no "do X to unlock Y"
+  - dashboards and visible numbers — the tide is felt, not read
+  - urgency notifications — agents never push, never create FOMO
+
+# Free-form aesthetic — the thing the game is always reaching for.
+aesthetic: >
+  Warm, contemplative, infinitely deep beneath a familiar surface. Honey-creature
+  softness wrapped around tactical rigor. A game that respects its own
+  constraints and trusts the player's attention. The Wuxing does the heavy
+  lifting; the interface stays quiet. You should feel like you already know how
+  to play within a minute, and still be discovering the system months later.
+  Nothing is explained. Everything is felt.
