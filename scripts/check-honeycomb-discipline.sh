@@ -5,13 +5,18 @@
 # app/battle. The route may iterate freely; the substrate keeps typed seams.
 
 set -euo pipefail
+# Empty service globs are intentional: the guard may ship before every
+# substrate service exists, but any service that does exist must be paired.
 shopt -s nullglob
 
-ROOT="$(git rev-parse --show-toplevel)"
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || {
+  echo "FAIL: scripts/check-honeycomb-discipline.sh must run inside a git repository"
+  exit 2
+}
 cd "$ROOT"
 
-HONEYCOMB_DIR="lib/honeycomb"
-RUNTIME="lib/runtime/runtime.ts"
+HONEYCOMB_DIR="${HONEYCOMB_DIR:-lib/honeycomb}"
+RUNTIME="${HONEYCOMB_RUNTIME:-lib/runtime/runtime.ts}"
 SERVICE_RE='^[a-z][a-z0-9]*(-[a-z0-9]+)*$'
 
 if [ ! -d "$HONEYCOMB_DIR" ]; then
@@ -28,25 +33,71 @@ if [ -n "$TSX_FILES" ]; then
   fail=1
 fi
 
-UI_IMPORTS=$(grep -RInE "(from|import|require).*['\"](react|react-dom|next|motion|framer-motion|@radix-ui|lucide-react|@/app|\\.\\./.*app/)" "$HONEYCOMB_DIR" --include="*.ts" 2>/dev/null || true)
-if [ -n "$UI_IMPORTS" ]; then
-  echo "FAIL: lib/honeycomb must not import UI/framework modules"
-  echo "$UI_IMPORTS"
+if ! command -v node >/dev/null 2>&1; then
+  echo "FAIL: node is required to scan Honeycomb TypeScript imports"
   fail=1
-fi
+else
+  if ! HONEYCOMB_DIR="$HONEYCOMB_DIR" node <<'NODE'
+const fs = require('fs');
+const path = require('path');
 
-RUNTIME_IMPORTS=$(grep -RInE "(from|import|require).*['\"]@/lib/runtime/" "$HONEYCOMB_DIR" --include="*.ts" 2>/dev/null | grep -vE "^${HONEYCOMB_DIR}/collection\\.seed\\.ts:" || true)
-if [ -n "$RUNTIME_IMPORTS" ]; then
-  echo "FAIL: lib/honeycomb runtime imports are only allowed in collection.seed.ts"
-  echo "$RUNTIME_IMPORTS"
-  fail=1
-fi
+const root = process.cwd();
+const honeycombDir = path.resolve(root, process.env.HONEYCOMB_DIR || 'lib/honeycomb');
+const collectionSeed = path.join(honeycombDir, 'collection.seed.ts');
+const errors = [];
 
-CHAIN_IMPORTS=$(grep -RInE "(from|import|require).*['\"](@solana|@metaplex-foundation|@vercel/kv)" "$HONEYCOMB_DIR" --include="*.ts" 2>/dev/null || true)
-if [ -n "$CHAIN_IMPORTS" ]; then
-  echo "FAIL: lib/honeycomb must stay chain/backend agnostic"
-  echo "$CHAIN_IMPORTS"
-  fail=1
+function walk(dir) {
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  return entries.flatMap((entry) => {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) return walk(fullPath);
+    return entry.isFile() && entry.name.endsWith('.ts') ? [fullPath] : [];
+  });
+}
+
+function importSpecifiers(source) {
+  const patterns = [
+    /(?:^|[\n;])\s*import\s+(?:type\s+)?(?:[^'";]*?\s+from\s*)?['"]([^'"]+)['"]/g,
+    /(?:^|[\n;])\s*export\s+(?:type\s+)?[^'";]*?\s+from\s*['"]([^'"]+)['"]/g,
+    /\brequire\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
+    /\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
+  ];
+  return patterns.flatMap((pattern) => Array.from(source.matchAll(pattern), (match) => match[1]));
+}
+
+function rel(file) {
+  return path.relative(root, file);
+}
+
+for (const file of walk(honeycombDir)) {
+  const source = fs.readFileSync(file, 'utf8');
+  for (const specifier of importSpecifiers(source)) {
+    if (
+      /^(react|react-dom|next|motion|framer-motion)(\/|$)/.test(specifier) ||
+      /^(@radix-ui|lucide-react)(\/|$)/.test(specifier) ||
+      specifier === '@/app' ||
+      specifier.startsWith('@/app/') ||
+      /^(\.\.\/)+.*app\//.test(specifier)
+    ) {
+      errors.push(`FAIL: lib/honeycomb must not import UI/framework modules: ${rel(file)} -> ${specifier}`);
+    }
+    if (specifier.startsWith('@/lib/runtime/') && path.resolve(file) !== collectionSeed) {
+      errors.push(`FAIL: lib/honeycomb runtime imports are only allowed in collection.seed.ts: ${rel(file)} -> ${specifier}`);
+    }
+    if (/^(@solana|@metaplex-foundation|@vercel\/kv)(\/|$)/.test(specifier)) {
+      errors.push(`FAIL: lib/honeycomb must stay chain/backend agnostic: ${rel(file)} -> ${specifier}`);
+    }
+  }
+}
+
+if (errors.length > 0) {
+  for (const error of errors) console.error(error);
+  process.exit(1);
+}
+NODE
+  then
+    fail=1
+  fi
 fi
 
 for port in "$HONEYCOMB_DIR"/*.port.ts; do
