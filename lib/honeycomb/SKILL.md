@@ -45,11 +45,20 @@ Prefer `Match` for `/battle-v2` lifecycle work. Treat `Battle` as the older sele
   have matching `*.live.ts` and `*.mock.ts` adapters, and every adapter must
   have its matching port. Empty placeholder services should not be committed.
 - When adding a new Effect service, create the `port/live/mock` trio and wire the live layer once in `lib/runtime/runtime.ts`.
+- The import scanner in `scripts/check-honeycomb-discipline.sh` is a
+  zero-dependency lexical guard: it strips comments, reads static import/export,
+  `require`, and dynamic `import()` specifiers, and intentionally avoids a
+  TypeScript parser during build bootstrap. If Honeycomb starts needing syntax
+  outside the selftest fixtures, graduate the guard to an AST-backed rule.
+- `pnpm build` runs the Honeycomb guard through `prebuild`. Use
+  `SKIP_HONEYCOMB_GUARD=1` only for an emergency hotfix when the guard itself is
+  broken, then restore the guard in the follow-up PR.
 
 ## Checks
 
 ```sh
 bash scripts/check-honeycomb-discipline.sh
+bash scripts/check-honeycomb-discipline.selftest.sh
 pnpm vitest run lib/honeycomb
 pnpm typecheck
 ```

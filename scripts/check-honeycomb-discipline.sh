@@ -3,6 +3,10 @@
 #
 # Keeps lib/honeycomb agent-readable without freezing creative work in
 # app/battle. The route may iterate freely; the substrate keeps typed seams.
+# The import scan is intentionally zero-dependency so it can run during install
+# and build bootstrap. It strips comments before a lexical import scan; graduate
+# this to a TypeScript AST rule if Honeycomb starts using complex syntax that the
+# selftest fixtures cannot cover.
 
 set -euo pipefail
 # Empty service globs are intentional: the guard may ship before every
@@ -56,13 +60,16 @@ function walk(dir) {
 }
 
 function importSpecifiers(source) {
+  const stripped = source
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:])\/\/.*$/gm, '$1');
   const patterns = [
     /(?:^|[\n;])\s*import\s+(?:type\s+)?(?:[^'";]*?\s+from\s*)?['"]([^'"]+)['"]/g,
     /(?:^|[\n;])\s*export\s+(?:type\s+)?[^'";]*?\s+from\s*['"]([^'"]+)['"]/g,
     /\brequire\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
     /\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
   ];
-  return patterns.flatMap((pattern) => Array.from(source.matchAll(pattern), (match) => match[1]));
+  return patterns.flatMap((pattern) => Array.from(stripped.matchAll(pattern), (match) => match[1]));
 }
 
 function rel(file) {
@@ -138,7 +145,7 @@ done
 if [ -f "$RUNTIME" ]; then
   for live in "$HONEYCOMB_DIR"/*.live.ts; do
     base=$(basename "$live" .live.ts)
-    pascal=$(echo "$base" | awk -F- '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2);}1' OFS='')
+    pascal=$(echo "$base" | LC_ALL=C awk -F- '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2);}1' OFS='')
     layer="${pascal}Live"
     if ! grep -qE "\\b${layer}\\b" "$RUNTIME"; then
       echo "FAIL: $layer is not referenced from $RUNTIME"

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prebuild": "pnpm check:honeycomb",
+    "prebuild": "if [ \"${SKIP_HONEYCOMB_GUARD:-0}\" != \"1\" ]; then pnpm check:honeycomb; else echo '  Honeycomb substrate guard skipped by SKIP_HONEYCOMB_GUARD=1'; fi",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
