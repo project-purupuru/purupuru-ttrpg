@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/project-purupuru/purupuru-assets/manifest.schema.json",
+  "title": "Purupuru Asset Manifest",
+  "description": "Schema for purupuru-assets MANIFEST.json. Locked at S1b for forward compatibility — S6 honors this contract when populating the actual repo.",
+  "type": "object",
+  "required": ["version", "files", "total_files", "total_bytes", "released_at"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^v?[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "Semver version of this release."
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "sha256", "bytes"],
+        "properties": {
+          "path": {
+            "type": "string",
+            "pattern": "^public/(art|brand|fonts|data/materials)/.+",
+            "description": "Repository-relative path under public/"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "bytes": { "type": "integer", "minimum": 0 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "total_files": { "type": "integer", "minimum": 0 },
+    "total_bytes": { "type": "integer", "minimum": 0 },
+    "released_at": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

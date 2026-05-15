@@ -1,0 +1,233 @@
+  /* CardPetal — modal detail view for a single card.
+     Backdrop blurs the arena; petal blooms into center with a subtle
+     element-tinted halo. */
+
+  .petal-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 250;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-lg);
+    background: oklch(0.15 0.01 85 / 0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    cursor: zoom-out;
+  }
+
+  .petal {
+    width: min(360px, 92vw);
+    max-height: 90vh;
+    background: var(--puru-cloud-bright);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow:
+      0 24px 80px oklch(0 0 0 / 0.4),
+      0 4px 16px oklch(0 0 0 / 0.2);
+    cursor: default;
+    position: relative;
+  }
+
+  /* Element-tinted halo — bleeds out from the card's color */
+  .petal::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background: radial-gradient(
+      ellipse at 50% 30%,
+      var(--halo-tint, oklch(0.85 0.12 85 / 0.5)) 0%,
+      transparent 60%
+    );
+    z-index: -1;
+    filter: blur(20px);
+  }
+  .petal[data-element='wood']  { --halo-tint: oklch(0.81 0.144 112.7 / 0.45); }
+  .petal[data-element='fire']  { --halo-tint: oklch(0.64 0.181 28.4 / 0.5); }
+  .petal[data-element='earth'] { --halo-tint: oklch(0.85 0.153 83.8 / 0.45); }
+  .petal[data-element='metal'] { --halo-tint: oklch(0.52 0.126 309.7 / 0.45); }
+  .petal[data-element='water'] { --halo-tint: oklch(0.53 0.180 266.2 / 0.45); }
+
+  .petal-header {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-md) var(--space-lg);
+    background: oklch(from var(--halo-tint, oklch(0.85 0.12 85 / 1)) l c h / 0.15);
+    border-bottom: 1px solid oklch(from var(--puru-ink-ghost) l c h / 0.15);
+  }
+  .petal-kanji {
+    font-family: var(--font-card);
+    font-size: clamp(2.5rem, 9vw, 3.5rem);
+    line-height: 1;
+    color: var(--puru-ink-rich);
+  }
+  .petal-kanji[data-element='wood']  { color: var(--puru-wood-vivid); }
+  .petal-kanji[data-element='fire']  { color: var(--puru-fire-vivid); }
+  .petal-kanji[data-element='earth'] { color: var(--puru-earth-vivid); }
+  .petal-kanji[data-element='metal'] { color: var(--puru-metal-vivid); }
+  .petal-kanji[data-element='water'] { color: var(--puru-water-vivid); }
+  .petal-titles { display: flex; flex-direction: column; gap: 2px; }
+  .petal-caretaker {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: 700;
+    color: var(--puru-ink-rich);
+    letter-spacing: -0.01em;
+  }
+  .petal-type {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--puru-ink-soft);
+  }
+  .petal-virtue {
+    font-family: var(--font-card);
+    font-size: var(--text-2xl);
+    color: var(--puru-honey-rich);
+    cursor: help;
+  }
+
+  .petal-art-wrap {
+    position: relative;
+    aspect-ratio: 5 / 7;
+    overflow: hidden;
+    background: oklch(0.95 0.005 85);
+  }
+  .petal-art-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    /* Soft, desaturated atmosphere behind the character */
+    opacity: 0.4;
+    filter: saturate(0.7) blur(4px);
+  }
+  .petal-art {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center bottom;
+    /* Character pops over the bg via drop-shadow + subtle overshoot */
+    filter: drop-shadow(0 6px 14px oklch(0 0 0 / 0.35));
+  }
+
+  /* Power badge — operator-feedback layer (was inline placeholder "3"
+     in old card-template chrome) */
+  .petal-power-badge {
+    position: absolute;
+    top: var(--space-sm);
+    left: var(--space-sm);
+    display: inline-flex;
+    align-items: baseline;
+    gap: 2px;
+    padding: 4px 10px 4px 12px;
+    border-radius: var(--radius-full);
+    background: oklch(from var(--puru-honey-rich) l c h / 0.92);
+    color: oklch(0.16 0.01 85);
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: var(--text-md);
+    font-feature-settings: 'tnum' 1;
+    box-shadow: 0 4px 12px oklch(0 0 0 / 0.25);
+    z-index: 4;
+  }
+  .petal-power-badge__times {
+    font-size: var(--text-2xs);
+    opacity: 0.7;
+    margin-left: 1px;
+  }
+
+  /* Sheng/Ke cycle strip — what this element generates and overcomes.
+     Bottom strip overlaid on the art panel (replaces placeholder bear
+     icons in the prior template). */
+  .petal-cycle-strip {
+    position: absolute;
+    bottom: var(--space-xs);
+    right: var(--space-xs);
+    display: flex;
+    gap: var(--space-2xs);
+    padding: 6px 8px;
+    border-radius: var(--radius-md);
+    background: oklch(from var(--puru-cloud-bright) l c h / 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 4;
+  }
+  .petal-cycle-pair {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    cursor: help;
+  }
+  .petal-cycle-arrow {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--puru-ink-soft);
+  }
+  .petal-cycle-kanji {
+    font-family: var(--font-card);
+    font-size: var(--text-md);
+    line-height: 1;
+  }
+  .petal-cycle-kanji[data-element='wood']  { color: var(--puru-wood-vivid); }
+  .petal-cycle-kanji[data-element='fire']  { color: var(--puru-fire-vivid); }
+  .petal-cycle-kanji[data-element='earth'] { color: var(--puru-earth-vivid); }
+  .petal-cycle-kanji[data-element='metal'] { color: var(--puru-metal-vivid); }
+  .petal-cycle-kanji[data-element='water'] { color: var(--puru-water-vivid); }
+
+  .petal-footer {
+    padding: var(--space-md) var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+  /* Old .petal-power footer block removed — the inline power badge
+     in the art panel replaces it (operator feedback 2026-05-12). */
+  .petal-name {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: var(--text-md);
+    font-weight: 600;
+    color: var(--puru-ink-base);
+  }
+  .petal-flavor {
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-style: italic;
+    color: var(--puru-ink-dim);
+    line-height: 1.4;
+  }
+  .petal-close {
+    align-self: flex-end;
+    margin-top: var(--space-xs);
+    padding: var(--space-2xs) var(--space-md);
+    border: 1px solid oklch(from var(--puru-ink-ghost) l c h / 0.2);
+    border-radius: var(--radius-full);
+    background: transparent;
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    text-transform: lowercase;
+    letter-spacing: 0.08em;
+    color: var(--puru-ink-soft);
+    cursor: pointer;
+    transition: background 160ms, color 160ms;
+  }
+  .petal-close:hover {
+    background: oklch(from var(--puru-ink-ghost) l c h / 0.1);
+    color: var(--puru-ink-rich);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .petal::before { filter: none; }
+  }
